@@ -1,0 +1,26 @@
+[general]
+name=Dip Strike Tools
+about=Tools to digitize and manage dip and strike data from scanned geological maps.
+category=Database
+hasProcessingProvider=False
+description=Tools to digitize and manage dip and strike data from scanned geological maps.
+icon=resources/images/default_icon.png
+tags=geology, dip, strike
+
+# credits and contact
+author=Francesco Pennica
+email=labgis@igag.cnr.it
+homepage=https://gitlab.com/CNR-IGAG/dip_strike_tools/
+repository=https://gitlab.com/CNR-IGAG/dip_strike_tools/
+tracker=https://gitlab.com/CNR-IGAG/dip_strike_tools//issues/
+
+# experimental flag
+deprecated=False
+experimental=True
+qgisMinimumVersion=3.40
+qgisMaximumVersion=3.99
+supportsQt6=True
+
+# versioning
+version=0.1.0
+changelog=

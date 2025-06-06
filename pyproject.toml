@@ -1,0 +1,39 @@
+[project]
+name = "dip-strike-tools"
+description = "Tools to digitize and manage dip and strike data from scanned geological maps"
+dynamic = ["version"]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0.1",
+    "ruff>=0.8.2",
+    "esbonio>=0.16.5",
+]
+testing = [
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "pytest-qgis>=2.1.0",
+]
+ci = [
+    "qgis-plugin-ci>=2.8.10",
+]
+docs = [
+    "sphinx-rtd-theme>=3.0.2",
+]
+
+[tool.qgis-plugin-ci]
+plugin_name = "Dip Strike Tools"
+plugin_path = "dip_strike_tools"
+project_slug = "dip-strike-tools"
+github_organization_slug = "CNR-IGAG"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 119
+indent-width = 4
+
+[tool.setuptools]
+packages = ["dip_strike_tools"]
