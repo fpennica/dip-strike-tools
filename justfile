@@ -42,15 +42,18 @@ trans-update:
 trans-compile:
     uv run lrelease ./dip_strike_tools/i18n/MzSTools_it.ts
 
+docs-autobuild:
+    uv run sphinx-autobuild -b html docs/ docs/_build --port 8000
+
 build-docs-html:
-    uv run sphinx-build -b html -j auto -d help/_build/cache -q help/source help/_build/html
+    uv run sphinx-build -b html -j auto -d docs/_build/cache -q docs docs/_build/html
 
 build-docs-pdf:
     #!/bin/bash
     set -e
-    uv run sphinx-build -b latex -j auto -d help/_build/cache -q help/source help/_build/latex
-    pushd help/_build/latex
-    latexmk -pdf -dvi- -ps- -interaction=nonstopmode -halt-on-error MzSTools.tex
+    uv run sphinx-build -b latex -j auto -d docs/_build/cache -q docs docs/_build/latex
+    pushd docs/_build/latex
+    latexmk -pdf -dvi- -ps- -interaction=nonstopmode -halt-on-error dipstriketools.tex
     popd
 
 # Run tests with pytest and coverage info

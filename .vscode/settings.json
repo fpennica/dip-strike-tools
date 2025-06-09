@@ -1,5 +1,6 @@
 {
     // Editor
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.bracketPairColorization.enabled": true,
     "editor.guides.bracketPairs": "active",
     "files.associations": {
@@ -18,6 +19,7 @@
     "[markdown]": {
         "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
         "files.trimTrailingWhitespace": false,
+        "rewrap.autoWrap.enabled": false,
     },
     // Python
     "python.analysis.autoFormatStrings": false, // breaking PyQt translation
@@ -41,5 +43,8 @@
     // Linter
     
     // Extensions
-    "autoDocstring.docstringFormat": "sphinx"
+    "autoDocstring.docstringFormat": "sphinx",
+    "esbonio.sphinx.confDir": "${workspaceFolder}/docs",
+    "rewrap.wrappingColumn": 119,
+    "rewrap.autoWrap.enabled": true,
 }

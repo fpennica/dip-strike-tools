@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from qgis.core import QgsBearingUtils, QgsCoordinateTransformContext
+from qgis.core import Qgis, QgsBearingUtils, QgsCoordinateReferenceSystem, QgsCoordinateTransformContext
 from qgis.gui import QgsMapCanvas, QgsMapToolPan
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QCoreApplication, Qt
@@ -20,6 +20,9 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         self.iface = iface
         self.log = PlgLogger().log
+
+        # Set filters for feature layer combobox to only show point layers
+        self.cbo_feature_layer.setFilters(Qgis.LayerFilter.PointLayer)
 
         self.dial_azimuth = QDial()
 
@@ -60,7 +63,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.azimuth_spinbox.setMinimum(0.0)
         self.azimuth_spinbox.setMaximum(360.0)
         self.azimuth_spinbox.setDecimals(2)  # Allow 2 decimal places
-        self.azimuth_spinbox.setSingleStep(0.1)
+        self.azimuth_spinbox.setSingleStep(1)
         self.azimuth_spinbox.setValue(0.0)
         self.azimuth_spinbox.setSuffix("°")
         self.azimuth_spinbox.setToolTip(
@@ -83,7 +86,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # map canvas
         self.map_canvas_widget = QgsMapCanvas(self)
         # set crs to match the current map canvas
-        destination_crs = self.iface.mapCanvas().mapSettings().destinationCrs()  # type: ignore
+        destination_crs: QgsCoordinateReferenceSystem = self.iface.mapCanvas().mapSettings().destinationCrs()  # type: ignore
+        self.lbl_crs.setText(destination_crs.authid())
         self.log(
             message=f"Setting map canvas CRS to: {destination_crs.authid()}",
             log_level=4,
@@ -120,6 +124,14 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 destination_crs, QgsCoordinateTransformContext(), clicked_point
             )
             self.log(f"North bearing: {self._true_north_bearing}", log_level=4)
+            crs_type = destination_crs.type()
+            if crs_type == Qgis.CrsType.Projected:
+                self.lbl_coord_x.setText(f"X: {clicked_point.x():.2f}")
+                self.lbl_coord_y.setText(f"Y: {clicked_point.y():.2f}")
+            else:
+                self.lbl_coord_x.setText(f"Lon: {clicked_point.x():.4f}")
+                self.lbl_coord_y.setText(f"Lat: {clicked_point.y():.4f}")
+            self.lbl_north_bearing.setText(f"{self._true_north_bearing:.2f}°")
         else:
             canvas_center = self.map_canvas_widget.extent().center()
             self.dip_strike_item.setCenter(canvas_center)
@@ -131,6 +143,14 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 destination_crs, QgsCoordinateTransformContext(), canvas_center
             )
             self.log(f"North bearing: {self._true_north_bearing}", log_level=4)
+            crs_type = destination_crs.type()
+            if crs_type == Qgis.CrsType.Projected:
+                self.lbl_coord_x.setText(f"X: {canvas_center.x():.2f}")
+                self.lbl_coord_y.setText(f"Y: {canvas_center.y():.2f}")
+            else:
+                self.lbl_coord_x.setText(f"Lon: {canvas_center.x():.4f}")
+                self.lbl_coord_y.setText(f"Lat: {canvas_center.y():.4f}")
+            self.lbl_north_bearing.setText(f"{self._true_north_bearing:.2f}°")
 
         # Ensure the marker is visible and force updates
         self.dip_strike_item.setVisible(True)
@@ -148,6 +168,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # Connect azimuth controls to marker
         self.update_marker_azimuth()
+
+        self.chk_true_north.toggled.connect(self.update_marker_azimuth)
 
     def update_spinbox_from_dial(self, dial_value):
         """Update the spinbox when dial value changes"""
@@ -209,9 +231,23 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Refresh the canvas to show changes
             self.map_canvas_widget.refresh()
 
-            self.log(
-                f"Adjusted azimuth relative to true North: {strike_azimuth - self._true_north_bearing}°", log_level=4
+            is_true_north_adjust_enabled = self.chk_true_north.isChecked()
+            adjusted_strike_azimuth = (
+                strike_azimuth
+                if not is_true_north_adjust_enabled
+                else (strike_azimuth - self._true_north_bearing) % 360
             )
+            adjusted_dip_azimuth = (
+                (strike_azimuth + 90) % 360
+                if not is_true_north_adjust_enabled
+                else (strike_azimuth + 90 - self._true_north_bearing) % 360
+            )
+            self.line_strike.setText(f"{adjusted_strike_azimuth:.2f}")
+            self.line_dip.setText(f"{adjusted_dip_azimuth:.2f}")
+
+            # self.log(
+            #     f"Adjusted azimuth relative to true North: {strike_azimuth - self._true_north_bearing}°", log_level=4
+            # )
 
     def get_azimuth_value(self):
         """Get the current azimuth value as a float"""
