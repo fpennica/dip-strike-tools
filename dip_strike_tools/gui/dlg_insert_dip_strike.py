@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from qgis.core import Qgis, QgsBearingUtils, QgsCoordinateReferenceSystem, QgsCoordinateTransformContext
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsBearingUtils,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransformContext,
+)
 from qgis.gui import QgsMapCanvas, QgsMapToolPan
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QCoreApplication, Qt
@@ -20,6 +26,9 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         self.iface = iface
         self.log = PlgLogger().log
+
+        # Store original layer opacity values for restoration on close
+        self.original_layer_opacities = {}
 
         # Set filters for feature layer combobox to only show point layers
         self.cbo_feature_layer.setFilters(Qgis.LayerFilter.PointLayer)
@@ -93,11 +102,16 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             log_level=4,
         )
         self.map_canvas_widget.setDestinationCrs(destination_crs)
-        self.grp_preview.layout().addWidget(self.map_canvas_widget)
+        # self.grp_preview.layout().addWidget(self.map_canvas_widget)
+        layout = self.grp_preview.layout()
+        layout.insertWidget(0, self.map_canvas_widget)
 
         self.map_canvas_widget.enableAntiAliasing(True)
         self.map_canvas_widget.setLayers(self.iface.mapCanvas().layers())  # type: ignore
         self.map_canvas_widget.setExtent(self.iface.mapCanvas().extent())  # type: ignore
+
+        # Store original opacity values for all layers
+        self.store_original_layer_opacities()
 
         if clicked_point:
             self.map_canvas_widget.setCenter(clicked_point)
@@ -171,6 +185,20 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         self.chk_true_north.toggled.connect(self.update_marker_azimuth)
 
+        # Set icon for opacity label using setPixmap
+        icon = QgsApplication.getThemeIcon("mActionIncreaseContrast.svg")
+        pixmap = icon.pixmap(16, 16)  # 16x16 pixel size
+        self.label_opacity.setPixmap(pixmap)
+        self.label_opacity.setToolTip("Layer Opacity")
+
+        # Connect opacity widget to update all layers opacity
+        # self.opacity_widget.opacityChanged.connect(self.update_all_layers_opacity)
+        self.opacity_slider.valueChanged.connect(self.update_all_layers_opacity)
+
+        # Connect dialog signals to handle cleanup when dialog is closed
+        self.accepted.connect(self.cleanup_on_close)
+        self.rejected.connect(self.cleanup_on_close)
+
     def update_spinbox_from_dial(self, dial_value):
         """Update the spinbox when dial value changes"""
         azimuth_value = float(dial_value)
@@ -242,8 +270,13 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 if not is_true_north_adjust_enabled
                 else (strike_azimuth + 90 - self._true_north_bearing) % 360
             )
-            self.line_strike.setText(f"{adjusted_strike_azimuth:.2f}")
-            self.line_dip.setText(f"{adjusted_dip_azimuth:.2f}")
+            self.line_strike.setText(f"{adjusted_strike_azimuth:.2f}°")
+            self.line_dip.setText(f"{adjusted_dip_azimuth:.2f}°")
+            msg_true_north = self.tr("* Values relative to true North")
+            msg_top_map = self.tr("* Values relative to top of the map/screen")
+            self.label_true_north_relative.setText(
+                f"{msg_true_north if is_true_north_adjust_enabled else msg_top_map}"
+            )
 
             # self.log(
             #     f"Adjusted azimuth relative to true North: {strike_azimuth - self._true_north_bearing}°", log_level=4
@@ -276,16 +309,126 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Force canvas refresh
             self.map_canvas_widget.refresh()
 
-    def closeEvent(self, event):
-        """Handle dialog close event to clean up marker"""
+    def cleanup_on_close(self):
+        """Handle cleanup when dialog is closed via OK/Cancel buttons"""
+        self.log(message="Dialog closed via OK/Cancel - performing cleanup", log_level=4)
         try:
+            # Restore original layer opacities before closing
+            self.restore_original_layer_opacities()
+
+            # Clean up the marker
             if hasattr(self, "dip_strike_item") and self.dip_strike_item:
                 self.dip_strike_item.cleanup()
                 self.log(message="Marker cleaned up on dialog close", log_level=4)
         except Exception as e:
-            self.log(message=f"Error cleaning up marker: {e}", log_level=1)
+            self.log(message=f"Error during dialog cleanup: {e}", log_level=1)
 
+    def closeEvent(self, event):
+        """Handle dialog close event (when closed via window close button)"""
+        self.log(message="Dialog closed via window close button - performing cleanup", log_level=4)
+        self.cleanup_on_close()
         super().closeEvent(event)
 
     # def showEvent(self, e):
     #     pass
+
+    def tr(self, message: str) -> str:
+        """Get the translation for a string using Qt translation API.
+
+        :param message: string to be translated.
+        :type message: str
+
+        :returns: Translated version of message.
+        :rtype: str
+        """
+        return QCoreApplication.translate(self.__class__.__name__, message)
+
+    def store_original_layer_opacities(self):
+        """Store the original opacity values of all layers for restoration on close"""
+        try:
+            layers = self.map_canvas_widget.layers()
+            if not layers:
+                self.log(
+                    message="No layers found to store opacity values for",
+                    log_level=4,
+                )
+                return
+
+            for layer in layers:
+                if hasattr(layer, "opacity"):
+                    layer_id = layer.id()
+                    original_opacity = layer.opacity()
+                    self.original_layer_opacities[layer_id] = original_opacity
+                    self.log(
+                        message=f"Stored original opacity for layer '{layer.name()}': {original_opacity * 100:.1f}%",
+                        log_level=4,
+                    )
+
+            self.log(
+                message=f"Stored original opacity values for {len(self.original_layer_opacities)} layers",
+                log_level=4,
+            )
+        except Exception as e:
+            self.log(
+                message=f"Error storing original layer opacities: {e}",
+                log_level=1,
+            )
+
+    def restore_original_layer_opacities(self):
+        """Restore the original opacity values of all layers"""
+        try:
+            if not self.original_layer_opacities:
+                self.log(
+                    message="No original opacity values stored, skipping restoration",
+                    log_level=4,
+                )
+                return
+
+            layers = self.map_canvas_widget.layers()
+            restored_count = 0
+
+            for layer in layers:
+                if hasattr(layer, "setOpacity") and hasattr(layer, "id"):
+                    layer_id = layer.id()
+                    if layer_id in self.original_layer_opacities:
+                        original_opacity = self.original_layer_opacities[layer_id]
+                        layer.setOpacity(original_opacity)
+                        restored_count += 1
+                        self.log(
+                            message=f"Restored opacity for layer '{layer.name()}' to {original_opacity * 100:.1f}%",
+                            log_level=4,
+                        )
+
+            if restored_count > 0:
+                # Refresh the canvas to show the changes
+                self.map_canvas_widget.refresh()
+                self.log(
+                    message=f"Restored original opacity values for {restored_count} layers",
+                    log_level=4,
+                )
+        except Exception as e:
+            self.log(
+                message=f"Error restoring original layer opacities: {e}",
+                log_level=1,
+            )
+
+    def update_all_layers_opacity(self, opacity_value):
+        """Update opacity for all layers in the map canvas"""
+        opacity_value = opacity_value / 100.0  # Convert from percentage (0-100) to 0-1 range
+        try:
+            # Get all layers from the map canvas
+            layers = self.map_canvas_widget.layers()
+
+            # Update opacity for each layer
+            for layer in layers:
+                if hasattr(layer, "setOpacity"):
+                    layer.setOpacity(opacity_value)  # Use the original value (0-1 range)
+
+            # Refresh the canvas to show the changes
+            self.map_canvas_widget.refresh()
+
+        except Exception as e:
+            self.log(
+                message=f"Error updating layer opacity: {e}",
+                log_level=1,
+            )
