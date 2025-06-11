@@ -6,6 +6,8 @@ from qgis.core import (
     QgsBearingUtils,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransformContext,
+    QgsProject,
+    QgsSettings,
 )
 from qgis.gui import QgsMapCanvas, QgsMapToolPan
 from qgis.PyQt import uic
@@ -27,14 +29,32 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.iface = iface
         self.log = PlgLogger().log
 
+        # Flag to prevent saving settings during initialization
+        self._initializing = True
+
         # Store original layer opacity values for restoration on close
         self.original_layer_opacities = {}
 
         # Set filters for feature layer combobox to only show point layers
         self.cbo_feature_layer.setFilters(Qgis.LayerFilter.PointLayer)
+        self.cbo_feature_layer.setLayer(None)
+        self.cbo_feature_layer.layerChanged.connect(self.check_feature_layer)
+
+        # Initially disable all optional fields since no layer is selected
+        self._disable_all_optional_fields()
+
+        # Layer tools buttons
+        self.btn_configure_layer.clicked.connect(self.open_feature_layer_config_dialog)
+        # self.btn_configure_layer.setText("⚙")
+        self.btn_configure_layer.setIcon(QgsApplication.getThemeIcon("mActionEditTable.svg"))
+        self.btn_configure_layer.setToolTip("Configure field mappings for this layer")
+        self.btn_configure_layer.setEnabled(False)  # Initially disabled
+        self.btn_new_layer.clicked.connect(self.create_new_feature_layer)
+        # self.btn_new_layer.setText("+")
+        self.btn_new_layer.setIcon(QgsApplication.getThemeIcon("mIconModelInput.svg"))
+        self.btn_new_layer.setToolTip("Create a new layer for dip/strike features")
 
         self.dial_azimuth = QDial()
-
         self.dial_azimuth.setFixedHeight(80)
         self.dial_azimuth.setFixedWidth(80)
 
@@ -184,6 +204,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.update_marker_azimuth()
 
         self.chk_true_north.toggled.connect(self.update_marker_azimuth)
+        self.chk_true_north.toggled.connect(self._save_ui_settings)
 
         # Set icon for opacity label using setPixmap
         icon = QgsApplication.getThemeIcon("mActionIncreaseContrast.svg")
@@ -198,6 +219,454 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Connect dialog signals to handle cleanup when dialog is closed
         self.accepted.connect(self.cleanup_on_close)
         self.rejected.connect(self.cleanup_on_close)
+
+        # Customize dialog buttons
+        self._setup_dialog_buttons()
+
+        # Restore the last used feature layer and UI settings
+        self._restore_last_feature_layer()
+        self._restore_ui_settings()
+
+        # Initialization complete - now UI settings changes should be saved
+        self._initializing = False
+
+    def check_feature_layer(self):
+        """Check if a feature layer is selected and enable/disable controls accordingly"""
+        required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
+        optional_fields = ["geo_type", "age", "lithology", "notes"]
+        layer = self.cbo_feature_layer.currentLayer()
+
+        if layer and layer.isValid():
+            # Enable the configure button when a valid layer is selected
+            self.btn_configure_layer.setEnabled(True)
+
+            self.log(
+                message=f"Selected feature layer: {layer.name()}",
+                log_level=4,
+            )
+            # check if layer is already configured
+            if not layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer":
+                self.log(
+                    message=f"Layer '{layer.name()}' is not configured for dip/strike features",
+                    log_level=4,
+                )
+                # check if layer has the required fields
+                missing_required_fields = [
+                    field for field in required_fields if layer.fields().lookupField(field) == -1
+                ]
+                present_optional_fields = [
+                    field for field in optional_fields if layer.fields().lookupField(field) != -1
+                ]
+
+                if not missing_required_fields:
+                    # Set custom property to mark layer as configured
+                    layer.setCustomProperty("dip_strike_tools/layer_role", "dip_strike_feature_layer")
+                    self.log(
+                        message=f"Layer '{layer.name()}' configured for dip/strike features",
+                        log_level=4,
+                    )
+                    # Set custom properties to map the fields
+                    for field in required_fields:
+                        layer.setCustomProperty(f"dip_strike_tools/{field}", field)
+                    for field in present_optional_fields:
+                        layer.setCustomProperty(f"dip_strike_tools/{field}", field)
+                else:
+                    self.log(
+                        message=f"Layer '{layer.name()}' is missing required fields: {', '.join(missing_required_fields)}",
+                        log_level=1,
+                    )
+                    self.log(
+                        message=f"Optional fields present: {', '.join(present_optional_fields)}",
+                        log_level=4,
+                    )
+                    # Automatically open the field mapping dialog if missing required fields
+                    self._auto_open_field_config_dialog(layer, missing_required_fields)
+
+            else:
+                self.log(
+                    message=f"Layer '{layer.name()}' is already configured for dip/strike features",
+                    log_level=4,
+                )
+                # Verify the configuration is still valid
+                mapped_fields = []
+                for field_key in required_fields + optional_fields:
+                    mapped_field = layer.customProperty(f"dip_strike_tools/{field_key}", "")
+                    if mapped_field and layer.fields().lookupField(mapped_field) != -1:
+                        mapped_fields.append(f"{field_key} → {mapped_field}")
+
+                if mapped_fields:
+                    self.log(
+                        message=f"Current field mappings: {', '.join(mapped_fields)}",
+                        log_level=4,
+                    )
+
+            # Update state of optional fields based on mapping configuration
+            self._update_optional_fields_state(layer)
+
+        else:
+            # Disable the configure button when no layer is selected
+            self.btn_configure_layer.setEnabled(False)
+
+            # Disable all optional fields when no layer is selected
+            self._disable_all_optional_fields()
+
+            self.log(
+                message="No valid feature layer selected",
+                log_level=4,
+            )
+
+        # Update Save button state based on layer configuration
+        current_layer = self.cbo_feature_layer.currentLayer()
+
+        # Save the current layer selection for future use
+        self._save_last_feature_layer(current_layer)
+
+        self._update_save_button_state(current_layer)
+
+    def _update_optional_fields_state(self, layer):
+        """Update state of optional fields based on layer field mappings.
+
+        :param layer: The layer to check for field mappings
+        :type layer: QgsVectorLayer
+        """
+        # Define mapping between field keys and UI widgets
+        field_widgets = {
+            "geo_type": self.cbo_geo_type,
+            "age": self.line_age,
+            "lithology": self.text_litho,
+            "notes": self.text_notes,
+        }
+
+        enabled_count = 0
+
+        for field_key, widget in field_widgets.items():
+            # Check if this optional field is mapped for the current layer
+            mapped_field = layer.customProperty(f"dip_strike_tools/{field_key}", "")
+            is_mapped = bool(mapped_field and layer.fields().lookupField(mapped_field) != -1)
+
+            # Enable/disable the widget based on mapping status
+            widget.setEnabled(is_mapped)
+
+            if is_mapped:
+                enabled_count += 1
+                # Clear placeholder text for enabled fields
+                if hasattr(widget, "setPlaceholderText"):
+                    widget.setPlaceholderText("")
+                elif hasattr(widget, "setPlainText") and not widget.toPlainText():
+                    # For QTextEdit, clear if empty
+                    widget.setPlainText("")
+                elif widget == self.cbo_geo_type:
+                    # For combo box, ensure it's populated normally
+                    pass  # TODO: Handle combo box population
+
+                self.log(
+                    message=f"Enabled optional field: {field_key} (mapped to '{mapped_field}')",
+                    log_level=4,
+                )
+            else:
+                # Set placeholder text for disabled fields
+                placeholder_text = "Field not configured for feature layer"
+                if hasattr(widget, "setPlaceholderText"):
+                    widget.setPlaceholderText(placeholder_text)
+                elif hasattr(widget, "setPlainText"):
+                    # For QTextEdit, clear content when disabled
+                    widget.setPlainText("")
+                elif widget == self.cbo_geo_type:
+                    # For combo box, clear items and add placeholder item
+                    widget.clear()
+                    widget.addItem(placeholder_text)
+
+                self.log(
+                    message=f"Disabled optional field: {field_key} (not mapped)",
+                    log_level=4,
+                )
+
+        # The Optional Data group box remains always visible
+        self.groupBox_3.setVisible(True)
+
+        self.log(
+            message=f"Optional Data section: {enabled_count} field(s) enabled, {len(field_widgets) - enabled_count} disabled",
+            log_level=4,
+        )
+
+    def _disable_all_optional_fields(self):
+        """Disable all optional fields and show placeholder text."""
+        # Define all optional field widgets
+        field_widgets = {
+            "geo_type": self.cbo_geo_type,
+            "age": self.line_age,
+            "lithology": self.text_litho,
+            "notes": self.text_notes,
+        }
+
+        # Disable all widgets and set placeholder text
+        for field_key, widget in field_widgets.items():
+            widget.setEnabled(False)
+            placeholder_text = "No layer selected"
+
+            if hasattr(widget, "setPlaceholderText"):
+                widget.setPlaceholderText(placeholder_text)
+            elif hasattr(widget, "setPlainText"):
+                # For QTextEdit, clear content
+                widget.setPlainText("")
+            elif widget == self.cbo_geo_type:
+                # For combo box, clear and add placeholder item
+                widget.clear()
+                widget.addItem(placeholder_text)
+
+        # Keep the Optional Data group box visible for consistent layout
+        self.groupBox_3.setVisible(True)
+
+        self.log(
+            message="All optional fields disabled (no layer selected)",
+            log_level=4,
+        )
+
+    def _setup_dialog_buttons(self):
+        """Setup dialog buttons with custom text and initial state."""
+        # Get reference to OK button and rename it to "Save"
+        self.save_button = self.buttonBox.button(self.buttonBox.StandardButton.Ok)
+        if self.save_button:
+            self.save_button.setText("Save")
+            self.save_button.setToolTip("Save dip/strike data to the selected feature layer")
+            # Initially disable the Save button since no layer is configured
+            self.save_button.setEnabled(False)
+            self.log(
+                message="Save button initialized and disabled (no layer configured)",
+                log_level=4,
+            )
+
+        # Get reference to Cancel button for consistency
+        self.cancel_button = self.buttonBox.button(self.buttonBox.StandardButton.Cancel)
+        if self.cancel_button:
+            self.cancel_button.setToolTip("Cancel and close dialog without saving")
+
+    def _save_last_feature_layer(self, layer):
+        """Save the currently selected feature layer to settings for future use.
+
+        :param layer: The layer to remember
+        :type layer: QgsVectorLayer or None
+        """
+        settings = QgsSettings()
+        settings.beginGroup("dip_strike_tools")
+
+        # Get the currently saved layer ID to avoid unnecessary writes
+        current_saved_id = settings.value("last_feature_layer_id", "")
+
+        if layer and layer.isValid():
+            # Only save if the layer has actually changed
+            if layer.id() != current_saved_id:
+                # Save both layer ID and name for better recovery
+                settings.setValue("last_feature_layer_id", layer.id())
+                settings.setValue("last_feature_layer_name", layer.name())
+
+                self.log(
+                    message=f"Saved last used feature layer: {layer.name()} (ID: {layer.id()})",
+                    log_level=4,
+                )
+        else:
+            # Clear the saved layer if None is selected (only if something was saved before)
+            if current_saved_id:
+                settings.remove("last_feature_layer_id")
+                settings.remove("last_feature_layer_name")
+
+                self.log(
+                    message="Cleared saved feature layer (no layer selected)",
+                    log_level=4,
+                )
+
+        settings.endGroup()
+
+    def _restore_last_feature_layer(self):
+        """Restore the last used feature layer from settings if it still exists."""
+        settings = QgsSettings()
+        settings.beginGroup("dip_strike_tools")
+
+        last_layer_id = settings.value("last_feature_layer_id", "")
+        last_layer_name = settings.value("last_feature_layer_name", "")
+
+        settings.endGroup()
+
+        if not last_layer_id:
+            self.log(
+                message="No previously used feature layer found in settings",
+                log_level=4,
+            )
+            return
+
+        # Try to find the layer by ID first (most reliable)
+        project = QgsProject.instance()
+        if not project:
+            self.log(
+                message="No QGIS project instance available",
+                log_level=2,
+            )
+            return
+
+        all_layers = project.mapLayers()
+        target_layer = None
+
+        # First try to find by exact ID match
+        if last_layer_id in all_layers:
+            layer = all_layers[last_layer_id]
+            # Verify it's still a point layer
+            if layer.geometryType() == 0:  # Point geometry
+                target_layer = layer
+                self.log(
+                    message=f"Found last used layer by ID: {layer.name()} (ID: {layer.id()})",
+                    log_level=4,
+                )
+
+        # If not found by ID, try to find by name as fallback
+        if not target_layer and last_layer_name:
+            for layer_id, layer in all_layers.items():
+                if layer.name() == last_layer_name and layer.geometryType() == 0:  # Point geometry
+                    target_layer = layer
+                    self.log(
+                        message=f"Found last used layer by name: {layer.name()} (ID: {layer.id()})",
+                        log_level=4,
+                    )
+                    break
+
+        if target_layer:
+            # Set the layer in the combo box
+            self.cbo_feature_layer.setLayer(target_layer)
+            self.log(
+                message=f"Restored last used feature layer: {target_layer.name()}",
+                log_level=3,
+            )
+        else:
+            self.log(
+                message=f"Last used feature layer '{last_layer_name}' (ID: {last_layer_id}) no longer exists",
+                log_level=4,
+            )
+            # Clear the saved settings since the layer no longer exists
+            self._save_last_feature_layer(None)
+
+    def _save_ui_settings(self):
+        """Save UI settings to QSettings for future use."""
+        # Don't save settings during initialization
+        if getattr(self, "_initializing", True):
+            return
+
+        settings = QgsSettings()
+        settings.beginGroup("dip_strike_tools")
+
+        # Save only the true north checkbox state
+        settings.setValue("true_north_enabled", self.chk_true_north.isChecked())
+
+        settings.endGroup()
+
+        self.log(
+            message=f"Saved UI settings - True North: {self.chk_true_north.isChecked()}",
+            log_level=4,
+        )
+
+    def _restore_ui_settings(self):
+        """Restore UI settings from QSettings."""
+        settings = QgsSettings()
+        settings.beginGroup("dip_strike_tools")
+
+        # Restore only the true north checkbox state (default to True if not found)
+        true_north_enabled = settings.value("true_north_enabled", True, type=bool)
+
+        # Clean up old settings that are no longer saved
+        old_settings = ["strike_mode_selected", "last_azimuth_value", "last_dip_value"]
+        for old_setting in old_settings:
+            if settings.contains(old_setting):
+                settings.remove(old_setting)
+                self.log(
+                    message=f"Removed old UI setting: {old_setting}",
+                    log_level=4,
+                )
+
+        settings.endGroup()
+
+        # Temporarily disconnect signals to avoid triggering update events during restoration
+        self.chk_true_north.toggled.disconnect()
+
+        # Restore only the true north checkbox value
+        self.chk_true_north.setChecked(true_north_enabled)
+
+        # Reconnect the signal for true north checkbox
+        self.chk_true_north.toggled.connect(self.update_marker_azimuth)
+        self.chk_true_north.toggled.connect(self._save_ui_settings)
+
+        self.log(
+            message=f"Restored UI settings - True North: {true_north_enabled}",
+            log_level=4,
+        )
+
+    def _update_save_button_state(self, layer=None):
+        """Update the Save button state based on layer configuration.
+
+        :param layer: The currently selected layer (optional)
+        :type layer: QgsVectorLayer or None
+        """
+        if not hasattr(self, "save_button") or not self.save_button:
+            return
+
+        is_layer_configured = False
+        button_tooltip = "Save dip/strike data to the selected feature layer"
+
+        if layer and layer.isValid():
+            # Check if layer is properly configured for dip/strike features
+            is_configured = layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer"
+
+            self.log(
+                message=f"Save button check - Layer: {layer.name()}, is_configured: {is_configured}",
+                log_level=4,
+            )
+
+            if is_configured:
+                # Verify that required field mappings still exist
+                required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
+                all_required_mapped = True
+                missing_mappings = []
+
+                for field_key in required_fields:
+                    mapped_field = layer.customProperty(f"dip_strike_tools/{field_key}", "")
+                    field_exists = mapped_field and layer.fields().lookupField(mapped_field) != -1
+
+                    self.log(
+                        message=f"Save button check - Field '{field_key}': mapped_field='{mapped_field}', exists={field_exists}",
+                        log_level=4,
+                    )
+
+                    if not field_exists:
+                        all_required_mapped = False
+                        missing_mappings.append(field_key)
+
+                is_layer_configured = all_required_mapped
+
+                if is_layer_configured:
+                    button_tooltip = f"Save dip/strike data to layer: {layer.name()}"
+                    self.log(
+                        message=f"Save button enabled for configured layer: {layer.name()}",
+                        log_level=4,
+                    )
+                else:
+                    button_tooltip = f"Layer '{layer.name()}' is not properly configured for dip/strike data (missing: {', '.join(missing_mappings)})"
+                    self.log(
+                        message=f"Save button disabled - layer not properly configured: {layer.name()}, missing mappings: {', '.join(missing_mappings)}",
+                        log_level=4,
+                    )
+            else:
+                button_tooltip = f"Layer '{layer.name()}' needs to be configured for dip/strike data"
+                self.log(
+                    message=f"Save button disabled - layer not configured: {layer.name()}",
+                    log_level=4,
+                )
+        else:
+            button_tooltip = "No feature layer selected"
+            self.log(
+                message="Save button disabled - no layer selected",
+                log_level=4,
+            )
+
+        # Update button state and tooltip
+        self.save_button.setEnabled(is_layer_configured)
+        self.save_button.setToolTip(button_tooltip)
 
     def update_spinbox_from_dial(self, dial_value):
         """Update the spinbox when dial value changes"""
@@ -270,8 +739,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 if not is_true_north_adjust_enabled
                 else (strike_azimuth + 90 - self._true_north_bearing) % 360
             )
-            self.line_strike.setText(f"{adjusted_strike_azimuth:.2f}°")
-            self.line_dip.setText(f"{adjusted_dip_azimuth:.2f}°")
+            self.lbl_strike_dir.setText(f"{adjusted_strike_azimuth:.2f}°")
+            self.lbl_dip_dir.setText(f"{adjusted_dip_azimuth:.2f}°")
             msg_true_north = self.tr("* Values relative to true North")
             msg_top_map = self.tr("* Values relative to top of the map/screen")
             self.label_true_north_relative.setText(
@@ -430,5 +899,197 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         except Exception as e:
             self.log(
                 message=f"Error updating layer opacity: {e}",
+                log_level=1,
+            )
+
+    def open_feature_layer_config_dialog(self):
+        """Open a dialog to configure the selected feature layer.
+
+        This method opens a field configuration dialog that allows users to map
+        the layer's actual field names to the required and optional fields needed
+        for dip/strike features:
+
+        Required fields:
+        - strike_azimuth: Field containing strike azimuth values
+        - dip_azimuth: Field containing dip azimuth values
+        - dip_value: Field containing dip angle values
+
+        Optional fields:
+        - geo_type: Geological type information
+        - age: Age/period information
+        - lithology: Rock type/lithology information
+        - notes: Additional notes or comments
+
+        The configuration is saved as custom properties on the layer.
+        """
+        layer = self.cbo_feature_layer.currentLayer()
+        if not layer or not layer.isValid():
+            self.log(
+                message="No valid feature layer selected for configuration",
+                log_level=1,
+            )
+            return
+
+        # Import the field configuration dialog
+        from .dlg_field_config import DlgFieldConfig
+
+        # Open the configuration dialog
+        config_dialog = DlgFieldConfig(layer, self)
+        if config_dialog.exec() == DlgFieldConfig.DialogCode.Accepted:
+            self.log(
+                message=f"Field configuration saved for layer: {layer.name()}",
+                log_level=3,
+            )
+            # Refresh the layer check to update UI state and field visibility
+            self.check_feature_layer()
+        else:
+            self.log(
+                message="Field configuration cancelled",
+                log_level=4,
+            )
+
+    def _auto_open_field_config_dialog(self, layer, missing_fields):
+        """Automatically open field configuration dialog for layers missing required fields.
+
+        :param layer: The layer that needs configuration
+        :type layer: QgsVectorLayer
+        :param missing_fields: List of missing required field names
+        :type missing_fields: list
+        """
+        from qgis.PyQt.QtWidgets import QMessageBox
+
+        # Show informative message to user about why the dialog is opening
+        reply = QMessageBox.question(
+            self,
+            "Layer Configuration Required",
+            f"The selected layer '{layer.name()}' is missing required fields for dip/strike data:\n\n"
+            f"Missing fields: {', '.join(missing_fields)}\n\n"
+            f"Would you like to configure field mappings now?\n\n"
+            f"This will allow you to map existing layer fields to the required dip/strike fields.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes,
+        )
+
+        if reply == QMessageBox.Yes:
+            self.log(
+                message=f"Auto-opening field configuration dialog for layer: {layer.name()}",
+                log_level=3,
+            )
+
+            # Import and open the field configuration dialog
+            from .dlg_field_config import DlgFieldConfig
+
+            config_dialog = DlgFieldConfig(layer, self)
+            if config_dialog.exec() == DlgFieldConfig.DialogCode.Accepted:
+                self.log(
+                    message=f"Auto-configuration completed for layer: {layer.name()}",
+                    log_level=3,
+                )
+                # Refresh the layer check to update UI state and field visibility after configuration
+                self.check_feature_layer()
+            else:
+                self.log(
+                    message=f"Auto-configuration cancelled for layer: {layer.name()}",
+                    log_level=4,
+                )
+        else:
+            self.log(
+                message=f"User declined auto-configuration for layer: {layer.name()}",
+                log_level=4,
+            )
+
+    def create_new_feature_layer(self):
+        """Create a new feature layer for dip/strike features"""
+        from qgis.core import QgsField, QgsProject, QgsVectorLayer
+        from qgis.PyQt.QtCore import QVariant
+        from qgis.PyQt.QtWidgets import QInputDialog
+
+        self.log(
+            message="Creating new feature layer for dip/strike features",
+            log_level=4,
+        )
+
+        # Get layer name from user
+        layer_name, ok = QInputDialog.getText(
+            self, "Create New Layer", "Enter name for the new dip/strike layer:", text="Dip Strike Points"
+        )
+
+        if not ok or not layer_name.strip():
+            self.log(
+                message="Layer creation cancelled or empty name provided",
+                log_level=4,
+            )
+            return
+
+        layer_name = layer_name.strip()
+
+        try:
+            # Get the current CRS from the map canvas
+            crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+
+            # Create a point layer with the specified CRS
+            layer = QgsVectorLayer(f"Point?crs={crs.authid()}&index=yes", layer_name, "memory")
+
+            if not layer.isValid():
+                self.log(
+                    message=f"Failed to create layer: {layer_name}",
+                    log_level=1,
+                )
+                return
+
+            # Start editing to add fields
+            layer.startEditing()
+
+            # Add required fields for dip/strike data
+            required_fields = [
+                QgsField("strike_azimuth", QVariant.Double, "double", 10, 2),
+                QgsField("dip_azimuth", QVariant.Double, "double", 10, 2),
+                QgsField("dip_value", QVariant.Double, "double", 10, 2),
+            ]
+
+            # Add optional fields
+            optional_fields = [
+                QgsField("geo_type", QVariant.String, "varchar", 50),
+                QgsField("age", QVariant.String, "varchar", 50),
+                QgsField("lithology", QVariant.String, "varchar", 100),
+                QgsField("notes", QVariant.String, "varchar", 255),
+            ]
+
+            # Add all fields to the layer
+            all_fields = required_fields + optional_fields
+            layer.dataProvider().addAttributes(all_fields)
+            layer.updateFields()
+
+            # Configure layer properties for dip/strike tools
+            layer.setCustomProperty("dip_strike_tools/layer_role", "dip_strike_feature_layer")
+
+            # Map fields to themselves (direct mapping since we created them with correct names)
+            for field in required_fields + optional_fields:
+                field_name = field.name()
+                layer.setCustomProperty(f"dip_strike_tools/{field_name}", field_name)
+
+            # Commit changes
+            layer.commitChanges()
+
+            # Add layer to project
+            QgsProject.instance().addMapLayer(layer)
+
+            # Select the new layer in the combo box
+            self.cbo_feature_layer.setLayer(layer)
+
+            # Save this layer as the last used layer
+            self._save_last_feature_layer(layer)
+
+            self.log(
+                message=f"Successfully created and configured layer: {layer_name}",
+                log_level=3,
+            )
+
+            # Check the layer to update UI state
+            self.check_feature_layer()
+
+        except Exception as e:
+            self.log(
+                message=f"Error creating feature layer: {e}",
                 log_level=1,
             )
