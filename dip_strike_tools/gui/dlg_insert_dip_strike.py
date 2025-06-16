@@ -22,12 +22,26 @@ FORM_CLASS, _ = uic.loadUiType(Path(__file__).parent / f"{Path(__file__).stem}.u
 
 
 class DlgInsertDipStrike(QDialog, FORM_CLASS):
-    def __init__(self, parent=None, clicked_point=None):
+    def __init__(self, parent=None, clicked_point=None, existing_feature=None):
         super().__init__(parent)
         self.setupUi(self)
 
         self.iface = iface
         self.log = PlgLogger().log
+
+        # Store existing feature data if provided
+        self.existing_feature = existing_feature
+
+        # Store clicked point for creating new features
+        self._clicked_point = clicked_point
+
+        # Set dialog title based on whether we're editing existing or creating new
+        if self.existing_feature:
+            layer_name = self.existing_feature["layer_name"]
+            feature_id = self.existing_feature["feature"].id()
+            self.setWindowTitle(f"Edit Dip/Strike Data - {layer_name} (Feature {feature_id})")
+        else:
+            self.setWindowTitle("Insert Dip/Strike Data")
 
         # Flag to prevent saving settings during initialization
         self._initializing = True
@@ -138,6 +152,9 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         else:
             self.map_canvas_widget.setCenter(self.map_canvas_widget.extent().center())
 
+        # Zoom in to get a closer view
+        self.map_canvas_widget.zoomByFactor(0.25)  # 0.25 = zoom in 4x, 0.1 = zoom in 10x
+
         self.map_canvas_widget.setWheelFactor(1.2)
         self.toolPan = QgsMapToolPan(self.map_canvas_widget)
         self.map_canvas_widget.setMapTool(self.toolPan)
@@ -229,6 +246,10 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # Initialization complete - now UI settings changes should be saved
         self._initializing = False
+
+        # Load existing feature data if provided
+        if self.existing_feature:
+            self._load_existing_feature_data()
 
     def check_feature_layer(self):
         """Check if a feature layer is selected and enable/disable controls accordingly"""
@@ -389,6 +410,125 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             log_level=4,
         )
 
+    def _load_existing_feature_data(self):
+        """Load data from existing feature into the dialog controls.
+
+        Populates the azimuth, dip, and optional fields with values from the
+        existing feature if field mappings are configured properly.
+        """
+        if not self.existing_feature:
+            return
+
+        feature = self.existing_feature["feature"]
+        layer = self.existing_feature["layer"]
+
+        self.log(
+            message=f"Loading existing feature data from layer '{layer.name()}' (Feature ID: {feature.id()})",
+            log_level=3,
+        )
+
+        try:
+            # Get field mappings from layer custom properties
+            strike_azimuth_field = layer.customProperty("dip_strike_tools/strike_azimuth", "")
+            dip_azimuth_field = layer.customProperty("dip_strike_tools/dip_azimuth", "")
+            dip_value_field = layer.customProperty("dip_strike_tools/dip_value", "")
+
+            # Optional fields
+            geo_type_field = layer.customProperty("dip_strike_tools/geo_type", "")
+            age_field = layer.customProperty("dip_strike_tools/age", "")
+            lithology_field = layer.customProperty("dip_strike_tools/lithology", "")
+            notes_field = layer.customProperty("dip_strike_tools/notes", "")
+
+            # First, set the layer in the combo box to enable proper field mapping
+            self.cbo_feature_layer.setLayer(layer)
+
+            # Load strike azimuth value
+            if strike_azimuth_field and layer.fields().lookupField(strike_azimuth_field) != -1:
+                strike_value = feature[strike_azimuth_field]
+                if strike_value is not None:
+                    try:
+                        strike_azimuth = float(strike_value)
+                        # Set radio button to strike mode
+                        self.rdio_strike.setChecked(True)
+                        # Set the azimuth value (this will trigger dial and spinbox updates)
+                        self.azimuth_spinbox.setValue(strike_azimuth)
+                        self.log(message=f"Loaded strike azimuth: {strike_azimuth}°", log_level=4)
+                    except (ValueError, TypeError) as e:
+                        self.log(message=f"Error parsing strike azimuth value '{strike_value}': {e}", log_level=2)
+
+            # Load dip azimuth value (alternative to strike)
+            elif dip_azimuth_field and layer.fields().lookupField(dip_azimuth_field) != -1:
+                dip_azimuth_value = feature[dip_azimuth_field]
+                if dip_azimuth_value is not None:
+                    try:
+                        dip_azimuth = float(dip_azimuth_value)
+                        # Set radio button to dip mode
+                        self.rdio_dip.setChecked(True)
+                        # Set the azimuth value (this will trigger dial and spinbox updates)
+                        self.azimuth_spinbox.setValue(dip_azimuth)
+                        self.log(message=f"Loaded dip azimuth: {dip_azimuth}°", log_level=4)
+                    except (ValueError, TypeError) as e:
+                        self.log(message=f"Error parsing dip azimuth value '{dip_azimuth_value}': {e}", log_level=2)
+
+            # Load dip value
+            if dip_value_field and layer.fields().lookupField(dip_value_field) != -1:
+                dip_val = feature[dip_value_field]
+                if dip_val is not None:
+                    try:
+                        dip_value = float(dip_val)
+                        self.spin_dip.setValue(dip_value)
+                        self.log(message=f"Loaded dip value: {dip_value}°", log_level=4)
+                    except (ValueError, TypeError) as e:
+                        self.log(message=f"Error parsing dip value '{dip_val}': {e}", log_level=2)
+
+            # Load optional fields if they exist and are mapped
+            # Geological Type
+            if geo_type_field and layer.fields().lookupField(geo_type_field) != -1 and hasattr(self, "cbo_geo_type"):
+                geo_type_value = feature[geo_type_field]
+                if geo_type_value:
+                    # Find the item in the combo box
+                    index = self.cbo_geo_type.findText(str(geo_type_value))
+                    if index >= 0:
+                        self.cbo_geo_type.setCurrentIndex(index)
+                        self.log(message=f"Loaded geological type: {geo_type_value}", log_level=4)
+                    else:
+                        # Add the value if it's not in the list
+                        self.cbo_geo_type.addItem(str(geo_type_value))
+                        self.cbo_geo_type.setCurrentText(str(geo_type_value))
+
+            # Age
+            if age_field and layer.fields().lookupField(age_field) != -1 and hasattr(self, "line_age"):
+                age_value = feature[age_field]
+                if age_value:
+                    self.line_age.setText(str(age_value))
+                    self.log(message=f"Loaded age: {age_value}", log_level=4)
+
+            # Lithology
+            if lithology_field and layer.fields().lookupField(lithology_field) != -1 and hasattr(self, "text_litho"):
+                lithology_value = feature[lithology_field]
+                if lithology_value:
+                    self.text_litho.setPlainText(str(lithology_value))
+                    self.log(message=f"Loaded lithology: {lithology_value}", log_level=4)
+
+            # Notes
+            if notes_field and layer.fields().lookupField(notes_field) != -1 and hasattr(self, "text_notes"):
+                notes_value = feature[notes_field]
+                if notes_value:
+                    self.text_notes.setPlainText(str(notes_value))
+                    self.log(
+                        message=f"Loaded notes: {str(notes_value)[:50]}{'...' if len(str(notes_value)) > 50 else ''}",
+                        log_level=4,
+                    )
+
+            # Update the map display with the loaded values
+            self.on_strike_dip_mode_changed()
+
+            # Show user feedback that existing data was loaded
+            self.log(message=f"Successfully loaded existing feature data from '{layer.name()}'", log_level=3)
+
+        except Exception as e:
+            self.log(message=f"Error loading existing feature data: {e}", log_level=1)
+
     def _disable_all_optional_fields(self):
         """Disable all optional fields and show placeholder text."""
         # Define all optional field widgets
@@ -424,11 +564,15 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
     def _setup_dialog_buttons(self):
         """Setup dialog buttons with custom text and initial state."""
-        # Get reference to OK button and rename it to "Save"
+        # Get reference to OK button and rename it based on whether editing existing feature
         self.save_button = self.buttonBox.button(self.buttonBox.StandardButton.Ok)
         if self.save_button:
-            self.save_button.setText("Save")
-            self.save_button.setToolTip("Save dip/strike data to the selected feature layer")
+            if self.existing_feature:
+                self.save_button.setText("Update")
+                self.save_button.setToolTip("Update existing dip/strike data in the selected feature layer")
+            else:
+                self.save_button.setText("Save")
+                self.save_button.setToolTip("Save dip/strike data to the selected feature layer")
             # Initially disable the Save button since no layer is configured
             self.save_button.setEnabled(False)
             self.log(
@@ -597,76 +741,55 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             log_level=4,
         )
 
-    def _update_save_button_state(self, layer=None):
-        """Update the Save button state based on layer configuration.
+    def _update_save_button_state(self, layer):
+        """Update the save button state based on layer configuration.
 
-        :param layer: The currently selected layer (optional)
+        :param layer: The layer to check
         :type layer: QgsVectorLayer or None
         """
         if not hasattr(self, "save_button") or not self.save_button:
             return
 
-        is_layer_configured = False
-        button_tooltip = "Save dip/strike data to the selected feature layer"
-
-        if layer and layer.isValid():
-            # Check if layer is properly configured for dip/strike features
-            is_configured = layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer"
-
+        if not layer or not layer.isValid():
+            self.save_button.setEnabled(False)
             self.log(
-                message=f"Save button check - Layer: {layer.name()}, is_configured: {is_configured}",
+                message="Save button disabled (no valid layer selected)",
                 log_level=4,
             )
+            return
 
-            if is_configured:
-                # Verify that required field mappings still exist
-                required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
-                all_required_mapped = True
-                missing_mappings = []
+        # Check if layer is configured for dip/strike tools
+        is_configured = layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer"
 
-                for field_key in required_fields:
-                    mapped_field = layer.customProperty(f"dip_strike_tools/{field_key}", "")
-                    field_exists = mapped_field and layer.fields().lookupField(mapped_field) != -1
+        if is_configured:
+            # Verify required field mappings exist
+            required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
+            all_required_mapped = True
 
-                    self.log(
-                        message=f"Save button check - Field '{field_key}': mapped_field='{mapped_field}', exists={field_exists}",
-                        log_level=4,
-                    )
+            for field_key in required_fields:
+                field_name = layer.customProperty(f"dip_strike_tools/{field_key}", "")
+                if not field_name or layer.fields().lookupField(field_name) == -1:
+                    all_required_mapped = False
+                    break
 
-                    if not field_exists:
-                        all_required_mapped = False
-                        missing_mappings.append(field_key)
-
-                is_layer_configured = all_required_mapped
-
-                if is_layer_configured:
-                    button_tooltip = f"Save dip/strike data to layer: {layer.name()}"
-                    self.log(
-                        message=f"Save button enabled for configured layer: {layer.name()}",
-                        log_level=4,
-                    )
-                else:
-                    button_tooltip = f"Layer '{layer.name()}' is not properly configured for dip/strike data (missing: {', '.join(missing_mappings)})"
-                    self.log(
-                        message=f"Save button disabled - layer not properly configured: {layer.name()}, missing mappings: {', '.join(missing_mappings)}",
-                        log_level=4,
-                    )
-            else:
-                button_tooltip = f"Layer '{layer.name()}' needs to be configured for dip/strike data"
+            if all_required_mapped:
+                self.save_button.setEnabled(True)
                 self.log(
-                    message=f"Save button disabled - layer not configured: {layer.name()}",
+                    message=f"Save button enabled (layer '{layer.name()}' is properly configured)",
+                    log_level=4,
+                )
+            else:
+                self.save_button.setEnabled(False)
+                self.log(
+                    message=f"Save button disabled (layer '{layer.name()}' missing required field mappings)",
                     log_level=4,
                 )
         else:
-            button_tooltip = "No feature layer selected"
+            self.save_button.setEnabled(False)
             self.log(
-                message="Save button disabled - no layer selected",
+                message=f"Save button disabled (layer '{layer.name()}' not configured for dip/strike tools)",
                 log_level=4,
             )
-
-        # Update button state and tooltip
-        self.save_button.setEnabled(is_layer_configured)
-        self.save_button.setToolTip(button_tooltip)
 
     def update_spinbox_from_dial(self, dial_value):
         """Update the spinbox when dial value changes"""
@@ -741,8 +864,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             )
             self.lbl_strike_dir.setText(f"{adjusted_strike_azimuth:.2f}°")
             self.lbl_dip_dir.setText(f"{adjusted_dip_azimuth:.2f}°")
-            msg_true_north = self.tr("* Values relative to true North")
-            msg_top_map = self.tr("* Values relative to top of the map/screen")
+            msg_true_north = self.tr("* Azimuth value relative to true North")
+            msg_top_map = self.tr("* Azimuth value relative to top of the map/screen")
             self.label_true_north_relative.setText(
                 f"{msg_true_north if is_true_north_adjust_enabled else msg_top_map}"
             )
@@ -1093,3 +1216,274 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 message=f"Error creating feature layer: {e}",
                 log_level=1,
             )
+
+    def accept(self):
+        """Handle save/update button click - save feature data to the selected layer."""
+        try:
+            # Get the selected layer
+            layer = self.cbo_feature_layer.currentLayer()
+            if not layer or not layer.isValid():
+                self.log(message="No valid layer selected for saving", log_level=1)
+                return
+
+            # Get field mappings from layer custom properties
+            strike_azimuth_field = layer.customProperty("dip_strike_tools/strike_azimuth", "")
+            dip_azimuth_field = layer.customProperty("dip_strike_tools/dip_azimuth", "")
+            dip_value_field = layer.customProperty("dip_strike_tools/dip_value", "")
+
+            # Optional fields
+            geo_type_field = layer.customProperty("dip_strike_tools/geo_type", "")
+            age_field = layer.customProperty("dip_strike_tools/age", "")
+            lithology_field = layer.customProperty("dip_strike_tools/lithology", "")
+            notes_field = layer.customProperty("dip_strike_tools/notes", "")
+
+            # Check if required fields are mapped
+            required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
+            missing_required = []
+            for field_key in required_fields:
+                field_name = layer.customProperty(f"dip_strike_tools/{field_key}", "")
+                if not field_name or layer.fields().lookupField(field_name) == -1:
+                    missing_required.append(field_key)
+
+            if missing_required:
+                self.log(
+                    message=f"Cannot save: layer '{layer.name()}' is missing required field mappings: {', '.join(missing_required)}",
+                    log_level=1,
+                )
+                return
+
+            # Get values from UI controls
+            raw_azimuth_value = self.azimuth_spinbox.value()
+            dip_value = self.spin_dip.value()
+
+            # Get adjusted azimuth values (accounting for true north bearing)
+            adjusted_strike_azimuth, adjusted_dip_azimuth = self.get_adjusted_azimuth_values()
+
+            self.log(
+                message=f"Saving values - Raw azimuth: {raw_azimuth_value}°, Adjusted strike: {adjusted_strike_azimuth:.2f}°, Adjusted dip: {adjusted_dip_azimuth:.2f}°, Dip value: {dip_value}°",
+                log_level=4,
+            )
+
+            # Get optional field values
+            geo_type_value = None
+            if geo_type_field and hasattr(self, "cbo_geo_type"):
+                geo_type_value = self.cbo_geo_type.currentText()
+                if geo_type_value == "Field not configured for feature layer" or not geo_type_value.strip():
+                    geo_type_value = None
+
+            age_value = None
+            if age_field and hasattr(self, "line_age"):
+                age_value = self.line_age.text().strip()
+                if not age_value:
+                    age_value = None
+
+            lithology_value = None
+            if lithology_field and hasattr(self, "text_litho"):
+                lithology_value = self.text_litho.toPlainText().strip()
+                if not lithology_value:
+                    lithology_value = None
+
+            notes_value = None
+            if notes_field and hasattr(self, "text_notes"):
+                notes_value = self.text_notes.toPlainText().strip()
+                if not notes_value:
+                    notes_value = None
+
+            # Start editing the layer
+            if not layer.isEditable():
+                layer.startEditing()
+
+            if self.existing_feature:
+                # Update existing feature
+                feature = self.existing_feature["feature"]
+                feature_id = feature.id()
+
+                self.log(message=f"Updating existing feature {feature_id} in layer '{layer.name()}'", log_level=3)
+
+                # Update field values
+                changes = {}
+
+                # Save both azimuth values regardless of mode
+                if strike_azimuth_field:
+                    field_idx = layer.fields().lookupField(strike_azimuth_field)
+                    if field_idx != -1:
+                        changes[field_idx] = adjusted_strike_azimuth
+
+                if dip_azimuth_field:
+                    field_idx = layer.fields().lookupField(dip_azimuth_field)
+                    if field_idx != -1:
+                        changes[field_idx] = adjusted_dip_azimuth
+
+                # Set dip value
+                if dip_value_field:
+                    field_idx = layer.fields().lookupField(dip_value_field)
+                    if field_idx != -1:
+                        changes[field_idx] = dip_value
+
+                # Set optional fields
+                if geo_type_field and geo_type_value is not None:
+                    field_idx = layer.fields().lookupField(geo_type_field)
+                    if field_idx != -1:
+                        changes[field_idx] = geo_type_value
+
+                if age_field and age_value is not None:
+                    field_idx = layer.fields().lookupField(age_field)
+                    if field_idx != -1:
+                        changes[field_idx] = age_value
+
+                if lithology_field and lithology_value is not None:
+                    field_idx = layer.fields().lookupField(lithology_field)
+                    if field_idx != -1:
+                        changes[field_idx] = lithology_value
+
+                if notes_field and notes_value is not None:
+                    field_idx = layer.fields().lookupField(notes_field)
+                    if field_idx != -1:
+                        changes[field_idx] = notes_value
+
+                # Apply changes
+                if changes:
+                    success = layer.dataProvider().changeAttributeValues({feature_id: changes})
+                    if success:
+                        self.log(
+                            message=f"Successfully updated feature {feature_id} with {len(changes)} field changes. Strike: {adjusted_strike_azimuth:.2f}°, Dip azimuth: {adjusted_dip_azimuth:.2f}°, Dip value: {dip_value}°",
+                            log_level=3,
+                        )
+                    else:
+                        self.log(message=f"Failed to update feature {feature_id}", log_level=1)
+                        return
+
+            else:
+                # Create new feature
+                from qgis.core import QgsCoordinateTransform, QgsFeature, QgsGeometry
+
+                # Get the clicked point (should be stored from when dialog was created)
+                if hasattr(self, "_clicked_point") and self._clicked_point:
+                    point_to_use = self._clicked_point
+                    # Get map canvas CRS
+                    canvas_crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+                    layer_crs = layer.crs()
+
+                    # Transform point to layer CRS if needed
+                    if canvas_crs != layer_crs:
+                        project = QgsProject.instance()
+                        transform = QgsCoordinateTransform(canvas_crs, layer_crs, project)
+                        try:
+                            point_to_use = transform.transform(self._clicked_point)
+                            self.log(
+                                message=f"Transformed new feature point from {canvas_crs.authid()} to {layer_crs.authid()}: {self._clicked_point} -> {point_to_use}",
+                                log_level=4,
+                            )
+                        except Exception as e:
+                            self.log(message=f"Error transforming coordinates for new feature: {e}", log_level=2)
+                            return
+
+                    geometry = QgsGeometry.fromPointXY(point_to_use)
+                else:
+                    # Fallback to map canvas center if no clicked point
+                    center = self.map_canvas_widget.center()
+                    geometry = QgsGeometry.fromPointXY(center)
+
+                self.log(
+                    message=f"Creating new feature in layer '{layer.name()}' at {geometry.asPoint()}", log_level=3
+                )
+
+                # Create new feature
+                feature = QgsFeature(layer.fields())
+                feature.setGeometry(geometry)
+
+                # Set field values - save both azimuth values regardless of mode
+                if strike_azimuth_field:
+                    field_idx = layer.fields().lookupField(strike_azimuth_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, adjusted_strike_azimuth)
+
+                if dip_azimuth_field:
+                    field_idx = layer.fields().lookupField(dip_azimuth_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, adjusted_dip_azimuth)
+
+                # Set dip value
+                if dip_value_field:
+                    field_idx = layer.fields().lookupField(dip_value_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, dip_value)
+
+                # Set optional fields
+                if geo_type_field and geo_type_value is not None:
+                    field_idx = layer.fields().lookupField(geo_type_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, geo_type_value)
+
+                if age_field and age_value is not None:
+                    field_idx = layer.fields().lookupField(age_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, age_value)
+
+                if lithology_field and lithology_value is not None:
+                    field_idx = layer.fields().lookupField(lithology_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, lithology_value)
+
+                if notes_field and notes_value is not None:
+                    field_idx = layer.fields().lookupField(notes_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, notes_value)
+
+                # Add feature to layer
+                success = layer.dataProvider().addFeature(feature)
+                if success:
+                    self.log(
+                        message=f"Successfully created new feature in layer '{layer.name()}'. Strike: {adjusted_strike_azimuth:.2f}°, Dip azimuth: {adjusted_dip_azimuth:.2f}°, Dip value: {dip_value}°",
+                        log_level=3,
+                    )
+                else:
+                    self.log(message=f"Failed to create new feature in layer '{layer.name()}'", log_level=1)
+                    return
+
+            # Commit changes and refresh
+            if layer.isEditable():
+                layer.commitChanges()
+
+            # Refresh the layer
+            layer.triggerRepaint()
+
+            # Update map canvas
+            self.iface.mapCanvas().refresh()
+
+            # Call parent accept to close dialog
+            super().accept()
+
+        except Exception as e:
+            self.log(message=f"Error saving feature data: {e}", log_level=1)
+
+    def get_adjusted_azimuth_values(self):
+        """Get the current azimuth values adjusted for true north bearing.
+
+        Returns:
+            tuple: (strike_azimuth, dip_azimuth) both adjusted for true north if enabled
+        """
+        azimuth = self.get_azimuth_value()
+        is_strike_mode = self.rdio_strike.isChecked()
+
+        if is_strike_mode:
+            # Azimuth represents strike direction - use directly
+            strike_azimuth = azimuth
+        else:
+            # Azimuth represents dip direction - convert to strike (perpendicular)
+            # Dip direction is 90° clockwise from strike direction
+            # So strike direction is 90° counter-clockwise from dip direction
+            strike_azimuth = (azimuth - 90) % 360
+
+        # Apply true north adjustment if enabled
+        is_true_north_adjust_enabled = self.chk_true_north.isChecked()
+        adjusted_strike_azimuth = (
+            strike_azimuth if not is_true_north_adjust_enabled else (strike_azimuth - self._true_north_bearing) % 360
+        )
+        adjusted_dip_azimuth = (
+            (strike_azimuth + 90) % 360
+            if not is_true_north_adjust_enabled
+            else (strike_azimuth + 90 - self._true_north_bearing) % 360
+        )
+
+        return adjusted_strike_azimuth, adjusted_dip_azimuth

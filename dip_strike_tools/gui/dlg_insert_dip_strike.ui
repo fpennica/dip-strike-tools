@@ -431,7 +431,7 @@
          </font>
         </property>
         <property name="text">
-         <string>* Values relative to true North</string>
+         <string>* Azimuth value relative to true North</string>
         </property>
        </widget>
       </item>
