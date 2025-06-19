@@ -9,7 +9,7 @@ from qgis.core import (
     QgsProject,
     QgsSettings,
 )
-from qgis.gui import QgsMapCanvas, QgsMapToolPan
+from qgis.gui import QgisInterface, QgsMapCanvas, QgsMapToolPan
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QDial, QDialog, QDoubleSpinBox, QGraphicsScene, QGraphicsView
@@ -26,7 +26,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         super().__init__(parent)
         self.setupUi(self)
 
-        self.iface = iface
+        self.iface: QgisInterface = iface  # type: ignore
         self.log = PlgLogger().log
 
         # Store existing feature data if provided

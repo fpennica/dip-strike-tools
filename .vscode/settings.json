@@ -24,6 +24,9 @@
     // Python
     "python.analysis.autoFormatStrings": false, // breaking PyQt translation
     "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportOptionalMemberAccess": "none"  // Disable warning for optional member access
+    },
     // "python.defaultInterpreterPath": ".venv/bin/python",
     "python.terminal.activateEnvInCurrentTerminal": true,
     "python.terminal.activateEnvironment": true,
