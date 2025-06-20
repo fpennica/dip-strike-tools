@@ -226,6 +226,108 @@
                 </widget>
             </item>
             <item>
+                <widget class="QGroupBox" name="grp_geological_types">
+                    <property name="minimumSize">
+                        <size>
+                            <width>0</width>
+                            <height>200</height>
+                        </size>
+                    </property>
+                    <property name="locale">
+                        <locale language="English" country="UnitedStates"/>
+                    </property>
+                    <property name="title">
+                        <string>Geological Types</string>
+                    </property>
+                    <layout class="QVBoxLayout" name="geological_types_layout">
+                        <item>
+                            <widget class="QLabel" name="lbl_geological_types_info">
+                                <property name="text">
+                                    <string>Customize the list of geological types available in the geo_type field:</string>
+                                </property>
+                                <property name="wordWrap">
+                                    <bool>true</bool>
+                                </property>
+                            </widget>
+                        </item>
+                        <item>
+                            <widget class="QTableWidget" name="table_geological_types">
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>120</height>
+                                    </size>
+                                </property>
+                                <property name="alternatingRowColors">
+                                    <bool>true</bool>
+                                </property>
+                                <property name="selectionBehavior">
+                                    <enum>QAbstractItemView::SelectRows</enum>
+                                </property>
+                                <column>
+                                    <property name="text">
+                                        <string>Code</string>
+                                    </property>
+                                </column>
+                                <column>
+                                    <property name="text">
+                                        <string>Description</string>
+                                    </property>
+                                </column>
+                            </widget>
+                        </item>
+                        <item>
+                            <layout class="QHBoxLayout" name="geological_types_buttons_layout">
+                                <item>
+                                    <widget class="QPushButton" name="btn_add_geo_type">
+                                        <property name="text">
+                                            <string>Add</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QPushButton" name="btn_remove_geo_type">
+                                        <property name="text">
+                                            <string>Remove</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QPushButton" name="btn_sort_geo_types">
+                                        <property name="text">
+                                            <string>Sort by Code</string>
+                                        </property>
+                                        <property name="toolTip">
+                                            <string>Sort the geological types by code</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <spacer name="horizontalSpacer">
+                                        <property name="orientation">
+                                            <enum>Qt::Horizontal</enum>
+                                        </property>
+                                        <property name="sizeHint" stdset="0">
+                                            <size>
+                                                <width>40</width>
+                                                <height>20</height>
+                                            </size>
+                                        </property>
+                                    </spacer>
+                                </item>
+                                <item>
+                                    <widget class="QPushButton" name="btn_reset_geo_types">
+                                        <property name="text">
+                                            <string>Reset to Defaults</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                            </layout>
+                        </item>
+                    </layout>
+                </widget>
+            </item>
+            <item>
                 <spacer name="verticalSpacer">
                     <property name="orientation">
                         <enum>Qt::Vertical</enum>

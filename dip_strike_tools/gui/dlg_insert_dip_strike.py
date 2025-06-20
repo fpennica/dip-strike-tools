@@ -12,9 +12,10 @@ from qgis.core import (
 from qgis.gui import QgisInterface, QgsMapCanvas, QgsMapToolPan
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QCoreApplication, Qt
-from qgis.PyQt.QtWidgets import QDial, QDialog, QDoubleSpinBox, QGraphicsScene, QGraphicsView
+from qgis.PyQt.QtWidgets import QDial, QDialog, QDoubleSpinBox, QGraphicsScene, QGraphicsView, QMessageBox
 from qgis.utils import iface
 
+from ..core.layer_creator import DipStrikeLayerCreator, LayerCreationError
 from ..core.rubber_band_marker import RubberBandMarker
 from ..toolbelt import PlgLogger
 
@@ -240,6 +241,9 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Customize dialog buttons
         self._setup_dialog_buttons()
 
+        # Populate geological types combo box
+        self._populate_geological_types()
+
         # Restore the last used feature layer and UI settings
         self._restore_last_feature_layer()
         self._restore_ui_settings()
@@ -265,13 +269,57 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 message=f"Selected feature layer: {layer.name()}",
                 log_level=4,
             )
-            # check if layer is already configured
+            # Check if this is a shapefile first
+            is_shapefile = layer.dataProvider().name() == "ogr" and layer.source().lower().endswith(".shp")
+
+            # For shapefiles, check if field mappings are correct regardless of layer role
+            if is_shapefile:
+                # Check if all required field mappings exist and are valid
+                required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
+                missing_mappings = []
+
+                for field_key in required_fields:
+                    mapped_field = layer.customProperty(f"dip_strike_tools/{field_key}", "")
+                    if not mapped_field or layer.fields().lookupField(mapped_field) == -1:
+                        missing_mappings.append(field_key)
+
+                if missing_mappings:
+                    self.log(
+                        message=f"Shapefile '{layer.name()}' has missing or invalid field mappings: {', '.join(missing_mappings)}",
+                        log_level=4,
+                    )
+                    self.log(
+                        message="Opening field configuration dialog for shapefile",
+                        log_level=4,
+                    )
+                    # Open field config dialog directly for shapefiles (no confirmation needed)
+                    from .dlg_field_config import DlgFieldConfig
+
+                    config_dialog = DlgFieldConfig(layer, self)
+                    if config_dialog.exec() == DlgFieldConfig.DialogCode.Accepted:
+                        self.log(
+                            message=f"Field configuration completed for shapefile: {layer.name()}",
+                            log_level=3,
+                        )
+                        # Refresh the geological types combo box in case storage mode changed
+                        self._populate_geological_types()
+                        # Refresh the layer check to update UI state
+                        self.check_feature_layer()
+                    else:
+                        self.log(
+                            message=f"Field configuration cancelled for shapefile: {layer.name()}",
+                            log_level=4,
+                        )
+                    return  # Exit early since we handled the shapefile
+
+            # check if layer is already configured (for non-shapefiles or properly configured shapefiles)
             if not layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer":
                 self.log(
                     message=f"Layer '{layer.name()}' is not configured for dip/strike features",
                     log_level=4,
                 )
-                # check if layer has the required fields
+
+                # For non-shapefiles, use original logic
                 missing_required_fields = [
                     field for field in required_fields if layer.fields().lookupField(field) == -1
                 ]
@@ -486,14 +534,23 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             if geo_type_field and layer.fields().lookupField(geo_type_field) != -1 and hasattr(self, "cbo_geo_type"):
                 geo_type_value = feature[geo_type_field]
                 if geo_type_value:
-                    # Find the item in the combo box
-                    index = self.cbo_geo_type.findText(str(geo_type_value))
+                    # Try to find the item by data first (for code values)
+                    index = -1
+                    for i in range(self.cbo_geo_type.count()):
+                        if self.cbo_geo_type.itemData(i) == str(geo_type_value):
+                            index = i
+                            break
+
+                    # If not found by data, try by text (for description values)
+                    if index == -1:
+                        index = self.cbo_geo_type.findText(str(geo_type_value))
+
                     if index >= 0:
                         self.cbo_geo_type.setCurrentIndex(index)
                         self.log(message=f"Loaded geological type: {geo_type_value}", log_level=4)
                     else:
-                        # Add the value if it's not in the list
-                        self.cbo_geo_type.addItem(str(geo_type_value))
+                        # Add the value if it's not in the list (fallback for custom values)
+                        self.cbo_geo_type.addItem(str(geo_type_value), str(geo_type_value))
                         self.cbo_geo_type.setCurrentText(str(geo_type_value))
 
             # Age
@@ -887,20 +944,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.dial_azimuth.setValue(dial_value)
         self.update_marker_azimuth()
 
-    def update_marker_display(self):
-        """Update marker based on current settings"""
-        if hasattr(self, "dip_strike_item"):
-            # Update azimuth
-            self.update_marker_azimuth()
-
-            # Update dip if there's a dip control
-            if hasattr(self, "dip_spinbox"):
-                dip_value = self.dip_spinbox.value()
-                self.dip_strike_item.setDip(dip_value)
-
-            # Force canvas refresh
-            self.map_canvas_widget.refresh()
-
     def cleanup_on_close(self):
         """Handle cleanup when dialog is closed via OK/Cancel buttons"""
         self.log(message="Dialog closed via OK/Cancel - performing cleanup", log_level=4)
@@ -920,20 +963,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.log(message="Dialog closed via window close button - performing cleanup", log_level=4)
         self.cleanup_on_close()
         super().closeEvent(event)
-
-    # def showEvent(self, e):
-    #     pass
-
-    def tr(self, message: str) -> str:
-        """Get the translation for a string using Qt translation API.
-
-        :param message: string to be translated.
-        :type message: str
-
-        :returns: Translated version of message.
-        :rtype: str
-        """
-        return QCoreApplication.translate(self.__class__.__name__, message)
 
     def store_original_layer_opacities(self):
         """Store the original opacity values of all layers for restoration on close"""
@@ -1063,6 +1092,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 message=f"Field configuration saved for layer: {layer.name()}",
                 log_level=3,
             )
+            # Refresh the geological types combo box in case storage mode changed
+            self._populate_geological_types()
             # Refresh the layer check to update UI state and field visibility
             self.check_feature_layer()
         else:
@@ -1079,8 +1110,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         :param missing_fields: List of missing required field names
         :type missing_fields: list
         """
-        from qgis.PyQt.QtWidgets import QMessageBox
-
         # Show informative message to user about why the dialog is opening
         reply = QMessageBox.question(
             self,
@@ -1108,6 +1137,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     message=f"Auto-configuration completed for layer: {layer.name()}",
                     log_level=3,
                 )
+                # Refresh the geological types combo box in case storage mode changed
+                self._populate_geological_types()
                 # Refresh the layer check to update UI state and field visibility after configuration
                 self.check_feature_layer()
             else:
@@ -1122,100 +1153,189 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             )
 
     def create_new_feature_layer(self):
-        """Create a new feature layer for dip/strike features"""
-        from qgis.core import QgsField, QgsProject, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
-        from qgis.PyQt.QtWidgets import QInputDialog
+        """Create a new feature layer for dip/strike features with format choice"""
 
         self.log(
             message="Creating new feature layer for dip/strike features",
             log_level=4,
         )
 
-        # Get layer name from user
-        layer_name, ok = QInputDialog.getText(
-            self, "Create New Layer", "Enter name for the new dip/strike layer:", text="Dip Strike Points"
+        # Get the current CRS from the map canvas
+        crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+
+        # Create a simple format selection dialog
+        from qgis.PyQt.QtWidgets import (
+            QComboBox,
+            QDialog,
+            QFileDialog,
+            QHBoxLayout,
+            QLabel,
+            QLineEdit,
+            QPushButton,
+            QVBoxLayout,
         )
 
-        if not ok or not layer_name.strip():
+        format_dialog = QDialog(self)
+        format_dialog.setWindowTitle("Create Dip/Strike Layer")
+        format_dialog.setModal(True)
+        format_dialog.resize(400, 150)
+
+        layout = QVBoxLayout(format_dialog)
+
+        # Layer name input
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(QLabel("Layer Name:"))
+        name_edit = QLineEdit("Dip Strike Points")
+        name_layout.addWidget(name_edit)
+        layout.addLayout(name_layout)
+
+        # Format selection
+        format_layout = QHBoxLayout()
+        format_layout.addWidget(QLabel("Format:"))
+        format_combo = QComboBox()
+        format_combo.addItems(
+            [
+                "Memory Layer (Temporary)",
+                "ESRI Shapefile (*.shp)",
+                "GeoPackage (*.gpkg)",
+            ]
+        )
+        format_layout.addWidget(format_combo)
+        layout.addLayout(format_layout)
+
+        # Geo type storage mode selection
+        geo_type_layout = QHBoxLayout()
+        geo_type_layout.addWidget(QLabel("Geo Type Storage:"))
+        geo_type_mode_combo = QComboBox()
+        geo_type_mode_combo.addItem("Store numerical code (1, 2, 3...)", "code")
+        geo_type_mode_combo.addItem("Store text description (Strata, Foliation...)", "description")
+        geo_type_mode_combo.setToolTip(
+            "Choose whether the geo_type field should store numerical codes or text descriptions"
+        )
+
+        # Load current storage mode from preferences
+        try:
+            from ..toolbelt.preferences import PlgOptionsManager
+
+            current_mode = PlgOptionsManager.get_geo_type_storage_mode()
+            for i in range(geo_type_mode_combo.count()):
+                if geo_type_mode_combo.itemData(i) == current_mode:
+                    geo_type_mode_combo.setCurrentIndex(i)
+                    break
+        except Exception:
+            pass  # Use default selection
+
+        geo_type_layout.addWidget(geo_type_mode_combo)
+        layout.addLayout(geo_type_layout)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("Create")
+        cancel_button = QPushButton("Cancel")
+        ok_button.clicked.connect(format_dialog.accept)
+        cancel_button.clicked.connect(format_dialog.reject)
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        # Show format selection dialog
+        if format_dialog.exec() != QDialog.Accepted:
             self.log(
-                message="Layer creation cancelled or empty name provided",
+                message="Layer creation cancelled by user",
                 log_level=4,
             )
             return
 
-        layer_name = layer_name.strip()
+        layer_name = name_edit.text().strip()
+        if not layer_name:
+            layer_name = "Dip Strike Points"
+
+        selected_format = format_combo.currentText()
 
         try:
-            # Get the current CRS from the map canvas
-            crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+            layer_creator = DipStrikeLayerCreator()
 
-            # Create a point layer with the specified CRS
-            layer = QgsVectorLayer(f"Point?crs={crs.authid()}&index=yes", layer_name, "memory")
+            if selected_format == "Memory Layer (Temporary)":
+                # Create memory layer
+                layer = layer_creator.create_memory_layer(layer_name, crs)
+            else:
+                # Get file path from user
+                format_map = {
+                    "ESRI Shapefile (*.shp)": ("ESRI Shapefile", "shp", "Shapefile (*.shp)"),
+                    "GeoPackage (*.gpkg)": ("GPKG", "gpkg", "GeoPackage (*.gpkg)"),
+                }
 
-            if not layer.isValid():
-                self.log(
-                    message=f"Failed to create layer: {layer_name}",
-                    log_level=1,
+                if selected_format not in format_map:
+                    raise LayerCreationError(f"Unsupported format: {selected_format}")
+
+                driver, extension, filter_str = format_map[selected_format]
+
+                # Show save file dialog
+                file_path, _ = QFileDialog.getSaveFileName(
+                    self, f"Save {selected_format}", f"{layer_name}.{extension}", filter_str
                 )
-                return
 
-            # Start editing to add fields
-            layer.startEditing()
+                if not file_path:
+                    self.log(
+                        message="File path selection cancelled by user",
+                        log_level=4,
+                    )
+                    return
 
-            # Add required fields for dip/strike data
-            required_fields = [
-                QgsField("strike_azimuth", QVariant.Double, "double", 10, 2),
-                QgsField("dip_azimuth", QVariant.Double, "double", 10, 2),
-                QgsField("dip_value", QVariant.Double, "double", 10, 2),
-            ]
+                # Create file-based layer
+                format_info = {"driver": driver}
+                layer = layer_creator.create_file_layer(layer_name, file_path, format_info, crs)
 
-            # Add optional fields
-            optional_fields = [
-                QgsField("geo_type", QVariant.String, "varchar", 50),
-                QgsField("age", QVariant.String, "varchar", 50),
-                QgsField("lithology", QVariant.String, "varchar", 100),
-                QgsField("notes", QVariant.String, "varchar", 255),
-            ]
+            if layer is None or not layer.isValid():
+                raise LayerCreationError("Failed to create layer")
 
-            # Add all fields to the layer
-            all_fields = required_fields + optional_fields
-            layer.dataProvider().addAttributes(all_fields)
-            layer.updateFields()
+            # Configure the layer for dip/strike tools
+            layer_creator.configure_layer_properties_for_existing(layer)
 
-            # Configure layer properties for dip/strike tools
-            layer.setCustomProperty("dip_strike_tools/layer_role", "dip_strike_feature_layer")
+            # Save the geological type storage mode preference from the dialog
+            try:
+                from ..toolbelt.preferences import PlgOptionsManager
 
-            # Map fields to themselves (direct mapping since we created them with correct names)
-            for field in required_fields + optional_fields:
-                field_name = field.name()
-                layer.setCustomProperty(f"dip_strike_tools/{field_name}", field_name)
+                selected_mode = geo_type_mode_combo.currentData()
+                if selected_mode:
+                    PlgOptionsManager.set_geo_type_storage_mode(selected_mode)
+                    self.log(f"Saved geo_type storage mode for new layer: {selected_mode}", log_level=4)
+            except Exception as e:
+                self.log(f"Error saving geo_type storage mode: {e}", log_level=2)
 
-            # Commit changes
-            layer.commitChanges()
-
-            # Add layer to project
-            QgsProject.instance().addMapLayer(layer)
+            # Add layer to project if it's not already added
+            if not QgsProject.instance().mapLayer(layer.id()):
+                QgsProject.instance().addMapLayer(layer)
 
             # Select the new layer in the combo box
             self.cbo_feature_layer.setLayer(layer)
 
+            # Refresh the geological types combo box with the new storage mode
+            self._populate_geological_types()
+
             # Save this layer as the last used layer
             self._save_last_feature_layer(layer)
-
-            self.log(
-                message=f"Successfully created and configured layer: {layer_name}",
-                log_level=3,
-            )
 
             # Check the layer to update UI state
             self.check_feature_layer()
 
-        except Exception as e:
             self.log(
-                message=f"Error creating feature layer: {e}",
+                message=f"Successfully created and configured layer: {layer.name()}",
+                log_level=3,
+            )
+
+        except LayerCreationError as e:
+            self.log(
+                message=f"Layer creation error: {e}",
                 log_level=1,
             )
+            QMessageBox.critical(self, "Error", f"Failed to create layer:\n{str(e)}")
+        except Exception as e:
+            self.log(
+                message=f"Unexpected error creating feature layer: {e}",
+                log_level=1,
+            )
+            QMessageBox.critical(self, "Error", f"Unexpected error creating layer:\n{str(e)}")
 
     def accept(self):
         """Handle save/update button click - save feature data to the selected layer."""
@@ -1267,8 +1387,13 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Get optional field values
             geo_type_value = None
             if geo_type_field and hasattr(self, "cbo_geo_type"):
-                geo_type_value = self.cbo_geo_type.currentText()
-                if geo_type_value == "Field not configured for feature layer" or not geo_type_value.strip():
+                # Use currentData() to get the stored value (code or description based on storage mode)
+                geo_type_value = self.cbo_geo_type.currentData()
+                if (
+                    geo_type_value == "Field not configured for feature layer"
+                    or not geo_type_value
+                    or not str(geo_type_value).strip()
+                ):
                     geo_type_value = None
 
             age_value = None
@@ -1487,3 +1612,56 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         )
 
         return adjusted_strike_azimuth, adjusted_dip_azimuth
+
+    def tr(self, message: str) -> str:
+        """Get the translation for a string using Qt translation API.
+
+        :param message: string to be translated.
+        :type message: str
+
+        :returns: Translated version of message.
+        :rtype: str
+        """
+        return QCoreApplication.translate(self.__class__.__name__, message)
+
+    def _populate_geological_types(self):
+        """Populate the geological types combo box with values from preferences."""
+        try:
+            from ..toolbelt.preferences import PlgOptionsManager
+
+            # Get geological types from preferences
+            geo_types = PlgOptionsManager.get_geological_types()
+            storage_mode = PlgOptionsManager.get_geo_type_storage_mode()
+
+            # Clear existing items
+            if hasattr(self, "cbo_geo_type"):
+                self.cbo_geo_type.clear()
+
+                # Add empty item first
+                self.cbo_geo_type.addItem("", "")  # Empty option
+
+                # Add geological types based on storage mode
+                for code, description in geo_types.items():
+                    if storage_mode == "code":
+                        # Display description but store code
+                        self.cbo_geo_type.addItem(description, code)
+                    else:
+                        # Display and store description
+                        self.cbo_geo_type.addItem(description, description)
+
+                self.log(
+                    f"Populated geological types combo box with {len(geo_types)} items (mode: {storage_mode})",
+                    log_level=4,
+                )
+
+        except Exception as e:
+            self.log(f"Error populating geological types: {e}", log_level=1)
+            # Fallback to default items if there's an error
+            if hasattr(self, "cbo_geo_type"):
+                self.cbo_geo_type.clear()
+                self.cbo_geo_type.addItem("", "")
+                self.cbo_geo_type.addItem("Strata", "1")
+                self.cbo_geo_type.addItem("Foliation", "2")
+                self.cbo_geo_type.addItem("Fault", "3")
+                self.cbo_geo_type.addItem("Joint", "4")
+                self.cbo_geo_type.addItem("Cleavage", "5")

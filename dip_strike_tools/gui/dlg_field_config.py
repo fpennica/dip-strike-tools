@@ -379,6 +379,32 @@ class DlgFieldConfig(QDialog):
 
         layout.addWidget(optional_group)
 
+        # Geo type storage mode configuration
+        storage_group = QGroupBox("Geological Type Configuration")
+        storage_layout = QFormLayout(storage_group)
+
+        self.geo_type_mode_combo = QComboBox()
+        self.geo_type_mode_combo.addItem("Store numerical code (1, 2, 3...)", "code")
+        self.geo_type_mode_combo.addItem("Store text description (Strata, Foliation...)", "description")
+        self.geo_type_mode_combo.setToolTip(
+            "Choose whether the geo_type field should store numerical codes or text descriptions"
+        )
+
+        # Load current storage mode from preferences
+        try:
+            from ..toolbelt.preferences import PlgOptionsManager
+
+            current_mode = PlgOptionsManager.get_geo_type_storage_mode()
+            for i in range(self.geo_type_mode_combo.count()):
+                if self.geo_type_mode_combo.itemData(i) == current_mode:
+                    self.geo_type_mode_combo.setCurrentIndex(i)
+                    break
+        except Exception:
+            pass  # Use default selection
+
+        storage_layout.addRow("Storage Mode:", self.geo_type_mode_combo)
+        layout.addWidget(storage_group)
+
         # Status label
         self.status_label = QLabel()
         self.status_label.setWordWrap(True)
@@ -511,6 +537,17 @@ class DlgFieldConfig(QDialog):
 
             # Mark layer as configured for dip/strike features
             self.layer.setCustomProperty("dip_strike_tools/layer_role", "dip_strike_feature_layer")
+
+            # Save the geological type storage mode preference
+            try:
+                from ..toolbelt.preferences import PlgOptionsManager
+
+                selected_mode = self.geo_type_mode_combo.currentData()
+                if selected_mode:
+                    PlgOptionsManager.set_geo_type_storage_mode(selected_mode)
+                    self.log(f"Saved geo_type storage mode: {selected_mode}", log_level=4)
+            except Exception as e:
+                self.log(f"Error saving geo_type storage mode: {e}", log_level=2)
 
             self.log(f"Successfully configured field mappings for layer: {self.layer.name()}", log_level=3)
 

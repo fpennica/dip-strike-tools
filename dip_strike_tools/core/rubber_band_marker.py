@@ -17,8 +17,10 @@ class RubberBandMarker(QObject):
         # Create separate rubber bands for different parts of the marker
         self._strike_band = QgsRubberBand(canvas, Qgis.GeometryType.Line)
         self._dip_band = QgsRubberBand(canvas, Qgis.GeometryType.Line)
-        self._arrow_band1 = QgsRubberBand(canvas, Qgis.GeometryType.Line)  # First arrow line
-        self._arrow_band2 = QgsRubberBand(canvas, Qgis.GeometryType.Line)  # Second arrow line
+        self._arrow_band1 = QgsRubberBand(canvas, Qgis.GeometryType.Line)  # First dip arrow line
+        self._arrow_band2 = QgsRubberBand(canvas, Qgis.GeometryType.Line)  # Second dip arrow line
+        self._strike_arrow_band1 = QgsRubberBand(canvas, Qgis.GeometryType.Line)  # First strike arrow line
+        self._strike_arrow_band2 = QgsRubberBand(canvas, Qgis.GeometryType.Line)  # Second strike arrow line
         self._center_band = QgsRubberBand(canvas, Qgis.GeometryType.Point)
 
         # Set colors and styles
@@ -28,11 +30,17 @@ class RubberBandMarker(QObject):
         self._dip_band.setColor(QColor(0, 0, 255))  # Blue for dip
         self._dip_band.setWidth(2)
 
-        self._arrow_band1.setColor(QColor(0, 0, 255))  # Blue for arrow (same as dip)
+        self._arrow_band1.setColor(QColor(0, 0, 255))  # Blue for dip arrow (same as dip)
         self._arrow_band1.setWidth(2)
 
-        self._arrow_band2.setColor(QColor(0, 0, 255))  # Blue for arrow (same as dip)
+        self._arrow_band2.setColor(QColor(0, 0, 255))  # Blue for dip arrow (same as dip)
         self._arrow_band2.setWidth(2)
+
+        self._strike_arrow_band1.setColor(QColor(255, 0, 0))  # Red for strike arrow (same as strike)
+        self._strike_arrow_band1.setWidth(2)
+
+        self._strike_arrow_band2.setColor(QColor(255, 0, 0))  # Red for strike arrow (same as strike)
+        self._strike_arrow_band2.setWidth(2)
 
         self._center_band.setColor(QColor(0, 0, 0))  # Black for center point
         self._center_band.setWidth(4)
@@ -154,6 +162,8 @@ class RubberBandMarker(QObject):
             self._dip_band.reset()
             self._arrow_band1.reset()
             self._arrow_band2.reset()
+            self._strike_arrow_band1.reset()
+            self._strike_arrow_band2.reset()
             self._center_band.reset()
 
             # Calculate line length in map units
@@ -184,6 +194,28 @@ class RubberBandMarker(QObject):
                 self._strike_band.addPoint(start_point)
                 self._strike_band.addPoint(end_point)
 
+                # Create arrowhead on the north side of the strike line (end_point side)
+                arrow_size_map = (8 / 2) * pixel_to_map  # 8 pixels arrow size converted to map units
+
+                # Calculate arrowhead points (two lines forming arrow tip)
+                # Arrow points backwards from the end_point along the strike line
+                strike_arrow_angle = math_angle + math.pi  # Reverse direction for arrowhead
+
+                strike_arrow_x1 = end_point.x() + arrow_size_map * math.cos(strike_arrow_angle - math.pi / 6)
+                strike_arrow_y1 = end_point.y() + arrow_size_map * math.sin(strike_arrow_angle - math.pi / 6)
+                strike_arrow_x2 = end_point.x() + arrow_size_map * math.cos(strike_arrow_angle + math.pi / 6)
+                strike_arrow_y2 = end_point.y() + arrow_size_map * math.sin(strike_arrow_angle + math.pi / 6)
+
+                strike_arrow_point1 = QgsPointXY(strike_arrow_x1, strike_arrow_y1)
+                strike_arrow_point2 = QgsPointXY(strike_arrow_x2, strike_arrow_y2)
+
+                # Add strike arrow lines
+                self._strike_arrow_band1.addPoint(end_point)
+                self._strike_arrow_band1.addPoint(strike_arrow_point1)
+
+                self._strike_arrow_band2.addPoint(end_point)
+                self._strike_arrow_band2.addPoint(strike_arrow_point2)
+
                 # self.log(message=f"Strike line: {start_point} to {end_point}, azimuth: {self._azimuth}°", log_level=4)
 
             # Create dip line geometry
@@ -192,8 +224,8 @@ class RubberBandMarker(QObject):
                 dip_azimuth = (self._azimuth + 90) % 360
                 math_angle_dip = math.radians(90 - dip_azimuth)
 
-                # Scale dip line length based on dip angle (steeper dip = longer line)
-                dip_line_length = line_length_map * (self._dip / 90.0) * 0.8  # Max 80% of strike line
+                # Use fixed dip line length (60% of strike line length)
+                dip_line_length = line_length_map * 0.6
 
                 # Calculate dip line endpoint (only show in dip direction, not bidirectional)
                 dx_dip = dip_line_length * math.cos(math_angle_dip)
@@ -245,6 +277,8 @@ class RubberBandMarker(QObject):
             or not self._dip_band
             or not self._arrow_band1
             or not self._arrow_band2
+            or not self._strike_arrow_band1
+            or not self._strike_arrow_band2
             or not self._center_band
         ):
             return
@@ -253,8 +287,14 @@ class RubberBandMarker(QObject):
             # Show/hide based on overall visibility and individual component settings
             self._strike_band.setVisible(self._visible and self._show_strike)
             self._dip_band.setVisible(self._visible and self._show_dip)
-            self._arrow_band1.setVisible(self._visible and self._show_dip)  # Arrow visibility follows dip
-            self._arrow_band2.setVisible(self._visible and self._show_dip)  # Arrow visibility follows dip
+            self._arrow_band1.setVisible(self._visible and self._show_dip)  # Dip arrow visibility follows dip
+            self._arrow_band2.setVisible(self._visible and self._show_dip)  # Dip arrow visibility follows dip
+            self._strike_arrow_band1.setVisible(
+                self._visible and self._show_strike
+            )  # Strike arrow visibility follows strike
+            self._strike_arrow_band2.setVisible(
+                self._visible and self._show_strike
+            )  # Strike arrow visibility follows strike
             self._center_band.setVisible(self._visible)
 
             # self.log(
@@ -294,6 +334,14 @@ class RubberBandMarker(QObject):
             if self._arrow_band2:
                 self._arrow_band2.reset()
                 self._arrow_band2 = None
+
+            if self._strike_arrow_band1:
+                self._strike_arrow_band1.reset()
+                self._strike_arrow_band1 = None
+
+            if self._strike_arrow_band2:
+                self._strike_arrow_band2.reset()
+                self._strike_arrow_band2 = None
 
             if self._center_band:
                 self._center_band.reset()

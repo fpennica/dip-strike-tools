@@ -51,6 +51,11 @@ class PlgSettingsStructure:
     debug_mode: bool = False
     version: str = __version__
 
+    # geological types configuration
+    geological_types: str = "1:Strata,2:Foliation,3:Fault,4:Joint,5:Cleavage"
+    geo_type_storage_mode: str = "code"  # "code" or "description"
+
+
 class PlgOptionsManager:
     @staticmethod
     def get_plg_settings() -> PlgSettingsStructure:
@@ -79,9 +84,7 @@ class PlgOptionsManager:
                     value = EnvVarParser.get_env_var(env_variable, value)
                 li_settings_values.append(value)
             except TypeError:
-                li_settings_values.append(
-                    settings.value(key=i.name, defaultValue=i.default)
-                )
+                li_settings_values.append(settings.value(key=i.name, defaultValue=i.default))
 
         # instanciate new settings object
         options = PlgSettingsStructure(*li_settings_values)
@@ -99,9 +102,7 @@ class PlgOptionsManager:
         """
         if not hasattr(PlgSettingsStructure, key):
             log_hdlr.PlgLogger.log(
-                message="Bad settings key. Must be one of: {}".format(
-                    ",".join(PlgSettingsStructure._fields)
-                ),
+                message="Bad settings key. Must be one of: {}".format(",".join(PlgSettingsStructure._fields)),
                 log_level=1,
             )
             return None
@@ -112,11 +113,7 @@ class PlgOptionsManager:
         try:
             out_value = settings.value(key=key, defaultValue=default, type=exp_type)
         except Exception as err:
-            log_hdlr.PlgLogger.log(
-                message="Error occurred trying to get settings: {}.Trace: {}".format(
-                    key, err
-                )
-            )
+            log_hdlr.PlgLogger.log(message="Error occurred trying to get settings: {}.Trace: {}".format(key, err))
             out_value = None
 
         settings.endGroup()
@@ -136,9 +133,7 @@ class PlgOptionsManager:
         """
         if not hasattr(PlgSettingsStructure, key):
             log_hdlr.PlgLogger.log(
-                message="Bad settings key. Must be one of: {}".format(
-                    ",".join(PlgSettingsStructure._fields)
-                ),
+                message="Bad settings key. Must be one of: {}".format(",".join(PlgSettingsStructure._fields)),
                 log_level=2,
             )
             return False
@@ -150,11 +145,7 @@ class PlgOptionsManager:
             settings.setValue(key, value)
             out_value = True
         except Exception as err:
-            log_hdlr.PlgLogger.log(
-                message="Error occurred trying to set settings: {}.Trace: {}".format(
-                    key, err
-                )
-            )
+            log_hdlr.PlgLogger.log(message="Error occurred trying to set settings: {}.Trace: {}".format(key, err))
             out_value = False
 
         settings.endGroup()
@@ -175,3 +166,62 @@ class PlgOptionsManager:
             cls.set_value_from_key(k, v)
 
         settings.endGroup()
+
+    @staticmethod
+    def get_geological_types() -> dict:
+        """Get geological types from settings as a dictionary.
+
+        :return: Dictionary with code as key and description as value
+        :rtype: dict
+        """
+        settings = PlgOptionsManager.get_plg_settings()
+        geo_types_string = settings.geological_types
+
+        geo_types = {}
+        try:
+            # Parse the string format "1:Strata,2:Foliation,3:Fault,..."
+            for item in geo_types_string.split(","):
+                if ":" in item:
+                    code, description = item.strip().split(":", 1)
+                    geo_types[code.strip()] = description.strip()
+        except Exception:
+            # Fallback to default if parsing fails
+            geo_types = {"1": "Strata", "2": "Foliation", "3": "Fault", "4": "Joint", "5": "Cleavage"}
+
+        return geo_types
+
+    @staticmethod
+    def get_geo_type_storage_mode() -> str:
+        """Get the geological type storage mode (code or description).
+
+        :return: Storage mode - "code" or "description"
+        :rtype: str
+        """
+        settings = PlgOptionsManager.get_plg_settings()
+        return settings.geo_type_storage_mode
+
+    @staticmethod
+    def set_geological_types(geo_types: dict) -> bool:
+        """Set geological types in settings.
+
+        :param geo_types: Dictionary with code as key and description as value
+        :type geo_types: dict
+        :return: True if successful, False otherwise
+        :rtype: bool
+        """
+        # Convert dictionary to string format
+        geo_types_string = ",".join([f"{code}:{desc}" for code, desc in geo_types.items()])
+        return PlgOptionsManager.set_value_from_key("geological_types", geo_types_string)
+
+    @staticmethod
+    def set_geo_type_storage_mode(mode: str) -> bool:
+        """Set the geological type storage mode.
+
+        :param mode: Storage mode - "code" or "description"
+        :type mode: str
+        :return: True if successful, False otherwise
+        :rtype: bool
+        """
+        if mode not in ["code", "description"]:
+            mode = "code"  # Default fallback
+        return PlgOptionsManager.set_value_from_key("geo_type_storage_mode", mode)
