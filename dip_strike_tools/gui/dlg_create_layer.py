@@ -6,16 +6,16 @@ Dialog for creating new dip/strike feature layers.
 
 import os
 
+from qgis.core import QgsProject
+from qgis.gui import QgsFileWidget
 from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QFileDialog,
-    QHBoxLayout,
+    QFormLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
-    QPushButton,
     QVBoxLayout,
 )
 
@@ -48,18 +48,17 @@ class DlgCreateLayer(QDialog):
         self.setModal(True)
         self.resize(500, 200)
 
-        layout = QVBoxLayout(self)
+        # Main layout
+        main_layout = QVBoxLayout(self)
+
+        # Form layout for input fields
+        form_layout = QFormLayout()
 
         # Layer name input
-        name_layout = QHBoxLayout()
-        name_layout.addWidget(QLabel("Layer Name:"))
         self.name_edit = QLineEdit("Dip Strike Points")
-        name_layout.addWidget(self.name_edit)
-        layout.addLayout(name_layout)
+        form_layout.addRow("Layer Name:", self.name_edit)
 
         # Output format selection
-        format_layout = QHBoxLayout()
-        format_layout.addWidget(QLabel("Output Format:"))
         self.format_combo = QComboBox()
 
         # Define supported output formats with their details
@@ -74,48 +73,75 @@ class DlgCreateLayer(QDialog):
                 "extension": "shp",
                 "description": "Standard shapefile format",
             },
-            "GeoPackage": {"driver": "GPKG", "extension": "gpkg", "description": "SQLite-based OGC standard format"},
-            "GeoJSON": {
-                "driver": "GeoJSON",
-                "extension": "geojson",
-                "description": "JSON-based format for web applications",
+            "GeoPackage": {
+                "driver": "GPKG",
+                "extension": "gpkg",
+                "description": "SQLite-based OGC standard format (can contain multiple layers)",
             },
-            "KML": {"driver": "KML", "extension": "kml", "description": "Google Earth format"},
-            "CSV": {"driver": "CSV", "extension": "csv", "description": "Comma-separated values with geometry as WKT"},
         }
 
         for format_name in self.formats.keys():
             self.format_combo.addItem(format_name)
 
         self.format_combo.setCurrentText("GeoPackage")  # Set default to GeoPackage
-        format_layout.addWidget(self.format_combo)
-        layout.addLayout(format_layout)
+        form_layout.addRow("Output Format:", self.format_combo)
 
-        # File path selection (initially hidden for memory layers)
-        self.path_layout = QHBoxLayout()
+        # File path selection using QgsFileWidget (initially hidden for memory layers and GeoPackage)
+        self.file_widget = QgsFileWidget()
+        self.file_widget.setStorageMode(QgsFileWidget.SaveFile)
+        self.file_widget.setDialogTitle("Save Dip/Strike Layer")
+
+        # Set default root to current QGIS project directory
+        project_path = QgsProject.instance().absolutePath()
+        if project_path:
+            self.file_widget.setDefaultRoot(project_path)
+        else:
+            self.file_widget.setDefaultRoot("")
+
+        self.file_widget.setFilter("All Files (*)")  # Will be updated based on format selection
+
         self.path_label = QLabel("Output File:")
-        self.path_layout.addWidget(self.path_label)
-        self.path_edit = QLineEdit()
-        self.path_edit.setPlaceholderText("Select output file location...")
-        self.browse_btn = QPushButton("Browse...")
-        self.path_layout.addWidget(self.path_edit)
-        self.path_layout.addWidget(self.browse_btn)
-        layout.addLayout(self.path_layout)
+        form_layout.addRow(self.path_label, self.file_widget)
+
+        # Geological type storage mode selection
+        self.geo_type_combo = QComboBox()
+        self.geo_type_combo.addItem("Store numerical code (1, 2, 3...)", "code")
+        self.geo_type_combo.addItem("Store text description (Strata, Foliation...)", "description")
+        self.geo_type_combo.setToolTip(
+            "Choose whether the geo_type field should store numerical codes or text descriptions"
+        )
+
+        # Load current storage mode from preferences
+        try:
+            from ..toolbelt.preferences import PlgOptionsManager
+
+            current_mode = PlgOptionsManager.get_geo_type_storage_mode()
+            for i in range(self.geo_type_combo.count()):
+                if self.geo_type_combo.itemData(i) == current_mode:
+                    self.geo_type_combo.setCurrentIndex(i)
+                    break
+        except Exception:
+            pass  # Use default selection
+
+        form_layout.addRow("Geo Type Storage:", self.geo_type_combo)
+
+        # Add form layout to main layout
+        main_layout.addLayout(form_layout)
 
         # Description label
         self.desc_label = QLabel(self.formats["GeoPackage"]["description"])
         self.desc_label.setStyleSheet("color: #666; font-style: italic; padding: 5px;")
-        layout.addWidget(self.desc_label)
+        main_layout.addWidget(self.desc_label)
 
         # Dialog buttons
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
+        main_layout.addWidget(self.button_box)
 
         # Connect signals
         self.format_combo.currentTextChanged.connect(self.update_format_options)
-        self.browse_btn.clicked.connect(self.browse_file)
+        self.name_edit.textChanged.connect(self.update_output_filename)
 
         # Initialize visibility
         self.update_format_options()
@@ -125,34 +151,49 @@ class DlgCreateLayer(QDialog):
         selected_format = self.format_combo.currentText()
         is_memory = selected_format == "Memory Layer"
 
-        self.path_edit.setVisible(not is_memory)
-        self.browse_btn.setVisible(not is_memory)
+        # Show file widget for all non-memory formats
+        self.file_widget.setVisible(not is_memory)
         self.path_label.setVisible(not is_memory)
 
         self.desc_label.setText(self.formats[selected_format]["description"])
 
-        if not is_memory and not self.path_edit.text():
-            # Set default filename based on layer name and format
-            layer_name = self.name_edit.text().strip() or "dip_strike_points"
+        if not is_memory:
+            # Update file filter based on format
             extension = self.formats[selected_format]["extension"]
             if extension:
-                self.path_edit.setText(f"{layer_name}.{extension}")
+                # Set the file filter based on format
+                filter_str = f"{selected_format} (*.{extension})"
+                self.file_widget.setFilter(filter_str)
 
-    def browse_file(self):
-        """Open file browser to select output file."""
+                # For GeoPackage, allow selecting existing files (to add layers)
+                # For other formats, use SaveFile mode (to create new files)
+                if selected_format == "GeoPackage":
+                    self.file_widget.setStorageMode(QgsFileWidget.GetFile)
+                    self.file_widget.setDialogTitle("Select or Create GeoPackage")
+                else:
+                    self.file_widget.setStorageMode(QgsFileWidget.SaveFile)
+                    self.file_widget.setDialogTitle("Save Dip/Strike Layer")
+
+            # Update the output filename
+            self.update_output_filename()
+
+    def update_output_filename(self):
+        """Update the output filename based on current layer name and format."""
         selected_format = self.format_combo.currentText()
-        extension = self.formats[selected_format]["extension"]
 
-        if extension:
-            filter_str = f"{selected_format} (*.{extension})"
-            filename, _ = QFileDialog.getSaveFileName(
-                self,
-                f"Save {selected_format} File",
-                self.path_edit.text() or f"dip_strike_points.{extension}",
-                filter_str,
-            )
-            if filename:
-                self.path_edit.setText(filename)
+        # Only update for non-memory formats
+        if selected_format != "Memory Layer":
+            layer_name = self.name_edit.text().strip() or "dip_strike_points"
+            extension = self.formats[selected_format]["extension"]
+
+            if extension:
+                # Use project directory if available, otherwise use current directory
+                project_path = QgsProject.instance().absolutePath()
+                if project_path:
+                    default_path = os.path.join(project_path, f"{layer_name}.{extension}")
+                else:
+                    default_path = f"{layer_name}.{extension}"
+                self.file_widget.setFilePath(default_path)
 
     def validate_input(self):
         """Validate user input and show appropriate warnings.
@@ -166,7 +207,7 @@ class DlgCreateLayer(QDialog):
             return False
 
         selected_format = self.format_combo.currentText()
-        output_path = self.path_edit.text().strip() if selected_format != "Memory Layer" else ""
+        output_path = self.file_widget.filePath().strip() if selected_format != "Memory Layer" else ""
 
         # Normalize file path to prevent issues
         if output_path:
@@ -212,7 +253,7 @@ class DlgCreateLayer(QDialog):
                         return False
 
             # Update the path in case extension was added
-            self.path_edit.setText(output_path)
+            self.file_widget.setFilePath(output_path)
 
             # Check if directory exists
             output_dir = os.path.dirname(output_path)
@@ -225,15 +266,32 @@ class DlgCreateLayer(QDialog):
 
             # Check if file already exists
             if os.path.exists(output_path):
-                reply = QMessageBox.question(
-                    self,
-                    "File Exists",
-                    f"The file '{output_path}' already exists.\n\nOverwrite it?",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No,
-                )
-                if reply == QMessageBox.No:
-                    return False
+                # For GeoPackage, allow adding to existing file
+                if selected_format == "GeoPackage":
+                    # GeoPackage can have multiple layers, so we don't need to overwrite
+                    # Just inform the user that the layer will be added to existing GeoPackage
+                    reply = QMessageBox.question(
+                        self,
+                        "Add to Existing GeoPackage",
+                        f"The GeoPackage '{output_path}' already exists.\n\n"
+                        f"The new layer will be added to this existing GeoPackage database.\n"
+                        f"Continue?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.Yes,
+                    )
+                    if reply == QMessageBox.No:
+                        return False
+                else:
+                    # For other formats, ask about overwriting
+                    reply = QMessageBox.question(
+                        self,
+                        "File Exists",
+                        f"The file '{output_path}' already exists.\n\nOverwrite it?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No,
+                    )
+                    if reply == QMessageBox.No:
+                        return False
 
         # Store validated values
         self.layer_name = layer_name
@@ -243,9 +301,24 @@ class DlgCreateLayer(QDialog):
         return True
 
     def accept(self):
-        """Handle dialog acceptance - validate input before closing."""
+        """Handle dialog acceptance - validate input and save preferences before closing."""
+        # Use standard validation for all formats
         if self.validate_input():
+            # Save preferences and close
+            self.save_preferences()
             super().accept()
+
+    def save_preferences(self):
+        """Save the geological type storage mode preference."""
+        try:
+            from ..toolbelt.preferences import PlgOptionsManager
+
+            selected_mode = self.geo_type_combo.currentData()
+            if selected_mode:
+                PlgOptionsManager.set_geo_type_storage_mode(selected_mode)
+                self.log(f"Saved geo_type storage mode preference: {selected_mode}", log_level=4)
+        except Exception as e:
+            self.log(f"Error saving geo_type storage mode preference: {e}", log_level=2)
 
     def get_layer_config(self):
         """Get the layer configuration from dialog input.
@@ -258,4 +331,5 @@ class DlgCreateLayer(QDialog):
             "format": self.selected_format,
             "output_path": self.output_path,
             "format_info": self.formats[self.selected_format],
+            "geo_type_storage_mode": self.geo_type_combo.currentData(),
         }

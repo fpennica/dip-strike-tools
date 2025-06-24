@@ -12,7 +12,7 @@ from qgis.core import (
 from qgis.gui import QgisInterface, QgsMapCanvas, QgsMapToolPan
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QCoreApplication, Qt
-from qgis.PyQt.QtWidgets import QDial, QDialog, QDoubleSpinBox, QGraphicsScene, QGraphicsView, QMessageBox
+from qgis.PyQt.QtWidgets import QDial, QDialog, QDoubleSpinBox, QGraphicsScene, QGraphicsView, QMessageBox, QSizePolicy
 from qgis.utils import iface
 
 from ..core.layer_creator import DipStrikeLayerCreator, LayerCreationError
@@ -41,8 +41,11 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             layer_name = self.existing_feature["layer_name"]
             feature_id = self.existing_feature["feature"].id()
             self.setWindowTitle(f"Edit Dip/Strike Data - {layer_name} (Feature {feature_id})")
+            # If editing an existing feature, disable the layer selection and new layer creation
+            self.cbo_feature_layer.setEnabled(False)
+            self.btn_new_layer.setEnabled(False)
         else:
-            self.setWindowTitle("Insert Dip/Strike Data")
+            self.setWindowTitle("Insert New Dip/Strike Point")
 
         # Flag to prevent saving settings during initialization
         self._initializing = True
@@ -126,6 +129,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Connect radio buttons for strike/dip mode
         self.rdio_strike.toggled.connect(self.on_strike_dip_mode_changed)
         self.rdio_dip.toggled.connect(self.on_strike_dip_mode_changed)
+        self.rdio_strike.toggled.connect(self._save_ui_settings)
+        self.rdio_dip.toggled.connect(self._save_ui_settings)
 
         # map canvas
         self.map_canvas_widget = QgsMapCanvas(self)
@@ -234,6 +239,13 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # self.opacity_widget.opacityChanged.connect(self.update_all_layers_opacity)
         self.opacity_slider.valueChanged.connect(self.update_all_layers_opacity)
 
+        # self.grp_optional.setCollapsed(True)
+        self._initial_collapse_state = True
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        self.setMinimumSize(0, 0)
+        self.grp_optional.collapsedStateChanged.connect(self._on_optional_group_collapsed)
+        self.grp_optional.collapsedStateChanged.connect(self._save_ui_settings)
+
         # Connect dialog signals to handle cleanup when dialog is closed
         self.accepted.connect(self.cleanup_on_close)
         self.rejected.connect(self.cleanup_on_close)
@@ -254,6 +266,43 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Load existing feature data if provided
         if self.existing_feature:
             self._load_existing_feature_data()
+
+    def showEvent(self, event):
+        """Override showEvent to set initial collapsed state when dialog is shown."""
+        super().showEvent(event)
+
+        # Set collapsed state on first show
+        if hasattr(self, "_initial_collapse_state") and self._initial_collapse_state is not None:
+            self.grp_optional.setCollapsed(self._initial_collapse_state)
+            self._initial_collapse_state = None  # Only do this once
+
+            # Force resize after the dialog has been shown
+            from qgis.PyQt.QtCore import QTimer
+
+            QTimer.singleShot(100, self.adjustSize)
+
+    def _on_optional_group_collapsed(self, collapsed):
+        """Handle QgsCollapsibleGroupBox collapse/expand to resize dialog."""
+        from qgis.PyQt.QtCore import QTimer
+
+        # Use a timer to delay the resize until after the animation completes
+        QTimer.singleShot(10, self._resize_dialog_after_collapse)
+
+    def _resize_dialog_after_collapse(self):
+        """Resize the dialog after group box collapse/expand animation."""
+        # Force layout update first
+        self.layout().invalidate()
+        self.layout().update()
+
+        # Then resize to fit content
+        self.adjustSize()
+
+        # Optionally set a minimum height to prevent it from becoming too small
+        # if self.grp_optional.isCollapsed():
+        #     # When collapsed, ensure minimum reasonable height
+        #     min_height = self.sizeHint().height()
+        #     if self.height() < min_height:
+        #         self.resize(self.width(), min_height)
 
     def check_feature_layer(self):
         """Check if a feature layer is selected and enable/disable controls accordingly"""
@@ -451,7 +500,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 )
 
         # The Optional Data group box remains always visible
-        self.groupBox_3.setVisible(True)
+        # self.groupBox_3.setVisible(True)
 
         self.log(
             message=f"Optional Data section: {enabled_count} field(s) enabled, {len(field_widgets) - enabled_count} disabled",
@@ -612,7 +661,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 widget.addItem(placeholder_text)
 
         # Keep the Optional Data group box visible for consistent layout
-        self.groupBox_3.setVisible(True)
+        # self.groupBox_3.setVisible(True)
 
         self.log(
             message="All optional fields disabled (no layer selected)",
@@ -753,13 +802,19 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         settings = QgsSettings()
         settings.beginGroup("dip_strike_tools")
 
-        # Save only the true north checkbox state
+        # Save the true north checkbox state
         settings.setValue("true_north_enabled", self.chk_true_north.isChecked())
+
+        # Save the optional group box collapsed state
+        settings.setValue("optional_group_collapsed", self.grp_optional.isCollapsed())
+
+        # Save the strike/dip mode selection
+        settings.setValue("strike_mode_selected", self.rdio_strike.isChecked())
 
         settings.endGroup()
 
         self.log(
-            message=f"Saved UI settings - True North: {self.chk_true_north.isChecked()}",
+            message=f"Saved UI settings - True North: {self.chk_true_north.isChecked()}, Optional Group Collapsed: {self.grp_optional.isCollapsed()}, Strike Mode: {self.rdio_strike.isChecked()}",
             log_level=4,
         )
 
@@ -768,11 +823,17 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         settings = QgsSettings()
         settings.beginGroup("dip_strike_tools")
 
-        # Restore only the true north checkbox state (default to True if not found)
+        # Restore the true north checkbox state (default to True if not found)
         true_north_enabled = settings.value("true_north_enabled", True, type=bool)
 
+        # Restore the optional group box collapsed state (default to True if not found)
+        optional_group_collapsed = settings.value("optional_group_collapsed", True, type=bool)
+
+        # Restore the strike/dip mode selection (default to strike mode if not found)
+        strike_mode_selected = settings.value("strike_mode_selected", True, type=bool)
+
         # Clean up old settings that are no longer saved
-        old_settings = ["strike_mode_selected", "last_azimuth_value", "last_dip_value"]
+        old_settings = ["last_azimuth_value", "last_dip_value"]
         for old_setting in old_settings:
             if settings.contains(old_setting):
                 settings.remove(old_setting)
@@ -785,16 +846,32 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # Temporarily disconnect signals to avoid triggering update events during restoration
         self.chk_true_north.toggled.disconnect()
+        self.rdio_strike.toggled.disconnect()
+        self.rdio_dip.toggled.disconnect()
 
-        # Restore only the true north checkbox value
+        # Restore the true north checkbox value
         self.chk_true_north.setChecked(true_north_enabled)
 
-        # Reconnect the signal for true north checkbox
+        # Restore the strike/dip mode selection
+        self.rdio_strike.setChecked(strike_mode_selected)
+        self.rdio_dip.setChecked(not strike_mode_selected)
+
+        # Store the collapsed state to be applied in showEvent
+        self._initial_collapse_state = optional_group_collapsed
+
+        # Reconnect the signals
         self.chk_true_north.toggled.connect(self.update_marker_azimuth)
         self.chk_true_north.toggled.connect(self._save_ui_settings)
+        self.rdio_strike.toggled.connect(self.on_strike_dip_mode_changed)
+        self.rdio_dip.toggled.connect(self.on_strike_dip_mode_changed)
+        self.rdio_strike.toggled.connect(self._save_ui_settings)
+        self.rdio_dip.toggled.connect(self._save_ui_settings)
+
+        # Update the marker to reflect the restored strike/dip mode
+        self.update_marker_azimuth()
 
         self.log(
-            message=f"Restored UI settings - True North: {true_north_enabled}",
+            message=f"Restored UI settings - True North: {true_north_enabled}, Optional Group Collapsed: {optional_group_collapsed}, Strike Mode: {strike_mode_selected}",
             log_level=4,
         )
 
@@ -1153,155 +1230,48 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             )
 
     def create_new_feature_layer(self):
-        """Create a new feature layer for dip/strike features with format choice"""
-
+        """Create a new feature layer for dip/strike features using the layer creation dialog."""
         self.log(
-            message="Creating new feature layer for dip/strike features",
+            message="Opening layer creation dialog",
             log_level=4,
         )
 
-        # Get the current CRS from the map canvas
-        crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+        # Import the layer creation dialog
+        from .dlg_create_layer import DlgCreateLayer
 
-        # Create a simple format selection dialog
-        from qgis.PyQt.QtWidgets import (
-            QComboBox,
-            QDialog,
-            QFileDialog,
-            QHBoxLayout,
-            QLabel,
-            QLineEdit,
-            QPushButton,
-            QVBoxLayout,
-        )
-
-        format_dialog = QDialog(self)
-        format_dialog.setWindowTitle("Create Dip/Strike Layer")
-        format_dialog.setModal(True)
-        format_dialog.resize(400, 150)
-
-        layout = QVBoxLayout(format_dialog)
-
-        # Layer name input
-        name_layout = QHBoxLayout()
-        name_layout.addWidget(QLabel("Layer Name:"))
-        name_edit = QLineEdit("Dip Strike Points")
-        name_layout.addWidget(name_edit)
-        layout.addLayout(name_layout)
-
-        # Format selection
-        format_layout = QHBoxLayout()
-        format_layout.addWidget(QLabel("Format:"))
-        format_combo = QComboBox()
-        format_combo.addItems(
-            [
-                "Memory Layer (Temporary)",
-                "ESRI Shapefile (*.shp)",
-                "GeoPackage (*.gpkg)",
-            ]
-        )
-        format_layout.addWidget(format_combo)
-        layout.addLayout(format_layout)
-
-        # Geo type storage mode selection
-        geo_type_layout = QHBoxLayout()
-        geo_type_layout.addWidget(QLabel("Geo Type Storage:"))
-        geo_type_mode_combo = QComboBox()
-        geo_type_mode_combo.addItem("Store numerical code (1, 2, 3...)", "code")
-        geo_type_mode_combo.addItem("Store text description (Strata, Foliation...)", "description")
-        geo_type_mode_combo.setToolTip(
-            "Choose whether the geo_type field should store numerical codes or text descriptions"
-        )
-
-        # Load current storage mode from preferences
-        try:
-            from ..toolbelt.preferences import PlgOptionsManager
-
-            current_mode = PlgOptionsManager.get_geo_type_storage_mode()
-            for i in range(geo_type_mode_combo.count()):
-                if geo_type_mode_combo.itemData(i) == current_mode:
-                    geo_type_mode_combo.setCurrentIndex(i)
-                    break
-        except Exception:
-            pass  # Use default selection
-
-        geo_type_layout.addWidget(geo_type_mode_combo)
-        layout.addLayout(geo_type_layout)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-        ok_button = QPushButton("Create")
-        cancel_button = QPushButton("Cancel")
-        ok_button.clicked.connect(format_dialog.accept)
-        cancel_button.clicked.connect(format_dialog.reject)
-        button_layout.addWidget(ok_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
-
-        # Show format selection dialog
-        if format_dialog.exec() != QDialog.Accepted:
+        # Open the layer creation dialog
+        create_dialog = DlgCreateLayer(self)
+        if create_dialog.exec() != DlgCreateLayer.DialogCode.Accepted:
             self.log(
                 message="Layer creation cancelled by user",
                 log_level=4,
             )
             return
 
-        layer_name = name_edit.text().strip()
-        if not layer_name:
-            layer_name = "Dip Strike Points"
-
-        selected_format = format_combo.currentText()
+        # Get the layer configuration from the dialog
+        config = create_dialog.get_layer_config()
 
         try:
+            # Get the current CRS from the map canvas
+            crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+
+            # Create the layer using the layer creator
             layer_creator = DipStrikeLayerCreator()
 
-            if selected_format == "Memory Layer (Temporary)":
+            if config["format"] == "Memory Layer":
                 # Create memory layer
-                layer = layer_creator.create_memory_layer(layer_name, crs)
+                layer = layer_creator.create_memory_layer(config["name"], crs)
             else:
-                # Get file path from user
-                format_map = {
-                    "ESRI Shapefile (*.shp)": ("ESRI Shapefile", "shp", "Shapefile (*.shp)"),
-                    "GeoPackage (*.gpkg)": ("GPKG", "gpkg", "GeoPackage (*.gpkg)"),
-                }
-
-                if selected_format not in format_map:
-                    raise LayerCreationError(f"Unsupported format: {selected_format}")
-
-                driver, extension, filter_str = format_map[selected_format]
-
-                # Show save file dialog
-                file_path, _ = QFileDialog.getSaveFileName(
-                    self, f"Save {selected_format}", f"{layer_name}.{extension}", filter_str
-                )
-
-                if not file_path:
-                    self.log(
-                        message="File path selection cancelled by user",
-                        log_level=4,
-                    )
-                    return
-
                 # Create file-based layer
-                format_info = {"driver": driver}
-                layer = layer_creator.create_file_layer(layer_name, file_path, format_info, crs)
+                layer = layer_creator.create_file_layer(
+                    config["name"], config["output_path"], config["format_info"], crs
+                )
 
             if layer is None or not layer.isValid():
                 raise LayerCreationError("Failed to create layer")
 
             # Configure the layer for dip/strike tools
             layer_creator.configure_layer_properties_for_existing(layer)
-
-            # Save the geological type storage mode preference from the dialog
-            try:
-                from ..toolbelt.preferences import PlgOptionsManager
-
-                selected_mode = geo_type_mode_combo.currentData()
-                if selected_mode:
-                    PlgOptionsManager.set_geo_type_storage_mode(selected_mode)
-                    self.log(f"Saved geo_type storage mode for new layer: {selected_mode}", log_level=4)
-            except Exception as e:
-                self.log(f"Error saving geo_type storage mode: {e}", log_level=2)
 
             # Add layer to project if it's not already added
             if not QgsProject.instance().mapLayer(layer.id()):
@@ -1310,7 +1280,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Select the new layer in the combo box
             self.cbo_feature_layer.setLayer(layer)
 
-            # Refresh the geological types combo box with the new storage mode
+            # Refresh the geological types combo box
             self._populate_geological_types()
 
             # Save this layer as the last used layer
@@ -1345,6 +1315,12 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             if not layer or not layer.isValid():
                 self.log(message="No valid layer selected for saving", log_level=1)
                 return
+
+            # Log layer information for debugging multi-layer GeoPackage issues
+            self.log(
+                message=f"Using layer for feature insertion: '{layer.name()}' (ID: {layer.id()}, Source: {layer.source()})",
+                log_level=4,
+            )
 
             # Get field mappings from layer custom properties
             strike_azimuth_field = layer.customProperty("dip_strike_tools/strike_azimuth", "")
@@ -1468,7 +1444,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
                 # Apply changes
                 if changes:
-                    success = layer.dataProvider().changeAttributeValues({feature_id: changes})
+                    success = layer.changeAttributeValues(feature_id, changes)
                     if success:
                         self.log(
                             message=f"Successfully updated feature {feature_id} with {len(changes)} field changes. Strike: {adjusted_strike_azimuth:.2f}°, Dip azimuth: {adjusted_dip_azimuth:.2f}°, Dip value: {dip_value}°",
@@ -1510,7 +1486,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     geometry = QgsGeometry.fromPointXY(center)
 
                 self.log(
-                    message=f"Creating new feature in layer '{layer.name()}' at {geometry.asPoint()}", log_level=3
+                    message=f"Creating new feature in layer '{layer.name()}' (ID: {layer.id()}) at {geometry.asPoint()}",
+                    log_level=3,
                 )
 
                 # Create new feature
@@ -1556,7 +1533,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                         feature.setAttribute(field_idx, notes_value)
 
                 # Add feature to layer
-                success = layer.dataProvider().addFeature(feature)
+                success = layer.addFeature(feature)
                 if success:
                     self.log(
                         message=f"Successfully created new feature in layer '{layer.name()}'. Strike: {adjusted_strike_azimuth:.2f}°, Dip azimuth: {adjusted_dip_azimuth:.2f}°, Dip value: {dip_value}°",

@@ -119,6 +119,15 @@ class DipStrikeToolsPlugin:
             parent=self.iface.mainWindow(),
         )
 
+        self.toolbar.addSeparator()
+
+        self.settings_action = self.add_action(
+            QgsApplication.getThemeIcon("/mActionOptions.svg"),
+            text=self.tr("Dip Strike Tools Settings"),
+            callback=lambda: self.iface.showOptionsDialog(currentPage="mOptionsPage{}".format(__title__)),
+            parent=self.iface.mainWindow(),
+        )
+
         # Make the action toggleable
         self.insert_dip_strike_action.setCheckable(True)
         self.insert_dip_strike_action.setChecked(False)

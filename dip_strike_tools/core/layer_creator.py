@@ -4,6 +4,8 @@
 Layer creation utilities for dip/strike features.
 """
 
+import os
+
 from qgis.core import (
     QgsField,
     QgsProject,
@@ -87,7 +89,7 @@ class DipStrikeLayerCreator:
         :rtype: dict
         """
         return {
-            "strike_azimuth": "strike_az",
+            "strike_azimuth": "strk_azi",
             "dip_azimuth": "dip_az",
             "dip_value": "dip_val",
             "geo_type": "geo_type",
@@ -151,7 +153,36 @@ class DipStrikeLayerCreator:
         # Create temporary memory layer to define the structure
         temp_layer = QgsVectorLayer(f"Point?crs={crs.authid()}", "temp", "memory")
         temp_layer.startEditing()
-        temp_layer.dataProvider().addAttributes(all_fields)
+
+        # For shapefiles, create fields with already shortened names to avoid mapping issues
+        if format_info["driver"] == "ESRI Shapefile":
+            shapefile_mapping = self.get_shapefile_field_mapping()
+            shapefile_fields = []
+
+            for field in all_fields:
+                original_name = field.name()
+                if original_name in shapefile_mapping:
+                    # Create a new field with the shortened name
+                    shapefile_field = QgsField()
+                    shapefile_field.setName(shapefile_mapping[original_name])
+                    shapefile_field.setType(field.type())
+                    shapefile_field.setLength(field.length())
+                    shapefile_field.setPrecision(field.precision())
+                    shapefile_fields.append(shapefile_field)
+                else:
+                    # Use original field but truncate name if needed
+                    truncated_field = QgsField()
+                    truncated_field.setName(original_name[:10])
+                    truncated_field.setType(field.type())
+                    truncated_field.setLength(field.length())
+                    truncated_field.setPrecision(field.precision())
+                    shapefile_fields.append(truncated_field)
+
+            temp_layer.dataProvider().addAttributes(shapefile_fields)
+        else:
+            # For other formats, use original field names
+            temp_layer.dataProvider().addAttributes(all_fields)
+
         temp_layer.updateFields()
         temp_layer.commitChanges()
 
@@ -160,24 +191,35 @@ class DipStrikeLayerCreator:
         save_options.driverName = format_info["driver"]
         save_options.fileEncoding = "UTF-8"
 
-        # Special handling for shapefiles
+        # For GeoPackage, set the layer name to avoid conflicts
+        if format_info["driver"] == "GPKG":
+            save_options.layerName = layer_name
+            self.log(f"Setting GeoPackage layer name to: {layer_name}", log_level=4)
+
+            # Check if the GeoPackage file already exists
+            if os.path.exists(output_path):
+                # Check if a layer with the same name already exists
+                if self.check_geopackage_layer_exists(output_path, layer_name):
+                    self.log(
+                        f"Warning: Layer '{layer_name}' already exists in GeoPackage, it will be overwritten",
+                        log_level=2,
+                    )
+
+                # For existing GeoPackages, we need to append the new layer
+                save_options.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
+                self.log(f"GeoPackage exists, will add layer '{layer_name}' to existing file", log_level=4)
+            else:
+                # For new GeoPackages, create the file
+                save_options.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteFile
+                self.log(f"Creating new GeoPackage file with layer '{layer_name}'", log_level=4)
+
+        # Special handling for shapefiles - field mapping is now done during field creation
         if format_info["driver"] == "ESRI Shapefile":
-            field_name_mapping = {}
-            shapefile_mapping = self.get_shapefile_field_mapping()
-
-            for field in all_fields:
-                original_name = field.name()
-                if original_name in shapefile_mapping:
-                    short_name = shapefile_mapping[original_name]
-                    field_name_mapping[original_name] = short_name
-                else:
-                    # Fallback for any unmapped fields
-                    field_name_mapping[original_name] = original_name[:10]
-
-            # Apply field name mapping
-            if field_name_mapping:
-                save_options.attributesExportNames = field_name_mapping
-                self.log(f"Applied shapefile field mapping: {field_name_mapping}", log_level=4)
+            # No need for attributesExportNames since fields are already created with correct names
+            self.log("Using pre-created shapefile field names", log_level=4)
+        else:
+            # For other formats, use original field mapping if needed
+            pass
 
         # Write the layer
         self.log(f"Writing {format_info['driver']} file to: {output_path}", log_level=4)
@@ -194,11 +236,28 @@ class DipStrikeLayerCreator:
         self.log(f"Successfully created {format_info['driver']} file: {output_path}", log_level=4)
 
         # Load the created file as a layer
-        layer = QgsVectorLayer(output_path, layer_name, "ogr")
+        # For GeoPackage, specify the layer name to ensure we load the correct layer
+        if format_info["driver"] == "GPKG":
+            # Use the format: "path|layername=layername" for GeoPackages
+            layer_source = f"{output_path}|layername={layer_name}"
+            self.log(f"Loading GeoPackage layer with source: {layer_source}", log_level=4)
+        else:
+            layer_source = output_path
+
+        layer = QgsVectorLayer(layer_source, layer_name, "ogr")
 
         if not layer.isValid():
             self.log(f"Failed to load created {format_info['driver']} file as layer: {output_path}", log_level=1)
             raise LayerCreationError(f"Failed to load created {format_info['driver']} file as layer")
+
+        # For shapefiles, log the actual field names that were created to debug field mapping issues
+        if format_info["driver"] == "ESRI Shapefile":
+            actual_field_names = [field.name() for field in layer.fields()]
+            self.log(f"Shapefile created with actual field names: {actual_field_names}", log_level=4)
+
+        # Verify the layer source is correct for GeoPackages
+        if format_info["driver"] == "GPKG":
+            self.log(f"Loaded GeoPackage layer '{layer_name}' with final source: {layer.source()}", log_level=4)
 
         return layer
 
@@ -317,3 +376,31 @@ class DipStrikeLayerCreator:
         except Exception as e:
             self.log(f"Error creating dip/strike layer: {e}", log_level=1)
             raise LayerCreationError(f"Failed to create layer: {str(e)}")
+
+    def check_geopackage_layer_exists(self, gpkg_path, layer_name):
+        """Check if a layer with the given name already exists in a GeoPackage.
+
+        :param gpkg_path: Path to the GeoPackage file
+        :type gpkg_path: str
+        :param layer_name: Name of the layer to check
+        :type layer_name: str
+        :returns: True if layer exists, False otherwise
+        :rtype: bool
+        """
+        if not os.path.exists(gpkg_path):
+            return False
+
+        try:
+            import sqlite3
+
+            conn = sqlite3.connect(gpkg_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT COUNT(*) FROM gpkg_contents WHERE table_name = ? AND data_type = 'features'", (layer_name,)
+            )
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count > 0
+        except Exception as e:
+            self.log(f"Error checking GeoPackage layers: {e}", log_level=2)
+            return False
