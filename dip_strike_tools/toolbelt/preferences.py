@@ -101,8 +101,9 @@ class PlgOptionsManager:
         :return: plugin settings value matching key
         """
         if not hasattr(PlgSettingsStructure, key):
+            field_names = [field.name for field in fields(PlgSettingsStructure)]
             log_hdlr.PlgLogger.log(
-                message="Bad settings key. Must be one of: {}".format(",".join(PlgSettingsStructure._fields)),
+                message="Bad settings key. Must be one of: {}".format(",".join(field_names)),
                 log_level=1,
             )
             return None
@@ -132,8 +133,9 @@ class PlgOptionsManager:
         :rtype: bool
         """
         if not hasattr(PlgSettingsStructure, key):
+            field_names = [field.name for field in fields(PlgSettingsStructure)]
             log_hdlr.PlgLogger.log(
-                message="Bad settings key. Must be one of: {}".format(",".join(PlgSettingsStructure._fields)),
+                message="Bad settings key. Must be one of: {}".format(",".join(field_names)),
                 log_level=2,
             )
             return False

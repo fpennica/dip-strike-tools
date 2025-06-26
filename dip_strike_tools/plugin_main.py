@@ -7,7 +7,7 @@ from functools import partial
 from pathlib import Path
 
 # PyQGIS
-from qgis.core import QgsApplication, QgsSettings
+from qgis.core import QgsApplication, QgsProject, QgsSettings
 from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator, QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import QAction
@@ -20,6 +20,8 @@ from dip_strike_tools.__about__ import (
     __uri_homepage__,
 )
 from dip_strike_tools.core import DipStrikeMapTool
+from dip_strike_tools.core.layer_creator import DipStrikeLayerCreator
+from dip_strike_tools.gui.dlg_create_layer import DlgCreateLayer
 from dip_strike_tools.gui.dlg_insert_dip_strike import DlgInsertDipStrike
 from dip_strike_tools.gui.dlg_settings import PlgOptionsFactory
 from dip_strike_tools.toolbelt import PlgLogger
@@ -71,7 +73,7 @@ class DipStrikeToolsPlugin:
         parent=None,
     ):
         icon = QIcon(icon_path)
-        action = QAction(icon, text, parent)
+        action = QAction(icon, text, parent)  # type: ignore
         action.triggered.connect(callback)
         action.setEnabled(enabled_flag)
 
@@ -95,14 +97,14 @@ class DipStrikeToolsPlugin:
 
         # -- Actions
         self.action_help = QAction(
-            QgsApplication.getThemeIcon("mActionHelpContents.svg"),
+            QgsApplication.getThemeIcon("mActionHelpContents.svg"),  # type: ignore
             self.tr("Help"),
             self.iface.mainWindow(),
         )
         self.action_help.triggered.connect(partial(QDesktopServices.openUrl, QUrl(__uri_homepage__)))
 
         self.action_settings = QAction(
-            QgsApplication.getThemeIcon("console/iconSettingsConsole.svg"),
+            QgsApplication.getThemeIcon("console/iconSettingsConsole.svg"),  # type: ignore
             self.tr("Settings"),
             self.iface.mainWindow(),
         )
@@ -116,6 +118,14 @@ class DipStrikeToolsPlugin:
             # enabled_flag=enabled_flag,
             text=self.tr("Create a Dip Strike Point"),
             callback=self.toggle_dip_strike_tool,
+            parent=self.iface.mainWindow(),
+        )
+
+        # -- Create new dip strike layer action
+        self.create_layer_action = self.add_action(
+            QgsApplication.getThemeIcon("mActionNewVectorLayer.svg"),
+            text=self.tr("Create New Dip Strike Layer"),
+            callback=self.open_create_layer_dialog,
             parent=self.iface.mainWindow(),
         )
 
@@ -144,7 +154,7 @@ class DipStrikeToolsPlugin:
         # documentation
         self.iface.pluginHelpMenu().addSeparator()
         self.action_help_plugin_menu_documentation = QAction(
-            QIcon(str(__icon_path__)),
+            QIcon(str(__icon_path__)),  # type: ignore
             f"{__title__} - Documentation",
             self.iface.mainWindow(),
         )
@@ -202,6 +212,10 @@ class DipStrikeToolsPlugin:
         # remove actions
         del self.action_settings
         del self.action_help
+
+        # Clean up our custom actions
+        if hasattr(self, "create_layer_action"):
+            del self.create_layer_action
 
     def run(self):
         """Main process.
@@ -293,6 +307,40 @@ class DipStrikeToolsPlugin:
             self.log(message=self.tr("Dip Strike Point created successfully."), log_level=3)
         else:
             self.log(message=self.tr("Dip Strike Point creation cancelled."), log_level=2)
+
+    def open_create_layer_dialog(self):
+        """Open the dialog to create a new dip strike layer."""
+        dlg = DlgCreateLayer(self.iface.mainWindow())
+        dlg.exec()
+        if dlg.result() == DlgCreateLayer.Accepted:
+            try:
+                # Get the layer configuration from the dialog
+                config = dlg.get_layer_config()
+
+                # Create the layer using the layer creator
+                layer_creator = DipStrikeLayerCreator()
+                layer = layer_creator.create_dip_strike_layer(config, config["crs"])
+
+                # Add the layer to the project
+                QgsProject.instance().addMapLayer(layer)
+
+                # Apply symbology if requested
+                if config.get("symbology", {}).get("apply", False):
+                    success = layer_creator.apply_symbology(layer)
+                    if success:
+                        self.log(message=self.tr("Symbology applied successfully."), log_level=3)
+                    else:
+                        self.log(message=self.tr("Failed to apply symbology."), log_level=2)
+
+                self.log(
+                    message=self.tr("New dip strike layer '{}' created and added to project.").format(layer.name()),
+                    log_level=3,
+                )
+
+            except Exception as e:
+                self.log(message=self.tr("Error creating layer: {}").format(str(e)), log_level=1)
+        else:
+            self.log(message=self.tr("Layer creation cancelled."), log_level=2)
 
     def _find_existing_feature_at_point(self, clicked_point, tolerance_pixels=10):
         """Find existing dip/strike features near the clicked point.

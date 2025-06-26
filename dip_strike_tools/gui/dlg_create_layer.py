@@ -6,16 +6,19 @@ Dialog for creating new dip/strike feature layers.
 
 import os
 
-from qgis.core import QgsProject
-from qgis.gui import QgsFileWidget
+from qgis.core import QgsCoordinateReferenceSystem, QgsProject
+from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
 from qgis.PyQt.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QGroupBox,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QRadioButton,
     QVBoxLayout,
 )
 
@@ -39,6 +42,8 @@ class DlgCreateLayer(QDialog):
         self.selected_format = ""
         self.output_path = ""
         self.formats = {}
+        self.apply_symbology = True
+        self.selected_crs = None
 
         self.setup_ui()
 
@@ -46,7 +51,7 @@ class DlgCreateLayer(QDialog):
         """Set up the user interface."""
         self.setWindowTitle("Create New Dip/Strike Layer")
         self.setModal(True)
-        self.resize(500, 200)
+        self.resize(500, 350)  # Increased height to accommodate symbology options
 
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -55,7 +60,7 @@ class DlgCreateLayer(QDialog):
         form_layout = QFormLayout()
 
         # Layer name input
-        self.name_edit = QLineEdit("Dip Strike Points")
+        self.name_edit = QLineEdit("dip_strike_points")
         form_layout.addRow("Layer Name:", self.name_edit)
 
         # Output format selection
@@ -103,7 +108,67 @@ class DlgCreateLayer(QDialog):
         self.path_label = QLabel("Output File:")
         form_layout.addRow(self.path_label, self.file_widget)
 
-        # Geological type storage mode selection
+        # Coordinate Reference System selection
+        crs_group = QGroupBox("Coordinate Reference System")
+        crs_layout = QVBoxLayout(crs_group)
+
+        # Radio buttons for CRS selection method
+        self.use_canvas_crs_radio = QRadioButton("Use current map canvas CRS")
+        self.use_custom_crs_radio = QRadioButton("Select custom CRS:")
+
+        # Set default to use canvas CRS
+        self.use_canvas_crs_radio.setChecked(True)
+
+        crs_layout.addWidget(self.use_canvas_crs_radio)
+        crs_layout.addWidget(self.use_custom_crs_radio)
+
+        # CRS selection widget
+        self.crs_widget = QgsProjectionSelectionWidget()
+
+        # Get current map canvas CRS and set it as default
+        try:
+            from qgis.utils import iface
+
+            if iface and iface.mapCanvas():
+                canvas_crs = iface.mapCanvas().mapSettings().destinationCrs()
+                self.crs_widget.setCrs(canvas_crs)
+
+                # Add canvas CRS info to the radio button text
+                if canvas_crs.isValid():
+                    crs_desc = f"{canvas_crs.authid()} - {canvas_crs.description()}"
+                    self.use_canvas_crs_radio.setText(f"Use current map canvas CRS ({crs_desc})")
+            else:
+                # Fallback to WGS84 if no canvas available
+                fallback_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+                self.crs_widget.setCrs(fallback_crs)
+        except Exception:
+            # Fallback to WGS84
+            fallback_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+            self.crs_widget.setCrs(fallback_crs)
+
+        # Initially disable the CRS widget since canvas CRS is selected by default
+        self.crs_widget.setEnabled(False)
+
+        crs_layout.addWidget(self.crs_widget)
+
+        # Connect radio button signals
+        self.use_canvas_crs_radio.toggled.connect(self.update_crs_selection_mode)
+        self.use_custom_crs_radio.toggled.connect(self.update_crs_selection_mode)
+
+        form_layout.addRow(crs_group)
+
+        # Optional fields selection
+        optional_fields_group = QGroupBox("Optional Fields")
+        optional_fields_layout = QVBoxLayout(optional_fields_group)
+
+        # Geo type field checkbox
+        self.geo_type_check = QCheckBox("Geological type (geo_type)")
+        self.geo_type_check.setChecked(True)  # Default to enabled
+        self.geo_type_check.setToolTip("Add a field to store geological type information")
+        optional_fields_layout.addWidget(self.geo_type_check)
+
+        # Geological type storage mode selection (shown only when geo_type is checked)
+        geo_type_storage_layout = QFormLayout()
         self.geo_type_combo = QComboBox()
         self.geo_type_combo.addItem("Store numerical code (1, 2, 3...)", "code")
         self.geo_type_combo.addItem("Store text description (Strata, Foliation...)", "description")
@@ -123,7 +188,46 @@ class DlgCreateLayer(QDialog):
         except Exception:
             pass  # Use default selection
 
-        form_layout.addRow("Geo Type Storage:", self.geo_type_combo)
+        geo_type_storage_layout.addRow("    Storage mode:", self.geo_type_combo)
+        optional_fields_layout.addLayout(geo_type_storage_layout)
+
+        # Age field checkbox
+        self.age_check = QCheckBox("Age (age)")
+        self.age_check.setChecked(True)  # Default to enabled
+        self.age_check.setToolTip("Add a field to store age information")
+        optional_fields_layout.addWidget(self.age_check)
+
+        # Lithology field checkbox
+        self.lithology_check = QCheckBox("Lithology (lithology)")
+        self.lithology_check.setChecked(True)  # Default to enabled
+        self.lithology_check.setToolTip("Add a field to store lithology information")
+        optional_fields_layout.addWidget(self.lithology_check)
+
+        # Notes field checkbox
+        self.notes_check = QCheckBox("Notes (notes)")
+        self.notes_check.setChecked(True)  # Default to enabled
+        self.notes_check.setToolTip("Add a field to store additional notes")
+        optional_fields_layout.addWidget(self.notes_check)
+
+        # Connect geo_type checkbox to show/hide storage mode
+        self.geo_type_check.toggled.connect(self.update_geo_type_storage_visibility)
+
+        form_layout.addRow(optional_fields_group)
+
+        # Symbology options
+        symbology_group = QGroupBox("Symbology Options")
+        symbology_layout = QFormLayout(symbology_group)
+
+        # Apply symbology checkbox
+        self.apply_symbology_check = QCheckBox("Apply default symbology")
+        self.apply_symbology_check.setChecked(True)  # Default to enabled
+        self.apply_symbology_check.setToolTip(
+            "Apply predefined single symbol symbology with rotated symbols and dip value labels"
+        )
+        symbology_layout.addRow(self.apply_symbology_check)
+
+        # Add symbology group to main form layout
+        form_layout.addRow(symbology_group)
 
         # Add form layout to main layout
         main_layout.addLayout(form_layout)
@@ -145,6 +249,40 @@ class DlgCreateLayer(QDialog):
 
         # Initialize visibility
         self.update_format_options()
+
+    def update_crs_selection_mode(self):
+        """Update CRS selection widget state based on radio button selection."""
+        # Enable/disable the CRS widget based on which radio button is selected
+        use_custom = self.use_custom_crs_radio.isChecked()
+        self.crs_widget.setEnabled(use_custom)
+
+    def get_selected_crs(self):
+        """Get the selected CRS based on the current selection mode.
+
+        :returns: Selected coordinate reference system
+        :rtype: QgsCoordinateReferenceSystem
+        """
+        if self.use_canvas_crs_radio.isChecked():
+            # Return current map canvas CRS
+            try:
+                from qgis.utils import iface
+
+                if iface and hasattr(iface, "mapCanvas") and iface.mapCanvas():
+                    return iface.mapCanvas().mapSettings().destinationCrs()
+                else:
+                    # Fallback to project CRS if no canvas available
+                    project_crs = QgsProject.instance().crs()
+                    if project_crs.isValid():
+                        return project_crs
+                    else:
+                        # Final fallback to WGS84
+                        return QgsCoordinateReferenceSystem("EPSG:4326")
+            except Exception:
+                # Fallback to WGS84
+                return QgsCoordinateReferenceSystem("EPSG:4326")
+        else:
+            # Return selected custom CRS
+            return self.crs_widget.crs()
 
     def update_format_options(self):
         """Update visibility and description based on format selection."""
@@ -297,6 +435,8 @@ class DlgCreateLayer(QDialog):
         self.layer_name = layer_name
         self.selected_format = selected_format
         self.output_path = output_path
+        self.apply_symbology = self.apply_symbology_check.isChecked()
+        self.selected_crs = self.get_selected_crs()
 
         return True
 
@@ -326,10 +466,27 @@ class DlgCreateLayer(QDialog):
         :returns: Dictionary with layer configuration
         :rtype: dict
         """
+        # Get selected optional fields
+        optional_fields = {
+            "geo_type": self.geo_type_check.isChecked(),
+            "age": self.age_check.isChecked(),
+            "lithology": self.lithology_check.isChecked(),
+            "notes": self.notes_check.isChecked(),
+        }
+
         return {
             "name": self.layer_name,
             "format": self.selected_format,
             "output_path": self.output_path,
             "format_info": self.formats[self.selected_format],
             "geo_type_storage_mode": self.geo_type_combo.currentData(),
+            "symbology": {"apply": self.apply_symbology},
+            "crs": self.selected_crs,
+            "optional_fields": optional_fields,
         }
+
+    def update_geo_type_storage_visibility(self):
+        """Update geo type storage mode visibility based on geo_type checkbox state."""
+        # Show/hide the geo type storage mode based on checkbox state
+        is_checked = self.geo_type_check.isChecked()
+        self.geo_type_combo.setVisible(is_checked)

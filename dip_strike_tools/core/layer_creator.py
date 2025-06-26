@@ -5,6 +5,8 @@ Layer creation utilities for dip/strike features.
 """
 
 import os
+import sqlite3
+import tempfile
 
 from qgis.core import (
     QgsField,
@@ -89,8 +91,8 @@ class DipStrikeLayerCreator:
         :rtype: dict
         """
         return {
-            "strike_azimuth": "strk_azi",
-            "dip_azimuth": "dip_az",
+            "strike_azimuth": "strike_azi",
+            "dip_azimuth": "dip_azi",
             "dip_value": "dip_val",
             "geo_type": "geo_type",
             "age": "age",
@@ -98,13 +100,221 @@ class DipStrikeLayerCreator:
             "notes": "notes",
         }
 
-    def create_memory_layer(self, layer_name, crs):
+    def get_mapped_field_name(self, layer, original_field_name):
+        """Get the actual field name in the layer for a given original field name.
+
+        This method handles the mapping between original field names and the actual
+        field names in the layer, which may be different (e.g., shortened for shapefiles).
+
+        :param layer: The layer to check
+        :type layer: QgsVectorLayer
+        :param original_field_name: The original field name (e.g., 'strike_azimuth')
+        :type original_field_name: str
+        :returns: The actual field name in the layer, or None if not found
+        :rtype: str or None
+        """
+        # First check if the original field name exists directly
+        if layer.fields().lookupField(original_field_name) != -1:
+            return original_field_name
+
+        # Check if a mapped field name exists in custom properties
+        mapped_name = layer.customProperty(f"dip_strike_tools/{original_field_name}")
+        if mapped_name and layer.fields().lookupField(mapped_name) != -1:
+            return mapped_name
+
+        # For shapefiles, try the shortened name
+        shapefile_mapping = self.get_shapefile_field_mapping()
+        if original_field_name in shapefile_mapping:
+            shortened_name = shapefile_mapping[original_field_name]
+            if layer.fields().lookupField(shortened_name) != -1:
+                return shortened_name
+
+        return None
+
+    def apply_symbology(self, layer):
+        """Apply default single symbol symbology to a dip/strike layer.
+
+        :param layer: The layer to apply symbology to
+        :type layer: QgsVectorLayer
+        :returns: True if symbology was applied successfully, False otherwise
+        :rtype: bool
+        """
+        try:
+            return self._apply_single_symbol_symbology(layer)
+        except Exception as e:
+            self.log(f"Error applying symbology: {e}", log_level=1)
+            return False
+
+    def _apply_single_symbol_symbology(self, layer):
+        """Apply single symbol symbology with rotation based on strike and dip value labels.
+
+        :param layer: The layer to apply symbology to
+        :type layer: QgsVectorLayer
+        :returns: True if successful, False otherwise
+        :rtype: bool
+        """
+        try:
+            # Get the path to the single symbol QML file
+            qml_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "single_symbol.qml")
+
+            if not os.path.exists(qml_path):
+                self.log(f"Single symbol QML file not found: {qml_path}", log_level=1)
+                return False
+
+            # Get mapped field names
+            strike_field = self.get_mapped_field_name(layer, "strike_azimuth")
+            dip_value_field = self.get_mapped_field_name(layer, "dip_value")
+
+            if not strike_field:
+                self.log("Strike azimuth field not found in layer", log_level=1)
+                return False
+
+            if not dip_value_field:
+                self.log("Dip value field not found in layer", log_level=1)
+                return False
+
+            self.log(f"Field mapping: strike_azimuth -> {strike_field}, dip_value -> {dip_value_field}", log_level=4)
+
+            # Always update field references to ensure correct mapping
+            # The QML file expects 'strike_azimuth' for rotation and 'dip' for labeling
+            self.log(
+                f"Applying symbology with field mapping - rotation: {strike_field}, labels: {dip_value_field}",
+                log_level=3,
+            )
+
+            qml_content = self._update_qml_field_references(
+                qml_path,
+                {
+                    "strike_azimuth": strike_field,
+                    "dip": dip_value_field,  # Map the label field 'dip' to our 'dip_value' field
+                },
+            )
+            success = self._apply_qml_content(layer, qml_content)
+
+            if success:
+                self.log(f"Applied single symbol symbology to layer: {layer.name()}", log_level=3)
+
+                # Verify the symbology was applied correctly
+                verification = self.verify_symbology_fields(layer)
+                if not verification["strike_field_found"] or not verification["dip_field_found"]:
+                    self.log("Warning: Required fields for symbology not found after application", log_level=2)
+                else:
+                    self.log(
+                        f"Symbology fields verified: strike={verification['strike_field_name']}, dip={verification['dip_field_name']}",
+                        log_level=4,
+                    )
+
+                # Check if labeling is enabled
+                if hasattr(layer, "labelsEnabled") and layer.labelsEnabled():
+                    self.log(f"Labels are enabled for layer {layer.name()}", log_level=4)
+                else:
+                    self.log(f"Labels are NOT enabled for layer {layer.name()}", log_level=2)
+            else:
+                self.log(f"Failed to apply single symbol symbology to layer: {layer.name()}", log_level=1)
+
+            return success
+
+        except Exception as e:
+            self.log(f"Error applying single symbol symbology: {e}", log_level=1)
+            return False
+
+    def _update_qml_field_references(self, qml_path, field_mapping):
+        """Read QML file and update field references based on mapping.
+
+        :param qml_path: Path to the QML file
+        :type qml_path: str
+        :param field_mapping: Dictionary mapping original field names to actual field names
+        :type field_mapping: dict
+        :returns: Updated QML content as string
+        :rtype: str
+        """
+        try:
+            with open(qml_path, "r", encoding="utf-8") as f:
+                qml_content = f.read()
+
+            # Replace field references in the QML content
+            for original_field, actual_field in field_mapping.items():
+                if actual_field != original_field:
+                    # Count replacements for debugging
+                    before_count = qml_content.count(original_field)
+
+                    # Replace field references in various QML contexts
+                    # Handle different field reference patterns in QML
+                    qml_content = qml_content.replace(
+                        f'field" value="{original_field}"', f'field" value="{actual_field}"'
+                    )
+                    qml_content = qml_content.replace(f'attr="{original_field}"', f'attr="{actual_field}"')
+                    qml_content = qml_content.replace(f'fieldName="{original_field}"', f'fieldName="{actual_field}"')
+                    qml_content = qml_content.replace(f"&quot;{original_field}&quot;", f"&quot;{actual_field}&quot;")
+                    # Also handle expression-based field references
+                    qml_content = qml_content.replace(f'"{original_field}"', f'"{actual_field}"')
+
+                    after_count = qml_content.count(original_field)
+                    replaced_count = before_count - after_count
+                    self.log(
+                        f"Updated QML field reference: {original_field} -> {actual_field} ({replaced_count} replacements)",
+                        log_level=4,
+                    )
+
+            return qml_content
+
+        except Exception as e:
+            self.log(f"Error updating QML field references: {e}", log_level=1)
+            raise
+
+    def _apply_qml_content(self, layer, qml_content):
+        """Apply QML content to a layer.
+
+        :param layer: The layer to apply symbology to
+        :type layer: QgsVectorLayer
+        :param qml_content: QML content as string
+        :type qml_content: str
+        :returns: True if successful, False otherwise
+        :rtype: bool
+        """
+        try:
+            # Write QML content to a temporary file
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".qml", delete=False, encoding="utf-8") as temp_file:
+                temp_file.write(qml_content)
+                temp_qml_path = temp_file.name
+
+            # Load the style from the temporary file
+            self.log(f"Loading QML style from temporary file: {temp_qml_path}", log_level=4)
+            result, error_msg = layer.loadNamedStyle(temp_qml_path)
+
+            # Clean up temporary file
+            try:
+                os.unlink(temp_qml_path)
+            except Exception:
+                pass  # Ignore cleanup errors
+
+            if not result:
+                self.log(f"Failed to load QML style: {error_msg}", log_level=1)
+                return False
+
+            self.log(f"Successfully loaded QML style for layer: {layer.name()}", log_level=4)
+
+            # Trigger layer repaint
+            layer.triggerRepaint()
+
+            # Ensure labeling is explicitly enabled
+            self.ensure_labeling_enabled(layer)
+
+            return True
+
+        except Exception as e:
+            self.log(f"Error applying QML content: {e}", log_level=1)
+            return False
+
+    def create_memory_layer(self, layer_name, crs, optional_fields_config=None):
         """Create a memory layer for dip/strike features.
 
         :param layer_name: Name for the layer
         :type layer_name: str
         :param crs: Coordinate reference system
         :type crs: QgsCoordinateReferenceSystem
+        :param optional_fields_config: Configuration for optional fields to include
+        :type optional_fields_config: dict or None
         :returns: Created memory layer
         :rtype: QgsVectorLayer
         :raises: LayerCreationError if layer creation fails
@@ -117,19 +327,18 @@ class DipStrikeLayerCreator:
         if not layer.isValid():
             raise LayerCreationError(f"Failed to create memory layer: {layer_name}")
 
-        # Add fields to memory layer
-        required_fields, optional_fields = self.get_dip_strike_fields()
-        all_fields = required_fields + optional_fields
+        # Add fields to memory layer based on configuration
+        selected_fields = self.get_selected_fields(optional_fields_config)
 
         layer.startEditing()
-        layer.dataProvider().addAttributes(all_fields)
+        layer.dataProvider().addAttributes(selected_fields)
         layer.updateFields()
         layer.commitChanges()
 
         self.log(f"Successfully created memory layer: {layer_name}", log_level=4)
         return layer
 
-    def create_file_layer(self, layer_name, output_path, format_info, crs):
+    def create_file_layer(self, layer_name, output_path, format_info, crs, optional_fields_config=None):
         """Create a file-based layer for dip/strike features.
 
         :param layer_name: Name for the layer
@@ -140,15 +349,16 @@ class DipStrikeLayerCreator:
         :type format_info: dict
         :param crs: Coordinate reference system
         :type crs: QgsCoordinateReferenceSystem
+        :param optional_fields_config: Configuration for optional fields to include
+        :type optional_fields_config: dict or None
         :returns: Created file layer
         :rtype: QgsVectorLayer
         :raises: LayerCreationError if layer creation fails
         """
         self.log(f"Creating {format_info['driver']} layer: {layer_name} at {output_path}", log_level=4)
 
-        # Get field definitions
-        required_fields, optional_fields = self.get_dip_strike_fields()
-        all_fields = required_fields + optional_fields
+        # Get field definitions based on configuration
+        selected_fields = self.get_selected_fields(optional_fields_config)
 
         # Create temporary memory layer to define the structure
         temp_layer = QgsVectorLayer(f"Point?crs={crs.authid()}", "temp", "memory")
@@ -159,7 +369,7 @@ class DipStrikeLayerCreator:
             shapefile_mapping = self.get_shapefile_field_mapping()
             shapefile_fields = []
 
-            for field in all_fields:
+            for field in selected_fields:
                 original_name = field.name()
                 if original_name in shapefile_mapping:
                     # Create a new field with the shortened name
@@ -181,7 +391,7 @@ class DipStrikeLayerCreator:
             temp_layer.dataProvider().addAttributes(shapefile_fields)
         else:
             # For other formats, use original field names
-            temp_layer.dataProvider().addAttributes(all_fields)
+            temp_layer.dataProvider().addAttributes(selected_fields)
 
         temp_layer.updateFields()
         temp_layer.commitChanges()
@@ -212,14 +422,6 @@ class DipStrikeLayerCreator:
                 # For new GeoPackages, create the file
                 save_options.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteFile
                 self.log(f"Creating new GeoPackage file with layer '{layer_name}'", log_level=4)
-
-        # Special handling for shapefiles - field mapping is now done during field creation
-        if format_info["driver"] == "ESRI Shapefile":
-            # No need for attributesExportNames since fields are already created with correct names
-            self.log("Using pre-created shapefile field names", log_level=4)
-        else:
-            # For other formats, use original field mapping if needed
-            pass
 
         # Write the layer
         self.log(f"Writing {format_info['driver']} file to: {output_path}", log_level=4)
@@ -351,23 +553,40 @@ class DipStrikeLayerCreator:
         output_path = config["output_path"]
         format_info = config["format_info"]
 
+        # Extract optional fields configuration
+        optional_fields_config = config.get("optional_fields", None)
+
+        # Extract symbology configuration
+        symbology_config = config.get("symbology", {})
+        apply_symbology = symbology_config.get("apply", False)
+
+        self.log(
+            f"Creating layer: {layer_name}, apply_symbology: {apply_symbology}, optional_fields: {optional_fields_config}",
+            log_level=4,
+        )
+
         try:
             if layer_format == "Memory Layer":
-                layer = self.create_memory_layer(layer_name, crs)
+                layer = self.create_memory_layer(layer_name, crs, optional_fields_config)
             else:
-                layer = self.create_file_layer(layer_name, output_path, format_info, crs)
+                layer = self.create_file_layer(layer_name, output_path, format_info, crs, optional_fields_config)
 
             # Configure layer properties
             self.configure_layer_properties(layer, format_info)
+
+            # Apply symbology if requested
+            if apply_symbology:
+                self._apply_symbology_to_layer(layer)
 
             # Add layer to project
             QgsProject.instance().addMapLayer(layer)
 
             format_info_str = f" ({layer_format})" if layer_format != "Memory Layer" else " (Memory)"
             location_info = f" at {output_path}" if output_path else ""
+            symbology_info = " with single symbol symbology" if apply_symbology else ""
 
             self.log(
-                f"Successfully created and configured layer: {layer_name}{format_info_str}{location_info}",
+                f"Successfully created and configured layer: {layer_name}{format_info_str}{location_info}{symbology_info}",
                 log_level=3,
             )
 
@@ -376,6 +595,47 @@ class DipStrikeLayerCreator:
         except Exception as e:
             self.log(f"Error creating dip/strike layer: {e}", log_level=1)
             raise LayerCreationError(f"Failed to create layer: {str(e)}")
+
+    def _apply_symbology_to_layer(self, layer):
+        """Apply symbology to a layer.
+
+        :param layer: The layer to apply symbology to
+        :type layer: QgsVectorLayer
+        """
+        try:
+            self.log(f"Applying single symbol symbology to layer: {layer.name()}", log_level=3)
+
+            success = self._apply_single_symbol_symbology(layer)
+
+            if not success:
+                self.log(f"Failed to apply symbology to layer {layer.name()}", log_level=2)
+            else:
+                self.log(f"Successfully applied symbology to layer {layer.name()}", log_level=3)
+        except Exception as e:
+            self.log(f"Error applying symbology to layer: {e}", log_level=1)
+
+    def apply_symbology_to_existing_layer(self, layer):
+        """Apply symbology to an existing dip/strike layer.
+
+        This method can be used to apply symbology to layers that were not created
+        through the create_dip_strike_layer method, or to change the symbology of
+        existing layers. Only single symbol symbology is supported.
+
+        :param layer: The layer to apply symbology to
+        :type layer: QgsVectorLayer
+        :returns: True if symbology was applied successfully, False otherwise
+        :rtype: bool
+        """
+        try:
+            # Ensure the layer is configured for dip/strike tools
+            self.configure_layer_properties_for_existing(layer)
+
+            # Apply single symbol symbology
+            return self._apply_single_symbol_symbology(layer)
+
+        except Exception as e:
+            self.log(f"Error applying symbology to existing layer: {e}", log_level=1)
+            return False
 
     def check_geopackage_layer_exists(self, gpkg_path, layer_name):
         """Check if a layer with the given name already exists in a GeoPackage.
@@ -391,8 +651,6 @@ class DipStrikeLayerCreator:
             return False
 
         try:
-            import sqlite3
-
             conn = sqlite3.connect(gpkg_path)
             cursor = conn.cursor()
             cursor.execute(
@@ -404,3 +662,216 @@ class DipStrikeLayerCreator:
         except Exception as e:
             self.log(f"Error checking GeoPackage layers: {e}", log_level=2)
             return False
+
+    def create_layer_config(
+        self,
+        layer_name,
+        layer_format="Memory Layer",
+        output_path=None,
+        apply_symbology=False,
+        optional_fields_config=None,
+    ):
+        """Create a properly formatted configuration dictionary for layer creation.
+
+        :param layer_name: Name for the layer
+        :type layer_name: str
+        :param layer_format: Format for the layer ('Memory Layer', 'GeoPackage', 'ESRI Shapefile', etc.)
+        :type layer_format: str
+        :param output_path: Path for file-based layers (required for non-memory layers)
+        :type output_path: str or None
+        :param apply_symbology: Whether to apply default symbology to the layer
+        :type apply_symbology: bool
+        :param optional_fields_config: Configuration for optional fields to include
+        :type optional_fields_config: dict or None
+        :returns: Configuration dictionary ready for create_dip_strike_layer
+        :rtype: dict
+        """
+        # Format information mapping
+        format_mapping = {
+            "Memory Layer": {"driver": "memory"},
+            "GeoPackage": {"driver": "GPKG"},
+            "ESRI Shapefile": {"driver": "ESRI Shapefile"},
+            "GeoJSON": {"driver": "GeoJSON"},
+            "KML": {"driver": "KML"},
+        }
+
+        if layer_format not in format_mapping:
+            raise ValueError(
+                f"Unsupported layer format: {layer_format}. Supported formats: {list(format_mapping.keys())}"
+            )
+
+        if layer_format != "Memory Layer" and not output_path:
+            raise ValueError(f"output_path is required for {layer_format} layers")
+
+        config = {
+            "name": layer_name,
+            "format": layer_format,
+            "output_path": output_path,
+            "format_info": format_mapping[layer_format],
+            "symbology": {"apply": apply_symbology},
+            "optional_fields": optional_fields_config,
+        }
+
+        return config
+
+    def create_memory_layer_with_symbology(self, layer_name, crs):
+        """Convenience method to create a memory layer with symbology applied.
+
+        :param layer_name: Name for the layer
+        :type layer_name: str
+        :param crs: Coordinate reference system
+        :type crs: QgsCoordinateReferenceSystem
+        :returns: Created layer with symbology applied
+        :rtype: QgsVectorLayer
+        """
+        config = self.create_layer_config(
+            layer_name=layer_name,
+            layer_format="Memory Layer",
+            apply_symbology=True,
+        )
+
+        return self.create_dip_strike_layer(config, crs)
+
+    def create_memory_layer_without_symbology(self, layer_name, crs):
+        """Convenience method to create a memory layer without symbology.
+
+        :param layer_name: Name for the layer
+        :type layer_name: str
+        :param crs: Coordinate reference system
+        :type crs: QgsCoordinateReferenceSystem
+        :returns: Created layer without symbology
+        :rtype: QgsVectorLayer
+        """
+        config = self.create_layer_config(layer_name=layer_name, layer_format="Memory Layer", apply_symbology=False)
+
+        return self.create_dip_strike_layer(config, crs)
+
+    def create_file_layer_with_symbology(self, layer_name, output_path, layer_format, crs):
+        """Convenience method to create a file-based layer with symbology applied.
+
+        :param layer_name: Name for the layer
+        :type layer_name: str
+        :param output_path: Path to output file
+        :type output_path: str
+        :param layer_format: Format for the layer ('GeoPackage', 'ESRI Shapefile', etc.)
+        :type layer_format: str
+        :param crs: Coordinate reference system
+        :type crs: QgsCoordinateReferenceSystem
+        :returns: Created layer with symbology applied
+        :rtype: QgsVectorLayer
+        """
+        config = self.create_layer_config(
+            layer_name=layer_name,
+            layer_format=layer_format,
+            output_path=output_path,
+            apply_symbology=True,
+        )
+
+        return self.create_dip_strike_layer(config, crs)
+
+    def create_file_layer_without_symbology(self, layer_name, output_path, layer_format, crs):
+        """Convenience method to create a file-based layer without symbology.
+
+        :param layer_name: Name for the layer
+        :type layer_name: str
+        :param output_path: Path to output file
+        :type output_path: str
+        :param layer_format: Format for the layer ('GeoPackage', 'ESRI Shapefile', etc.)
+        :type layer_format: str
+        :param crs: Coordinate reference system
+        :type crs: QgsCoordinateReferenceSystem
+        :returns: Created layer without symbology
+        :rtype: QgsVectorLayer
+        """
+        config = self.create_layer_config(
+            layer_name=layer_name, layer_format=layer_format, output_path=output_path, apply_symbology=False
+        )
+
+        return self.create_dip_strike_layer(config, crs)
+
+    def verify_symbology_fields(self, layer):
+        """Verify that the layer has the correct fields for symbology and they are properly mapped.
+
+        :param layer: The layer to verify
+        :type layer: QgsVectorLayer
+        :returns: Dictionary with verification results
+        :rtype: dict
+        """
+        verification = {
+            "strike_field_found": False,
+            "dip_field_found": False,
+            "strike_field_name": None,
+            "dip_field_name": None,
+            "has_features": False,
+            "sample_values": {},
+        }
+
+        # Check field mapping
+        strike_field = self.get_mapped_field_name(layer, "strike_azimuth")
+        dip_field = self.get_mapped_field_name(layer, "dip_value")
+
+        verification["strike_field_found"] = strike_field is not None
+        verification["dip_field_found"] = dip_field is not None
+        verification["strike_field_name"] = strike_field
+        verification["dip_field_name"] = dip_field
+
+        # Check if layer has features and get sample values
+        if layer.featureCount() > 0:
+            verification["has_features"] = True
+            # Get first feature as sample
+            feature = next(layer.getFeatures())
+            if strike_field:
+                verification["sample_values"]["strike"] = feature[strike_field]
+            if dip_field:
+                verification["sample_values"]["dip"] = feature[dip_field]
+
+        self.log(f"Symbology verification for {layer.name()}: {verification}", log_level=4)
+        return verification
+
+    def ensure_labeling_enabled(self, layer):
+        """Ensure that labeling is explicitly enabled for the layer.
+
+        :param layer: The layer to enable labeling for
+        :type layer: QgsVectorLayer
+        """
+        try:
+            # Get the labeling settings
+            labeling = layer.labeling()
+            if labeling is not None:
+                # Labeling is configured, ensure it's enabled
+                self.log(f"Labeling is configured for layer {layer.name()}", log_level=4)
+                # Force enable the labeling
+                layer.setLabelsEnabled(True)
+                self.log(f"Explicitly enabled labeling for layer {layer.name()}", log_level=4)
+            else:
+                self.log(f"No labeling configuration found for layer {layer.name()}", log_level=2)
+        except Exception as e:
+            self.log(f"Error ensuring labeling is enabled: {e}", log_level=2)
+
+    def get_selected_fields(self, optional_fields_config=None):
+        """Get the field definitions based on optional fields configuration.
+
+        :param optional_fields_config: Dictionary indicating which optional fields to include
+        :type optional_fields_config: dict or None
+        :returns: List of fields to include in the layer
+        :rtype: list
+        """
+        required_fields, optional_fields = self.get_dip_strike_fields()
+
+        # Always include required fields
+        selected_fields = required_fields.copy()
+
+        # Add optional fields based on configuration
+        if optional_fields_config is not None:
+            for field in optional_fields:
+                field_name = field.name()
+                if optional_fields_config.get(field_name, False):
+                    selected_fields.append(field)
+                    self.log(f"Including optional field: {field_name}", log_level=4)
+        else:
+            # If no configuration provided, include all optional fields
+            selected_fields.extend(optional_fields)
+            self.log("No optional fields configuration provided, including all optional fields", log_level=4)
+
+        self.log(f"Selected fields: {[f.name() for f in selected_fields]}", log_level=4)
+        return selected_fields

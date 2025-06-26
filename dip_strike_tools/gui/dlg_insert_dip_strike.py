@@ -1252,30 +1252,24 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         config = create_dialog.get_layer_config()
 
         try:
-            # Get the current CRS from the map canvas
-            crs = self.iface.mapCanvas().mapSettings().destinationCrs()
-
-            # Create the layer using the layer creator
-            layer_creator = DipStrikeLayerCreator()
-
-            if config["format"] == "Memory Layer":
-                # Create memory layer
-                layer = layer_creator.create_memory_layer(config["name"], crs)
-            else:
-                # Create file-based layer
-                layer = layer_creator.create_file_layer(
-                    config["name"], config["output_path"], config["format_info"], crs
+            # Get the CRS from the configuration (selected in the dialog)
+            crs = config.get("crs")
+            if not crs or not crs.isValid():
+                # Fallback to map canvas CRS if no valid CRS in config
+                crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+                self.log(
+                    message="No valid CRS in config, using map canvas CRS as fallback",
+                    log_level=2,
                 )
+
+            # Create the layer using the layer creator with full configuration support
+            layer_creator = DipStrikeLayerCreator()
+            layer = layer_creator.create_dip_strike_layer(config, crs)
 
             if layer is None or not layer.isValid():
                 raise LayerCreationError("Failed to create layer")
 
-            # Configure the layer for dip/strike tools
-            layer_creator.configure_layer_properties_for_existing(layer)
-
-            # Add layer to project if it's not already added
-            if not QgsProject.instance().mapLayer(layer.id()):
-                QgsProject.instance().addMapLayer(layer)
+            # Note: Layer is already added to project and configured by create_dip_strike_layer
 
             # Select the new layer in the combo box
             self.cbo_feature_layer.setLayer(layer)
