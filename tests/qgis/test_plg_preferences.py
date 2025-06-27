@@ -1,20 +1,21 @@
 #! python3  # noqa E265
 
 """
-    Usage from the repo root folder:
+Usage from the repo root folder:
 
-    .. code-block:: bash
+.. code-block:: bash
 
-        # for whole tests
-        python -m unittest tests.qgis.test_plg_preferences
-        # for specific test
-        python -m unittest tests.qgis.test_plg_preferences.TestPlgPreferences.test_plg_preferences_structure
+    # for whole tests
+    python -m unittest tests.qgis.test_plg_preferences
+    # for specific test
+    python -m unittest tests.qgis.test_plg_preferences.TestPlgPreferences.test_plg_preferences_structure
 """
 
 # standard library
 import os
 from unittest.mock import patch
 
+import pytest
 from qgis.testing import unittest
 
 # project
@@ -30,6 +31,7 @@ from dip_strike_tools.toolbelt.preferences import (
 # ################################
 
 
+@pytest.mark.qgis
 class TestPlgPreferences(unittest.TestCase):
     def test_plg_preferences_structure(self):
         """Test settings types and default values."""
@@ -44,43 +46,30 @@ class TestPlgPreferences(unittest.TestCase):
         self.assertIsInstance(settings.version, str)
         self.assertEqual(settings.version, __version__)
 
-
     def test_bool_env_variable(self):
         """Test settings with environment value."""
         manager = PlgOptionsManager()
-        with patch.dict(
-            os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "true"}, clear=True
-        ):
+        with patch.dict(os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "true"}, clear=True):
             settings = manager.get_plg_settings()
             self.assertEqual(settings.debug_mode, True)
 
-        with patch.dict(
-            os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "false"}, clear=True
-        ):
+        with patch.dict(os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "false"}, clear=True):
             settings = manager.get_plg_settings()
             self.assertEqual(settings.debug_mode, False)
 
-        with patch.dict(
-            os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "on"}, clear=True
-        ):
+        with patch.dict(os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "on"}, clear=True):
             settings = manager.get_plg_settings()
             self.assertEqual(settings.debug_mode, True)
 
-        with patch.dict(
-            os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "off"}, clear=True
-        ):
+        with patch.dict(os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "off"}, clear=True):
             settings = manager.get_plg_settings()
             self.assertEqual(settings.debug_mode, False)
 
-        with patch.dict(
-            os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "1"}, clear=True
-        ):
+        with patch.dict(os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "1"}, clear=True):
             settings = manager.get_plg_settings()
             self.assertEqual(settings.debug_mode, True)
 
-        with patch.dict(
-            os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "0"}, clear=True
-        ):
+        with patch.dict(os.environ, {f"{PREFIX_ENV_VARIABLE}DEBUG_MODE": "0"}, clear=True):
             settings = manager.get_plg_settings()
             self.assertEqual(settings.debug_mode, False)
 
@@ -91,6 +80,7 @@ class TestPlgPreferences(unittest.TestCase):
         ):
             settings = manager.get_plg_settings()
             self.assertEqual(settings.debug_mode, False)
+
 
 # ############################################################################
 # ####### Stand-alone run ########

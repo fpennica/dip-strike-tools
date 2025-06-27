@@ -40,12 +40,12 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         if self.existing_feature:
             layer_name = self.existing_feature["layer_name"]
             feature_id = self.existing_feature["feature"].id()
-            self.setWindowTitle(f"Edit Dip/Strike Data - {layer_name} (Feature {feature_id})")
+            self.setWindowTitle(self.tr("Edit Dip/Strike Data - {} (Feature {})").format(layer_name, feature_id))
             # If editing an existing feature, disable the layer selection and new layer creation
             self.cbo_feature_layer.setEnabled(False)
             self.btn_new_layer.setEnabled(False)
         else:
-            self.setWindowTitle("Insert New Dip/Strike Point")
+            self.setWindowTitle(self.tr("Insert New Dip/Strike Point"))
 
         # Flag to prevent saving settings during initialization
         self._initializing = True
@@ -65,12 +65,12 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.btn_configure_layer.clicked.connect(self.open_feature_layer_config_dialog)
         # self.btn_configure_layer.setText("⚙")
         self.btn_configure_layer.setIcon(QgsApplication.getThemeIcon("mActionEditTable.svg"))
-        self.btn_configure_layer.setToolTip("Configure field mappings for this layer")
+        self.btn_configure_layer.setToolTip(self.tr("Configure field mappings for this layer"))
         self.btn_configure_layer.setEnabled(False)  # Initially disabled
         self.btn_new_layer.clicked.connect(self.create_new_feature_layer)
         # self.btn_new_layer.setText("+")
         self.btn_new_layer.setIcon(QgsApplication.getThemeIcon("mIconModelInput.svg"))
-        self.btn_new_layer.setToolTip("Create a new layer for dip/strike features")
+        self.btn_new_layer.setToolTip(self.tr("Create a new layer for dip/strike features"))
 
         self.dial_azimuth = QDial()
         self.dial_azimuth.setFixedHeight(80)
@@ -188,7 +188,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             else:
                 self.lbl_coord_x.setText(f"Lon: {clicked_point.x():.4f}")
                 self.lbl_coord_y.setText(f"Lat: {clicked_point.y():.4f}")
-            self.lbl_north_bearing.setText(f"{self._true_north_bearing:.2f}°")
+            self.lbl_north_bearing.setText(self._format_bearing(self._true_north_bearing))
         else:
             canvas_center = self.map_canvas_widget.extent().center()
             self.dip_strike_item.setCenter(canvas_center)
@@ -207,7 +207,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             else:
                 self.lbl_coord_x.setText(f"Lon: {canvas_center.x():.4f}")
                 self.lbl_coord_y.setText(f"Lat: {canvas_center.y():.4f}")
-            self.lbl_north_bearing.setText(f"{self._true_north_bearing:.2f}°")
+            self.lbl_north_bearing.setText(self._format_bearing(self._true_north_bearing))
 
         # Ensure the marker is visible and force updates
         self.dip_strike_item.setVisible(True)
@@ -233,7 +233,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         icon = QgsApplication.getThemeIcon("mActionIncreaseContrast.svg")
         pixmap = icon.pixmap(16, 16)  # 16x16 pixel size
         self.label_opacity.setPixmap(pixmap)
-        self.label_opacity.setToolTip("Layer Opacity")
+        self.label_opacity.setToolTip(self.tr("Layer Opacity"))
 
         # Connect opacity widget to update all layers opacity
         # self.opacity_widget.opacityChanged.connect(self.update_all_layers_opacity)
@@ -256,20 +256,38 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Populate geological types combo box
         self._populate_geological_types()
 
-        # Restore the last used feature layer and UI settings
-        self._restore_last_feature_layer()
+        # Restore UI settings first (but not layer selection yet)
         self._restore_ui_settings()
 
         # Initialization complete - now UI settings changes should be saved
         self._initializing = False
 
-        # Load existing feature data if provided
+        # Load existing feature data if provided (defer layer selection)
         if self.existing_feature:
-            self._load_existing_feature_data()
+            self._should_load_existing_data = True
+        else:
+            self._should_load_existing_data = False
+
+        # Store flag to restore layer selection after dialog is shown
+        self._should_restore_layer = True
 
     def showEvent(self, event):
         """Override showEvent to set initial collapsed state when dialog is shown."""
         super().showEvent(event)
+
+        # Restore the last used feature layer and load existing data after dialog is shown
+        if hasattr(self, "_should_restore_layer") and self._should_restore_layer:
+            self._should_restore_layer = False
+            # Use a short timer to ensure the dialog is fully shown before restoring layer
+            from qgis.PyQt.QtCore import QTimer
+
+            if hasattr(self, "_should_load_existing_data") and self._should_load_existing_data:
+                # If we have existing feature data, load it first
+                self._should_load_existing_data = False
+                QTimer.singleShot(100, self._load_existing_feature_data)
+            else:
+                # Otherwise, just restore the last used layer
+                QTimer.singleShot(100, self._restore_last_feature_layer)
 
         # Set collapsed state on first show
         if hasattr(self, "_initial_collapse_state") and self._initial_collapse_state is not None:
@@ -674,11 +692,11 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.save_button = self.buttonBox.button(self.buttonBox.StandardButton.Ok)
         if self.save_button:
             if self.existing_feature:
-                self.save_button.setText("Update")
-                self.save_button.setToolTip("Update existing dip/strike data in the selected feature layer")
+                self.save_button.setText(self.tr("Update"))
+                self.save_button.setToolTip(self.tr("Update existing dip/strike data in the selected feature layer"))
             else:
-                self.save_button.setText("Save")
-                self.save_button.setToolTip("Save dip/strike data to the selected feature layer")
+                self.save_button.setText(self.tr("Save"))
+                self.save_button.setToolTip(self.tr("Save dip/strike data to the selected feature layer"))
             # Initially disable the Save button since no layer is configured
             self.save_button.setEnabled(False)
             self.log(
@@ -689,7 +707,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Get reference to Cancel button for consistency
         self.cancel_button = self.buttonBox.button(self.buttonBox.StandardButton.Cancel)
         if self.cancel_button:
-            self.cancel_button.setToolTip("Cancel and close dialog without saving")
+            self.cancel_button.setToolTip(self.tr("Cancel and close dialog without saving"))
 
     def _save_last_feature_layer(self, layer):
         """Save the currently selected feature layer to settings for future use.
@@ -996,8 +1014,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 if not is_true_north_adjust_enabled
                 else (strike_azimuth + 90 - self._true_north_bearing) % 360
             )
-            self.lbl_strike_dir.setText(f"{adjusted_strike_azimuth:.2f}°")
-            self.lbl_dip_dir.setText(f"{adjusted_dip_azimuth:.2f}°")
+            self.lbl_strike_dir.setText(self._format_bearing(adjusted_strike_azimuth))
+            self.lbl_dip_dir.setText(self._format_bearing(adjusted_dip_azimuth))
             msg_true_north = self.tr("* Azimuth value relative to true North")
             msg_top_map = self.tr("* Azimuth value relative to top of the map/screen")
             self.label_true_north_relative.setText(
@@ -1636,3 +1654,33 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 self.cbo_geo_type.addItem("Fault", "3")
                 self.cbo_geo_type.addItem("Joint", "4")
                 self.cbo_geo_type.addItem("Cleavage", "5")
+
+    def _refresh_bearing_labels(self):
+        """Refresh the bearing calculations and update labels.
+
+        This method recalculates the true north bearing and updates
+        the bearing label display. Useful for testing or when coordinate
+        system changes.
+        """
+        if hasattr(self, "dip_strike_item") and self.dip_strike_item:
+            center_point = self.dip_strike_item.center()
+            destination_crs = self.map_canvas_widget.mapSettings().destinationCrs()
+
+            self._true_north_bearing = QgsBearingUtils.bearingTrueNorth(
+                destination_crs, QgsCoordinateTransformContext(), center_point
+            )
+            self.log(f"Refreshed north bearing: {self._true_north_bearing}", log_level=4)
+            self.lbl_north_bearing.setText(self._format_bearing(self._true_north_bearing))
+
+    def _format_bearing(self, bearing_value):
+        """Format a bearing value to avoid negative zero display.
+
+        :param bearing_value: The bearing value to format
+        :type bearing_value: float
+        :returns: Formatted bearing string
+        :rtype: str
+        """
+        # Handle negative zero by converting to positive zero
+        if abs(bearing_value) < 0.005:  # Less than 0.01 when rounded to 2 decimal places
+            bearing_value = 0.0
+        return f"{bearing_value:.2f}°"

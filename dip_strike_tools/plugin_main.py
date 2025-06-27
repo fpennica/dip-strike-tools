@@ -45,7 +45,11 @@ class DipStrikeToolsPlugin:
         # translation
         # initialize the locale
         self.locale: str = QgsSettings().value("locale/userLocale", QLocale().name())[0:2]
-        locale_path: Path = DIR_PLUGIN_ROOT / "resources" / "i18n" / f"{__title__.lower()}_{self.locale}.qm"
+
+        # FOR TESTING: Force Italian locale
+        # self.locale = "it"  # Comment this line to use system locale
+
+        locale_path: Path = DIR_PLUGIN_ROOT / "resources" / "i18n" / f"dip_strike_tools_{self.locale}.qm"
         self.log(message=f"Translation: {self.locale}, {locale_path}", log_level=4)
         if locale_path.exists():
             self.translator = QTranslator()
@@ -113,19 +117,25 @@ class DipStrikeToolsPlugin:
         )
 
         # -- Toolbar Actions
-        self.insert_dip_strike_action = self.add_action(
-            QgsApplication.getThemeIcon("mActionAddArrow.svg"),
-            # enabled_flag=enabled_flag,
-            text=self.tr("Create a Dip Strike Point"),
-            callback=self.toggle_dip_strike_tool,
-            parent=self.iface.mainWindow(),
-        )
 
         # -- Create new dip strike layer action
         self.create_layer_action = self.add_action(
-            QgsApplication.getThemeIcon("mActionNewVectorLayer.svg"),
+            # QgsApplication.getThemeIcon("mActionCapturePoint.svg"),
+            # QgsApplication.getThemeIcon("mIconPointLayer.svg"),
+            QgsApplication.getThemeIcon("north_arrow.svg"),
+            # QgsApplication.getThemeIcon("mActionNewVectorLayer.svg"),
             text=self.tr("Create New Dip Strike Layer"),
             callback=self.open_create_layer_dialog,
+            parent=self.iface.mainWindow(),
+        )
+
+        # -- Create new dip strike point action
+        self.insert_dip_strike_action = self.add_action(
+            # QgsApplication.getThemeIcon("mActionAddArrow.svg"),
+            QgsApplication.getThemeIcon("mActionMeasureBearing.svg"),
+            # enabled_flag=enabled_flag,
+            text=self.tr("Create a Dip Strike Point"),
+            callback=self.toggle_dip_strike_tool,
             parent=self.iface.mainWindow(),
         )
 
@@ -306,7 +316,7 @@ class DipStrikeToolsPlugin:
         if dlg.result() == DlgInsertDipStrike.Accepted:
             self.log(message=self.tr("Dip Strike Point created successfully."), log_level=3)
         else:
-            self.log(message=self.tr("Dip Strike Point creation cancelled."), log_level=2)
+            self.log(message=self.tr("Dip Strike Point creation cancelled."), log_level=4)
 
     def open_create_layer_dialog(self):
         """Open the dialog to create a new dip strike layer."""
@@ -330,7 +340,7 @@ class DipStrikeToolsPlugin:
                     if success:
                         self.log(message=self.tr("Symbology applied successfully."), log_level=3)
                     else:
-                        self.log(message=self.tr("Failed to apply symbology."), log_level=2)
+                        self.log(message=self.tr("Failed to apply symbology."), log_level=1)
 
                 self.log(
                     message=self.tr("New dip strike layer '{}' created and added to project.").format(layer.name()),
@@ -340,7 +350,7 @@ class DipStrikeToolsPlugin:
             except Exception as e:
                 self.log(message=self.tr("Error creating layer: {}").format(str(e)), log_level=1)
         else:
-            self.log(message=self.tr("Layer creation cancelled."), log_level=2)
+            self.log(message=self.tr("Layer creation cancelled."), log_level=4)
 
     def _find_existing_feature_at_point(self, clicked_point, tolerance_pixels=10):
         """Find existing dip/strike features near the clicked point.

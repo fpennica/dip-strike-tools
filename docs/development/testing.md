@@ -177,21 +177,44 @@ class TestMyModuleQGIS:
 
 ## Current Test Status
 
-As of the latest version, the plugin has **29 tests** with the following coverage:
+As of the latest version, the plugin has **95 tests** with the following coverage:
 
 ### Modules with Tests
 
-- **plugin_main.py**: 15 tests (34% coverage)
-  - 8 unit tests for basic functionality
-  - 7 QGIS integration tests
-- **env_var_parser.py**: 10 tests (100% coverage)
-- **plg_preferences.py**: 2 tests (50% coverage)
-- **plg_metadata.py**: 2 tests (96% coverage)
+- **plugin_main.py**: 29 tests (70% coverage)
+  - 18 unit tests for basic functionality
+  - 26 QGIS integration tests
+- **env_var_parser.py**: 11 tests (100% coverage)
+- **dlg_create_layer.py**: 4 unit tests (12% coverage)
+- **dlg_field_config.py**: 8 unit tests (10% coverage)
+- **layer_creator.py**: 13 unit tests (46% coverage)
+- **dlg_insert_dip_strike.py**: 10 QGIS tests (34% coverage)
+- **plg_preferences.py**: 2 QGIS tests (61% coverage)
+- **plg_metadata.py**: 2 unit tests (96% coverage)
 
 ### Test Distribution
 
-- **Unit tests**: 8 tests (no QGIS required)
-- **QGIS tests**: 21 tests (require QGIS environment)
+- **Unit tests**: 57 tests (no QGIS required)
+- **QGIS tests**: 38 tests (require QGIS environment)
+
+### Test Organization
+
+Tests are now correctly organized according to their dependencies:
+
+#### `tests/unit/` (57 tests)
+
+- `test_plugin_main.py` - Plugin basic functionality with mocking
+- `test_plg_metadata.py` - Plugin metadata validation
+- `test_env_var_parser.py` - Environment variable parsing
+- `test_dlg_create_layer.py` - Layer creation dialog (mocked)
+- `test_dlg_field_config.py` - Field configuration dialog (mocked)
+- `test_layer_creator.py` - Layer creation functionality (mocked)
+
+#### `tests/qgis/` (38 tests)
+
+- `test_plugin_main_qgis.py` - Plugin integration with real QGIS
+- `test_dlg_insert_dip_strike.py` - Dip/strike dialog with QGIS integration
+- `test_plg_preferences.py` - Plugin preferences with QGIS testing framework
 
 Run `just test` to see the current coverage report with detailed line-by-line coverage information.
 

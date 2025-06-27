@@ -64,16 +64,16 @@ class DlgFieldConfig(QDialog):
 
         # Define required and optional fields
         self.required_fields = {
-            "strike_azimuth": "Strike Azimuth",
-            "dip_azimuth": "Dip Azimuth",
-            "dip_value": "Dip Value",
+            "strike_azimuth": self.tr("Strike Azimuth"),
+            "dip_azimuth": self.tr("Dip Azimuth"),
+            "dip_value": self.tr("Dip Value"),
         }
 
         self.optional_fields = {
-            "geo_type": "Geological Type",
-            "age": "Age",
-            "lithology": "Lithology",
-            "notes": "Notes",
+            "geo_type": self.tr("Geological Type"),
+            "age": self.tr("Age"),
+            "lithology": self.tr("Lithology"),
+            "notes": self.tr("Notes"),
         }
 
         # Store field mapping comboboxes
@@ -156,7 +156,7 @@ class DlgFieldConfig(QDialog):
         for other_combo in self.field_combos.values():
             if other_combo != combo:  # Don't check the current combo
                 selected = other_combo.currentText()
-                if selected != "<None>" and selected:
+                if selected != self.tr("<None>") and selected:
                     currently_mapped.add(selected)
 
         # Look for matching field names that aren't already mapped
@@ -184,7 +184,7 @@ class DlgFieldConfig(QDialog):
             combo = self.field_combos[field_key]
             selected_field = combo.currentText()
 
-            if selected_field != "<None>" and selected_field:
+            if selected_field != self.tr("<None>") and selected_field:
                 if selected_field in used_fields:
                     # Found a duplicate mapping
                     duplicate_mappings.append(
@@ -198,7 +198,7 @@ class DlgFieldConfig(QDialog):
             combo = self.field_combos[field_key]
             selected_field = combo.currentText()
 
-            if selected_field == "<None>" or not selected_field:
+            if selected_field == self.tr("<None>") or not selected_field:
                 missing_required.append(field_label)
 
         # Check optional fields
@@ -206,7 +206,7 @@ class DlgFieldConfig(QDialog):
             combo = self.field_combos[field_key]
             selected_field = combo.currentText()
 
-            if selected_field != "<None>" and selected_field:
+            if selected_field != self.tr("<None>") and selected_field:
                 mapped_optional.append(field_label)
 
         # Update status message based on validation results
@@ -216,7 +216,7 @@ class DlgFieldConfig(QDialog):
             for dup in duplicate_mappings:
                 duplicate_info.append(f"'{dup['field']}' → {' & '.join(dup['mapped_to'])}")
 
-            status_msg = f"❌ Duplicate field mappings: {'; '.join(duplicate_info)}"
+            status_msg = self.tr("❌ Duplicate field mappings: {mappings}").format(mappings="; ".join(duplicate_info))
             self.status_label.setStyleSheet(
                 "padding: 8px; border-radius: 4px; background-color: #f8d7da; color: #721c24;"
             )
@@ -225,7 +225,7 @@ class DlgFieldConfig(QDialog):
             self._highlight_duplicate_combos(used_fields)
 
         elif missing_required:
-            status_msg = f"⚠️ Missing required fields: {', '.join(missing_required)}"
+            status_msg = self.tr("⚠️ Missing required fields: {fields}").format(fields=", ".join(missing_required))
             self.status_label.setStyleSheet(
                 "padding: 8px; border-radius: 4px; background-color: #fff3cd; color: #856404;"
             )
@@ -234,9 +234,9 @@ class DlgFieldConfig(QDialog):
             self._clear_duplicate_highlighting()
 
         else:
-            status_msg = "✅ All required fields are mapped"
+            status_msg = self.tr("✅ All required fields are mapped")
             if mapped_optional:
-                status_msg += f" | Optional fields: {', '.join(mapped_optional)}"
+                status_msg += self.tr(" | Optional fields: {fields}").format(fields=", ".join(mapped_optional))
             self.status_label.setStyleSheet(
                 "padding: 8px; border-radius: 4px; background-color: #d4edda; color: #155724;"
             )
@@ -253,13 +253,13 @@ class DlgFieldConfig(QDialog):
             # Update button tooltip to provide helpful feedback
             if not is_valid:
                 if duplicate_mappings:
-                    self.ok_button.setToolTip("Cannot save: duplicate field mappings detected")
+                    self.ok_button.setToolTip(self.tr("Cannot save: duplicate field mappings detected"))
                 elif missing_required:
-                    self.ok_button.setToolTip("Cannot save: required fields are missing")
+                    self.ok_button.setToolTip(self.tr("Cannot save: required fields are missing"))
                 # Add subtle visual styling for disabled state
                 self.ok_button.setStyleSheet("QPushButton:disabled { color: #999; }")
             else:
-                self.ok_button.setToolTip("Save field mappings and close dialog")
+                self.ok_button.setToolTip(self.tr("Save field mappings and close dialog"))
                 # Clear any custom styling for enabled state
                 self.ok_button.setStyleSheet("")
 
@@ -274,7 +274,7 @@ class DlgFieldConfig(QDialog):
             combo = self.field_combos[field_key]
             selected_field = combo.currentText()
 
-            if selected_field != "<None>" and selected_field:
+            if selected_field != self.tr("<None>") and selected_field:
                 field_counts[selected_field] = field_counts.get(selected_field, 0) + 1
 
         # Find duplicated fields
@@ -295,9 +295,15 @@ class DlgFieldConfig(QDialog):
 
     def setup_ui(self):
         """Set up the user interface."""
-        self.setWindowTitle(f"Configure Field Mappings - {self.layer.name()}")
+        self.setWindowTitle(self.tr("Configure Field Mappings - {layer_name}").format(layer_name=self.layer.name()))
         self.setWindowIcon(QIcon(QgsApplication.iconPath("mActionNewAttribute.svg")))
         self.setModal(True)
+
+        # Set window flags to ensure proper behavior
+        from qgis.PyQt.QtCore import Qt
+
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.Dialog)
+
         self.resize(400, 300)
 
         # Main layout
@@ -305,18 +311,24 @@ class DlgFieldConfig(QDialog):
 
         # Info label
         info_label = QLabel(
-            f"Map the required and optional fields for layer: <b>{self.layer.name()}</b><br/>"
-            f"<small>Layer has {self.layer.featureCount()} features and {len(self.layer.fields())} fields.</small>"
+            self.tr(
+                "Map the required and optional fields for layer: <b>{layer_name}</b><br/>"
+                "<small>Layer has {feature_count} features and {field_count} fields.</small>"
+            ).format(
+                layer_name=self.layer.name(),
+                feature_count=self.layer.featureCount(),
+                field_count=len(self.layer.fields()),
+            )
         )
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
 
         # Required fields group
-        required_group = QGroupBox("Required Fields")
+        required_group = QGroupBox(self.tr("Required Fields"))
         required_layout = QFormLayout(required_group)
 
         # Get available field names from the layer with type information
-        field_names = ["<None>"]
+        field_names = [self.tr("<None>")]
         numeric_fields = []
         text_fields = []
         filtered_count = 0
@@ -345,7 +357,11 @@ class DlgFieldConfig(QDialog):
         for field_key, field_label in self.required_fields.items():
             combo = QComboBox()
             combo.addItems(field_names)
-            combo.setToolTip(f"Select the layer field that contains {field_label.lower()} data")
+            combo.setToolTip(
+                self.tr("Select the layer field that contains {field_type} data").format(
+                    field_type=field_label.lower()
+                )
+            )
 
             # Try to auto-suggest fields based on name similarity
             self._suggest_field_mapping(combo, field_key, numeric_fields, text_fields)
@@ -359,14 +375,18 @@ class DlgFieldConfig(QDialog):
         layout.addWidget(required_group)
 
         # Optional fields group
-        optional_group = QGroupBox("Optional Fields")
+        optional_group = QGroupBox(self.tr("Optional Fields"))
         optional_layout = QFormLayout(optional_group)
 
         # Create comboboxes for optional fields
         for field_key, field_label in self.optional_fields.items():
             combo = QComboBox()
             combo.addItems(field_names)
-            combo.setToolTip(f"Select the layer field that contains {field_label.lower()} data (optional)")
+            combo.setToolTip(
+                self.tr("Select the layer field that contains {field_type} data (optional)").format(
+                    field_type=field_label.lower()
+                )
+            )
 
             # Try to auto-suggest fields based on name similarity
             self._suggest_field_mapping(combo, field_key, numeric_fields, text_fields)
@@ -380,14 +400,14 @@ class DlgFieldConfig(QDialog):
         layout.addWidget(optional_group)
 
         # Geo type storage mode configuration
-        storage_group = QGroupBox("Geological Type Configuration")
+        storage_group = QGroupBox(self.tr("Geological Type Configuration"))
         storage_layout = QFormLayout(storage_group)
 
         self.geo_type_mode_combo = QComboBox()
-        self.geo_type_mode_combo.addItem("Store numerical code (1, 2, 3...)", "code")
-        self.geo_type_mode_combo.addItem("Store text description (Strata, Foliation...)", "description")
+        self.geo_type_mode_combo.addItem(self.tr("Store numerical code (1, 2, 3...)"), "code")
+        self.geo_type_mode_combo.addItem(self.tr("Store text description (Strata, Foliation...)"), "description")
         self.geo_type_mode_combo.setToolTip(
-            "Choose whether the geo_type field should store numerical codes or text descriptions"
+            self.tr("Choose whether the geo_type field should store numerical codes or text descriptions")
         )
 
         # Load current storage mode from preferences
@@ -402,7 +422,7 @@ class DlgFieldConfig(QDialog):
         except Exception:
             pass  # Use default selection
 
-        storage_layout.addRow("Storage Mode:", self.geo_type_mode_combo)
+        storage_layout.addRow(self.tr("Storage Mode:"), self.geo_type_mode_combo)
         layout.addWidget(storage_group)
 
         # Status label
@@ -473,7 +493,7 @@ class DlgFieldConfig(QDialog):
                     combo = self.field_combos[field_key]
                     selected_field = combo.currentText()
 
-                    if selected_field != "<None>" and selected_field:
+                    if selected_field != self.tr("<None>") and selected_field:
                         if selected_field in used_fields:
                             duplicate_mappings.append(
                                 {"field": selected_field, "mapped_to": [used_fields[selected_field], field_label]}
@@ -486,7 +506,7 @@ class DlgFieldConfig(QDialog):
                     combo = self.field_combos[field_key]
                     selected_field = combo.currentText()
 
-                    if selected_field == "<None>" or not selected_field:
+                    if selected_field == self.tr("<None>") or not selected_field:
                         missing_required.append(field_label)
 
                 # Show appropriate error message
@@ -494,22 +514,26 @@ class DlgFieldConfig(QDialog):
                     duplicate_info = []
                     for dup in duplicate_mappings:
                         duplicate_info.append(
-                            f"• Field '{dup['field']}' is mapped to both {' and '.join(dup['mapped_to'])}"
+                            self.tr("• Field '{field}' is mapped to both {mappings}").format(
+                                field=dup["field"], mappings=" and ".join(dup["mapped_to"])
+                            )
                         )
 
                     QMessageBox.warning(
                         self,
-                        "Duplicate Field Mappings",
-                        "Each layer field can only be mapped once:\n\n"
-                        + "\n".join(duplicate_info)
-                        + "\n\nPlease select different fields for each mapping.",
+                        self.tr("Duplicate Field Mappings"),
+                        self.tr(
+                            "Each layer field can only be mapped once:\n\n{duplicates}\n\n"
+                            "Please select different fields for each mapping."
+                        ).format(duplicates="\n".join(duplicate_info)),
                     )
                 elif missing_required:
                     QMessageBox.warning(
                         self,
-                        "Missing Required Fields",
-                        "The following required fields must be mapped:\n\n"
-                        + "\n".join(f"• {field}" for field in missing_required),
+                        self.tr("Missing Required Fields"),
+                        self.tr("The following required fields must be mapped:\n\n{fields}").format(
+                            fields="\n".join(self.tr("• {field}").format(field=field) for field in missing_required)
+                        ),
                     )
 
                 return False
@@ -519,7 +543,7 @@ class DlgFieldConfig(QDialog):
                 combo = self.field_combos[field_key]
                 selected_field = combo.currentText()
 
-                if selected_field != "<None>" and selected_field:
+                if selected_field != self.tr("<None>") and selected_field:
                     self.layer.setCustomProperty(f"dip_strike_tools/{field_key}", selected_field)
                     self.log(f"Saved mapping for {field_key}: {selected_field}", log_level=4)
 
@@ -528,7 +552,7 @@ class DlgFieldConfig(QDialog):
                 combo = self.field_combos[field_key]
                 selected_field = combo.currentText()
 
-                if selected_field != "<None>" and selected_field:
+                if selected_field != self.tr("<None>") and selected_field:
                     self.layer.setCustomProperty(f"dip_strike_tools/{field_key}", selected_field)
                     self.log(f"Saved optional mapping for {field_key}: {selected_field}", log_level=4)
                 else:

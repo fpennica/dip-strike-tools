@@ -8,6 +8,7 @@ import os
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsProject
 from qgis.gui import QgsFileWidget, QgsProjectionSelectionWidget
+from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -49,7 +50,7 @@ class DlgCreateLayer(QDialog):
 
     def setup_ui(self):
         """Set up the user interface."""
-        self.setWindowTitle("Create New Dip/Strike Layer")
+        self.setWindowTitle(self.tr("Create New Dip/Strike Layer"))
         self.setModal(True)
         self.resize(500, 350)  # Increased height to accommodate symbology options
 
@@ -61,40 +62,47 @@ class DlgCreateLayer(QDialog):
 
         # Layer name input
         self.name_edit = QLineEdit("dip_strike_points")
-        form_layout.addRow("Layer Name:", self.name_edit)
+        form_layout.addRow(self.tr("Layer Name:"), self.name_edit)
 
         # Output format selection
         self.format_combo = QComboBox()
 
-        # Define supported output formats with their details
+        # Define supported output formats with their details using internal keys
         self.formats = {
-            "Memory Layer": {
+            "memory": {
                 "driver": "memory",
                 "extension": "",
-                "description": "Temporary layer (lost when QGIS closes)",
+                "description": self.tr("Temporary layer (lost when QGIS closes)"),
+                "display_name": self.tr("Memory Layer"),
             },
-            "ESRI Shapefile": {
+            "shapefile": {
                 "driver": "ESRI Shapefile",
                 "extension": "shp",
-                "description": "Standard shapefile format",
+                "description": self.tr("Standard shapefile format"),
+                "display_name": self.tr("ESRI Shapefile"),
             },
-            "GeoPackage": {
+            "gpkg": {
                 "driver": "GPKG",
                 "extension": "gpkg",
-                "description": "SQLite-based OGC standard format (can contain multiple layers)",
+                "description": self.tr("SQLite-based OGC standard format (can contain multiple layers)"),
+                "display_name": self.tr("GeoPackage"),
             },
         }
 
-        for format_name in self.formats.keys():
-            self.format_combo.addItem(format_name)
+        # Populate combo box with display names but store internal keys as data
+        for format_key, format_info in self.formats.items():
+            self.format_combo.addItem(format_info["display_name"], format_key)
 
-        self.format_combo.setCurrentText("GeoPackage")  # Set default to GeoPackage
-        form_layout.addRow("Output Format:", self.format_combo)
+        # Set default to GeoPackage (gpkg key)
+        default_index = self.format_combo.findData("gpkg")
+        if default_index >= 0:
+            self.format_combo.setCurrentIndex(default_index)
+        form_layout.addRow(self.tr("Output Format:"), self.format_combo)
 
         # File path selection using QgsFileWidget (initially hidden for memory layers and GeoPackage)
         self.file_widget = QgsFileWidget()
         self.file_widget.setStorageMode(QgsFileWidget.SaveFile)
-        self.file_widget.setDialogTitle("Save Dip/Strike Layer")
+        self.file_widget.setDialogTitle(self.tr("Save Dip/Strike Layer"))
 
         # Set default root to current QGIS project directory
         project_path = QgsProject.instance().absolutePath()
@@ -105,16 +113,16 @@ class DlgCreateLayer(QDialog):
 
         self.file_widget.setFilter("All Files (*)")  # Will be updated based on format selection
 
-        self.path_label = QLabel("Output File:")
+        self.path_label = QLabel(self.tr("Output File:"))
         form_layout.addRow(self.path_label, self.file_widget)
 
         # Coordinate Reference System selection
-        crs_group = QGroupBox("Coordinate Reference System")
+        crs_group = QGroupBox(self.tr("Coordinate Reference System"))
         crs_layout = QVBoxLayout(crs_group)
 
         # Radio buttons for CRS selection method
-        self.use_canvas_crs_radio = QRadioButton("Use current map canvas CRS")
-        self.use_custom_crs_radio = QRadioButton("Select custom CRS:")
+        self.use_canvas_crs_radio = QRadioButton(self.tr("Use current map canvas CRS"))
+        self.use_custom_crs_radio = QRadioButton(self.tr("Select custom CRS:"))
 
         # Set default to use canvas CRS
         self.use_canvas_crs_radio.setChecked(True)
@@ -129,14 +137,14 @@ class DlgCreateLayer(QDialog):
         try:
             from qgis.utils import iface
 
-            if iface and iface.mapCanvas():
-                canvas_crs = iface.mapCanvas().mapSettings().destinationCrs()
+            if iface and iface.mapCanvas():  # type: ignore
+                canvas_crs = iface.mapCanvas().mapSettings().destinationCrs()  # type: ignore
                 self.crs_widget.setCrs(canvas_crs)
 
                 # Add canvas CRS info to the radio button text
                 if canvas_crs.isValid():
                     crs_desc = f"{canvas_crs.authid()} - {canvas_crs.description()}"
-                    self.use_canvas_crs_radio.setText(f"Use current map canvas CRS ({crs_desc})")
+                    self.use_canvas_crs_radio.setText(self.tr("Use current map canvas CRS ({})").format(crs_desc))
             else:
                 # Fallback to WGS84 if no canvas available
                 fallback_crs = QgsCoordinateReferenceSystem("EPSG:4326")
@@ -158,22 +166,22 @@ class DlgCreateLayer(QDialog):
         form_layout.addRow(crs_group)
 
         # Optional fields selection
-        optional_fields_group = QGroupBox("Optional Fields")
+        optional_fields_group = QGroupBox(self.tr("Optional Fields"))
         optional_fields_layout = QVBoxLayout(optional_fields_group)
 
         # Geo type field checkbox
-        self.geo_type_check = QCheckBox("Geological type (geo_type)")
+        self.geo_type_check = QCheckBox(self.tr("Geological type (geo_type)"))
         self.geo_type_check.setChecked(True)  # Default to enabled
-        self.geo_type_check.setToolTip("Add a field to store geological type information")
+        self.geo_type_check.setToolTip(self.tr("Add a field to store geological type information"))
         optional_fields_layout.addWidget(self.geo_type_check)
 
         # Geological type storage mode selection (shown only when geo_type is checked)
         geo_type_storage_layout = QFormLayout()
         self.geo_type_combo = QComboBox()
-        self.geo_type_combo.addItem("Store numerical code (1, 2, 3...)", "code")
-        self.geo_type_combo.addItem("Store text description (Strata, Foliation...)", "description")
+        self.geo_type_combo.addItem(self.tr("Store numerical code (1, 2, 3...)"), "code")
+        self.geo_type_combo.addItem(self.tr("Store text description (Strata, Foliation...)"), "description")
         self.geo_type_combo.setToolTip(
-            "Choose whether the geo_type field should store numerical codes or text descriptions"
+            self.tr("Choose whether the geo_type field should store numerical codes or text descriptions")
         )
 
         # Load current storage mode from preferences
@@ -188,25 +196,25 @@ class DlgCreateLayer(QDialog):
         except Exception:
             pass  # Use default selection
 
-        geo_type_storage_layout.addRow("    Storage mode:", self.geo_type_combo)
+        geo_type_storage_layout.addRow(self.tr("    Storage mode:"), self.geo_type_combo)
         optional_fields_layout.addLayout(geo_type_storage_layout)
 
         # Age field checkbox
-        self.age_check = QCheckBox("Age (age)")
+        self.age_check = QCheckBox(self.tr("Age (age)"))
         self.age_check.setChecked(True)  # Default to enabled
-        self.age_check.setToolTip("Add a field to store age information")
+        self.age_check.setToolTip(self.tr("Add a field to store age information"))
         optional_fields_layout.addWidget(self.age_check)
 
         # Lithology field checkbox
-        self.lithology_check = QCheckBox("Lithology (lithology)")
+        self.lithology_check = QCheckBox(self.tr("Lithology (lithology)"))
         self.lithology_check.setChecked(True)  # Default to enabled
-        self.lithology_check.setToolTip("Add a field to store lithology information")
+        self.lithology_check.setToolTip(self.tr("Add a field to store lithology information"))
         optional_fields_layout.addWidget(self.lithology_check)
 
         # Notes field checkbox
-        self.notes_check = QCheckBox("Notes (notes)")
+        self.notes_check = QCheckBox(self.tr("Notes (notes)"))
         self.notes_check.setChecked(True)  # Default to enabled
-        self.notes_check.setToolTip("Add a field to store additional notes")
+        self.notes_check.setToolTip(self.tr("Add a field to store additional notes"))
         optional_fields_layout.addWidget(self.notes_check)
 
         # Connect geo_type checkbox to show/hide storage mode
@@ -215,14 +223,14 @@ class DlgCreateLayer(QDialog):
         form_layout.addRow(optional_fields_group)
 
         # Symbology options
-        symbology_group = QGroupBox("Symbology Options")
+        symbology_group = QGroupBox(self.tr("Symbology Options"))
         symbology_layout = QFormLayout(symbology_group)
 
         # Apply symbology checkbox
-        self.apply_symbology_check = QCheckBox("Apply default symbology")
+        self.apply_symbology_check = QCheckBox(self.tr("Apply default symbology"))
         self.apply_symbology_check.setChecked(True)  # Default to enabled
         self.apply_symbology_check.setToolTip(
-            "Apply predefined single symbol symbology with rotated symbols and dip value labels"
+            self.tr("Apply predefined single symbol symbology with rotated symbols and dip value labels")
         )
         symbology_layout.addRow(self.apply_symbology_check)
 
@@ -233,7 +241,7 @@ class DlgCreateLayer(QDialog):
         main_layout.addLayout(form_layout)
 
         # Description label
-        self.desc_label = QLabel(self.formats["GeoPackage"]["description"])
+        self.desc_label = QLabel(self.formats["gpkg"]["description"])
         self.desc_label.setStyleSheet("color: #666; font-style: italic; padding: 5px;")
         main_layout.addWidget(self.desc_label)
 
@@ -267,8 +275,8 @@ class DlgCreateLayer(QDialog):
             try:
                 from qgis.utils import iface
 
-                if iface and hasattr(iface, "mapCanvas") and iface.mapCanvas():
-                    return iface.mapCanvas().mapSettings().destinationCrs()
+                if iface and hasattr(iface, "mapCanvas") and iface.mapCanvas():  # type: ignore
+                    return iface.mapCanvas().mapSettings().destinationCrs()  # type: ignore
                 else:
                     # Fallback to project CRS if no canvas available
                     project_crs = QgsProject.instance().crs()
@@ -286,43 +294,52 @@ class DlgCreateLayer(QDialog):
 
     def update_format_options(self):
         """Update visibility and description based on format selection."""
-        selected_format = self.format_combo.currentText()
-        is_memory = selected_format == "Memory Layer"
+        # Get the internal format key from combo box data
+        selected_format_key = self.format_combo.currentData()
+        if not selected_format_key:
+            return
+
+        format_info = self.formats[selected_format_key]
+        is_memory = selected_format_key == "memory"
 
         # Show file widget for all non-memory formats
         self.file_widget.setVisible(not is_memory)
         self.path_label.setVisible(not is_memory)
 
-        self.desc_label.setText(self.formats[selected_format]["description"])
+        self.desc_label.setText(format_info["description"])
 
         if not is_memory:
             # Update file filter based on format
-            extension = self.formats[selected_format]["extension"]
+            extension = format_info["extension"]
             if extension:
                 # Set the file filter based on format
-                filter_str = f"{selected_format} (*.{extension})"
+                filter_str = f"{format_info['display_name']} (*.{extension})"
                 self.file_widget.setFilter(filter_str)
 
                 # For GeoPackage, allow selecting existing files (to add layers)
                 # For other formats, use SaveFile mode (to create new files)
-                if selected_format == "GeoPackage":
+                if selected_format_key == "gpkg":
                     self.file_widget.setStorageMode(QgsFileWidget.GetFile)
-                    self.file_widget.setDialogTitle("Select or Create GeoPackage")
+                    self.file_widget.setDialogTitle(self.tr("Select or Create GeoPackage"))
                 else:
                     self.file_widget.setStorageMode(QgsFileWidget.SaveFile)
-                    self.file_widget.setDialogTitle("Save Dip/Strike Layer")
+                    self.file_widget.setDialogTitle(self.tr("Save Dip/Strike Layer"))
 
             # Update the output filename
             self.update_output_filename()
 
     def update_output_filename(self):
         """Update the output filename based on current layer name and format."""
-        selected_format = self.format_combo.currentText()
+        # Get the internal format key from combo box data
+        selected_format_key = self.format_combo.currentData()
+        if not selected_format_key:
+            return
 
         # Only update for non-memory formats
-        if selected_format != "Memory Layer":
+        if selected_format_key != "memory":
             layer_name = self.name_edit.text().strip() or "dip_strike_points"
-            extension = self.formats[selected_format]["extension"]
+            format_info = self.formats[selected_format_key]
+            extension = format_info["extension"]
 
             if extension:
                 # Use project directory if available, otherwise use current directory
@@ -341,37 +358,44 @@ class DlgCreateLayer(QDialog):
         """
         layer_name = self.name_edit.text().strip()
         if not layer_name:
-            QMessageBox.warning(self, "Invalid Input", "Please enter a layer name.")
+            QMessageBox.warning(self, self.tr("Invalid Input"), self.tr("Please enter a layer name."))
             return False
 
-        selected_format = self.format_combo.currentText()
-        output_path = self.file_widget.filePath().strip() if selected_format != "Memory Layer" else ""
+        # Get the internal format key from combo box data
+        selected_format_key = self.format_combo.currentData()
+        if not selected_format_key:
+            return False
+
+        format_info = self.formats[selected_format_key]
+        output_path = self.file_widget.filePath().strip() if selected_format_key != "memory" else ""
 
         # Normalize file path to prevent issues
         if output_path:
             output_path = os.path.normpath(output_path)
 
         # Validate file path for non-memory layers
-        if selected_format != "Memory Layer":
+        if selected_format_key != "memory":
             if not output_path:
-                QMessageBox.warning(self, "Invalid Input", "Please specify an output file path.")
+                QMessageBox.warning(self, self.tr("Invalid Input"), self.tr("Please specify an output file path."))
                 return False
 
             # Ensure the file has the correct extension
-            expected_extension = self.formats[selected_format]["extension"]
+            expected_extension = format_info["extension"]
             if expected_extension and not output_path.lower().endswith(f".{expected_extension.lower()}"):
                 output_path = f"{output_path}.{expected_extension}"
 
             # Validate file path characters (especially important for shapefiles)
-            if selected_format == "ESRI Shapefile":
+            if selected_format_key == "shapefile":
                 # Check for invalid characters in shapefile names
                 invalid_chars = ["<", ">", ":", '"', "|", "?", "*"]
                 filename = os.path.basename(output_path)
                 if any(char in filename for char in invalid_chars):
                     QMessageBox.warning(
                         self,
-                        "Invalid Filename",
-                        f"Shapefile names cannot contain these characters: {', '.join(invalid_chars)}",
+                        self.tr("Invalid Filename"),
+                        self.tr("Shapefile names cannot contain these characters: {}").format(
+                            ", ".join(invalid_chars)
+                        ),
                     )
                     return False
 
@@ -380,10 +404,12 @@ class DlgCreateLayer(QDialog):
                 if len(name_without_ext) > 10:
                     reply = QMessageBox.question(
                         self,
-                        "Long Filename",
-                        f"Shapefile names longer than 10 characters may cause issues.\n"
-                        f"Current name: '{name_without_ext}' ({len(name_without_ext)} characters)\n\n"
-                        f"Continue anyway?",
+                        self.tr("Long Filename"),
+                        self.tr(
+                            "Shapefile names longer than 10 characters may cause issues.\n"
+                            "Current name: '{}' ({} characters)\n\n"
+                            "Continue anyway?"
+                        ).format(name_without_ext, len(name_without_ext)),
                         QMessageBox.Yes | QMessageBox.No,
                         QMessageBox.No,
                     )
@@ -399,21 +425,25 @@ class DlgCreateLayer(QDialog):
                 try:
                     os.makedirs(output_dir)
                 except Exception as e:
-                    QMessageBox.critical(self, "Error", f"Cannot create output directory: {e}")
+                    QMessageBox.critical(
+                        self, self.tr("Error"), self.tr("Cannot create output directory: {}").format(e)
+                    )
                     return False
 
             # Check if file already exists
             if os.path.exists(output_path):
                 # For GeoPackage, allow adding to existing file
-                if selected_format == "GeoPackage":
+                if selected_format_key == "gpkg":
                     # GeoPackage can have multiple layers, so we don't need to overwrite
                     # Just inform the user that the layer will be added to existing GeoPackage
                     reply = QMessageBox.question(
                         self,
-                        "Add to Existing GeoPackage",
-                        f"The GeoPackage '{output_path}' already exists.\n\n"
-                        f"The new layer will be added to this existing GeoPackage database.\n"
-                        f"Continue?",
+                        self.tr("Add to Existing GeoPackage"),
+                        self.tr(
+                            "The GeoPackage '{}' already exists.\n\n"
+                            "The new layer will be added to this existing GeoPackage database.\n"
+                            "Continue?"
+                        ).format(output_path),
                         QMessageBox.Yes | QMessageBox.No,
                         QMessageBox.Yes,
                     )
@@ -423,8 +453,8 @@ class DlgCreateLayer(QDialog):
                     # For other formats, ask about overwriting
                     reply = QMessageBox.question(
                         self,
-                        "File Exists",
-                        f"The file '{output_path}' already exists.\n\nOverwrite it?",
+                        self.tr("File Exists"),
+                        self.tr("The file '{}' already exists.\n\nOverwrite it?").format(output_path),
                         QMessageBox.Yes | QMessageBox.No,
                         QMessageBox.No,
                     )
@@ -433,7 +463,7 @@ class DlgCreateLayer(QDialog):
 
         # Store validated values
         self.layer_name = layer_name
-        self.selected_format = selected_format
+        self.selected_format = selected_format_key  # Store the internal key
         self.output_path = output_path
         self.apply_symbology = self.apply_symbology_check.isChecked()
         self.selected_crs = self.get_selected_crs()
@@ -490,3 +520,18 @@ class DlgCreateLayer(QDialog):
         # Show/hide the geo type storage mode based on checkbox state
         is_checked = self.geo_type_check.isChecked()
         self.geo_type_combo.setVisible(is_checked)
+
+    def tr(self, source_text, disambiguation=None, n=-1):
+        """Translate the given text to the user's language.
+
+        :param source_text: The text to translate
+        :type source_text: str
+        :param disambiguation: Optional disambiguation context
+        :type disambiguation: str
+        :param n: Optional plural form index (0 for singular, 1 for plural)
+        :type n: int
+        :returns: Translated text
+        :rtype: str
+        """
+        # Use QCoreApplication's translate method for translation
+        return QCoreApplication.translate("DlgCreateLayer", source_text, disambiguation, n)

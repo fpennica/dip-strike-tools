@@ -14,9 +14,9 @@ from urllib.parse import quote
 from qgis.core import Qgis, QgsApplication
 from qgis.gui import QgsOptionsPageWidget, QgsOptionsWidgetFactory
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtCore import QCoreApplication, QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
-from qgis.PyQt.QtWidgets import QHeaderView, QMessageBox, QTableWidgetItem
+from qgis.PyQt.QtWidgets import QMessageBox, QTableWidgetItem
 
 # project
 from dip_strike_tools.__about__ import (
@@ -57,7 +57,7 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
             "> Reported from plugin settings\n\n"
             f"- operating system: {platform.system()} "
             f"{platform.release()}_{platform.version()}\n"
-            f"- QGIS: {Qgis.QGIS_VERSION}"
+            f"- QGIS: {Qgis.version()}"
             f"- plugin version: {__version__}\n"
         )
 
@@ -91,6 +91,17 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
 
         # load previously saved settings
         self.load_settings()
+
+    def tr(self, message: str) -> str:
+        """Get the translation for a string using Qt translation API.
+
+        :param message: String to translate
+        :type message: str
+
+        :returns: Translated string
+        :rtype: str
+        """
+        return QCoreApplication.translate("ConfigOptionsPage", message)
 
     def apply(self):
         """Called to permanently apply the settings shown in the options page (e.g. \
@@ -140,7 +151,7 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
         """Setup the geological types table widget."""
         # Set table properties
         self.table_geological_types.setColumnCount(2)
-        self.table_geological_types.setHorizontalHeaderLabels(["Code", "Description"])
+        self.table_geological_types.setHorizontalHeaderLabels([self.tr("Code"), self.tr("Description")])
 
         # Set column widths
         header = self.table_geological_types.horizontalHeader()
@@ -211,10 +222,12 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
         """Reset geological types to default values."""
         reply = QMessageBox.question(
             self,
-            "Reset Geological Types",
-            "Are you sure you want to reset the geological types to default values?\n\n"
-            "This will replace all current entries with:\n"
-            "1: Strata, 2: Foliation, 3: Fault, 4: Joint, 5: Cleavage",
+            self.tr("Reset Geological Types"),
+            self.tr(
+                "Are you sure you want to reset the geological types to default values?\n\n"
+                "This will replace all current entries with:\n"
+                "1: Strata, 2: Foliation, 3: Fault, 4: Joint, 5: Cleavage"
+            ),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )

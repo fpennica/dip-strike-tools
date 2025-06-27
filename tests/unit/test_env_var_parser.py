@@ -1,9 +1,12 @@
 import os
 import unittest
 
+import pytest
+
 from dip_strike_tools.toolbelt.env_var_parser import EnvVarParser
 
 
+@pytest.mark.unit
 class TestEnvVarParser(unittest.TestCase):
     """Unit tests for EnvVarParser."""
 
@@ -41,16 +44,12 @@ class TestEnvVarParser(unittest.TestCase):
     def test_bool_invalid_defaults_to_original(self) -> None:
         """Test invalid bool conversion from environment variable"""
         os.environ["MY_BOOL"] = "maybe"
-        self.assertFalse(
-            EnvVarParser.get_env_var("MY_BOOL", False)
-        )  # Default should remain
+        self.assertFalse(EnvVarParser.get_env_var("MY_BOOL", False))  # Default should remain
 
     def test_string_conversion(self) -> None:
         """Test string conversion from environment variable"""
         os.environ["MY_STRING"] = "Hello, World!"
-        self.assertEqual(
-            EnvVarParser.get_env_var("MY_STRING", "default"), "Hello, World!"
-        )
+        self.assertEqual(EnvVarParser.get_env_var("MY_STRING", "default"), "Hello, World!")
 
     def test_default_value_when_env_missing(self) -> None:
         """Test default value is used when environment variable is missing"""

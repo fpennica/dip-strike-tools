@@ -57,6 +57,131 @@ class TestDipStrikeToolsPluginBasic:
         assert hasattr(plugin, "menu")
         assert hasattr(plugin, "toolbar")
 
+    @patch("dip_strike_tools.plugin_main.QgsSettings")
+    @patch("dip_strike_tools.plugin_main.QLocale")
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    @patch("dip_strike_tools.plugin_main.QTranslator")
+    @patch("dip_strike_tools.plugin_main.QCoreApplication")
+    @patch("dip_strike_tools.plugin_main.DIR_PLUGIN_ROOT")
+    def test_plugin_translation_setup(
+        self, mock_dir, mock_app, mock_translator, mock_logger, mock_locale, mock_settings
+    ):
+        """Test plugin translation setup with existing translation file."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+
+        # Mock settings to return Italian locale
+        mock_settings.return_value.value.return_value = "it_IT"
+        mock_locale.return_value.name.return_value = "it_IT"
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        # Mock translator
+        mock_translator_instance = Mock()
+        mock_translator_instance.load.return_value = True
+        mock_translator.return_value = mock_translator_instance
+
+        # Mock DIR_PLUGIN_ROOT as a Path-like object that supports division
+        mock_path = Mock()
+        mock_path.exists.return_value = True
+        mock_path.resolve.return_value = "fake/path/to/translation.qm"
+
+        # Create a mock that supports path division operations
+        mock_path_builder = Mock()
+        mock_path_builder.__truediv__ = Mock(return_value=mock_path_builder)
+        mock_path_builder.exists.return_value = True
+        mock_path_builder.resolve.return_value = "fake/path/to/translation.qm"
+
+        # Chain the path operations: DIR_PLUGIN_ROOT / "resources" / "i18n" / "{file}.qm"
+        mock_dir.__truediv__.return_value = mock_path_builder
+
+        # Initialize plugin
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Verify translation setup
+        assert plugin.locale == "it"
+        mock_translator.assert_called_once()
+        mock_translator_instance.load.assert_called_once()
+        mock_app.installTranslator.assert_called_once_with(mock_translator_instance)
+
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_run_method_success(self, mock_logger):
+        """Test the run method successful execution."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Test run method
+        plugin.run()
+
+        # Verify log was called for success
+        mock_log_instance.assert_called()
+        # Check the call arguments more carefully - look for the translated message
+        call_args_list = mock_log_instance.call_args_list
+        success_call_found = any(
+            "Everything ran OK" in str(call) or "Tutto è andato bene" in str(call) for call in call_args_list
+        )
+        assert success_call_found
+
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_run_method_exception_handling(self, mock_logger):
+        """Test the run method exception handling."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Mock plugin.tr to raise an exception on the first call
+        original_tr = plugin.tr
+        call_count = [0]  # Use list to maintain reference in closure
+
+        def tr_side_effect(message):
+            call_count[0] += 1
+            if call_count[0] == 1:  # First call (success message)
+                raise Exception("Test exception")
+            return original_tr(message)  # Subsequent calls work normally
+
+        plugin.tr = Mock(side_effect=tr_side_effect)
+
+        # Test run method with exception
+        plugin.run()
+
+        # Verify log was called for error
+        assert mock_log_instance.call_count >= 1
+        # Check that error was logged
+        calls = mock_log_instance.call_args_list
+        error_call_found = any("Houston" in str(call) for call in calls)
+        assert error_call_found
+
     def test_tr_method_exists(self):
         """Test that the translation method exists and is callable."""
         try:
@@ -147,3 +272,287 @@ class TestPluginConstants:
 
 # Mark all tests in this file as unit tests
 pytestmark = pytest.mark.unit
+
+
+class TestDipStrikeToolsPluginAdvanced:
+    """Advanced tests for DipStrikeToolsPlugin functionality."""
+
+    @patch("dip_strike_tools.plugin_main.QgsSettings")
+    @patch("dip_strike_tools.plugin_main.QLocale")
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_plugin_translation_setup_no_file(self, mock_logger, mock_locale, mock_settings):
+        """Test plugin initialization when translation file doesn't exist."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+
+        # Mock settings to return a locale that we know doesn't have a translation file
+        mock_settings.return_value.value.return_value = "zz_ZZ"  # Fake locale
+        mock_locale.return_value.name.return_value = "zz_ZZ"
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        # Initialize plugin - should not find translation file for fake locale
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Verify basic setup worked
+        assert plugin.locale == "zz"
+        # Should not have translator if translation file doesn't exist for this locale
+        assert not hasattr(plugin, "translator")
+
+    @patch("dip_strike_tools.plugin_main.QgsSettings")
+    @patch("dip_strike_tools.plugin_main.QLocale")
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_add_action_method(self, mock_logger, mock_locale, mock_settings):
+        """Test the add_action method with various parameters."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_toolbar = Mock()
+        mock_iface.addToolBar.return_value = mock_toolbar
+        mock_iface.addPluginToDatabaseMenu = Mock()
+
+        # Mock settings
+        mock_settings.return_value.value.return_value = "en"
+        mock_locale.return_value.name.return_value = "en_US"
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Mock callback
+        mock_callback = Mock()
+
+        # Test add_action with all parameters
+        action = plugin.add_action(
+            icon_path="test_icon.png",
+            text="Test Action",
+            callback=mock_callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip="Test status tip",
+            whats_this="Test whats this",
+            parent=None,
+        )
+
+        # Verify action was created and added to the actions list
+        assert action is not None
+        assert action in plugin.actions
+
+        # Verify the action was added to toolbar and menu
+        mock_toolbar.addAction.assert_called_with(action)
+        mock_iface.addPluginToDatabaseMenu.assert_called()
+
+    @patch("dip_strike_tools.plugin_main.QgsSettings")
+    @patch("dip_strike_tools.plugin_main.QLocale")
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_add_action_minimal_parameters(self, mock_logger, mock_locale, mock_settings):
+        """Test the add_action method with minimal parameters."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_toolbar = Mock()
+        mock_iface.addToolBar.return_value = mock_toolbar
+
+        # Mock settings
+        mock_settings.return_value.value.return_value = "en"
+        mock_locale.return_value.name.return_value = "en_US"
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Mock callback
+        mock_callback = Mock()
+
+        # Test add_action with minimal parameters
+        action = plugin.add_action(
+            icon_path="test_icon.png",
+            text="Test Action",
+            callback=mock_callback,
+            add_to_menu=False,
+            add_to_toolbar=False,
+        )
+
+        # Verify action was created but not added to toolbar/menu
+        assert action is not None
+        assert action in plugin.actions
+
+        # Should not have been called with this action since add_to_* are False
+        assert mock_toolbar.addAction.call_count == 0  # Only called during init
+
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_open_create_layer_dialog_cancelled(self, mock_logger):
+        """Test create layer dialog when user cancels."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+        mock_iface.mainWindow.return_value = Mock()
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Mock the dialog to be cancelled
+        with patch("dip_strike_tools.plugin_main.DlgCreateLayer") as mock_dialog:
+            mock_dlg_instance = Mock()
+            mock_dlg_instance.result.return_value = 0  # QDialog.Rejected
+            mock_dialog.return_value = mock_dlg_instance
+
+            # Call the method
+            plugin.open_create_layer_dialog()
+
+            # Verify dialog was created and executed
+            mock_dialog.assert_called_once_with(mock_iface.mainWindow())
+            mock_dlg_instance.exec.assert_called_once()
+
+            # Verify cancellation was logged
+            assert mock_log_instance.call_count >= 1
+            calls = mock_log_instance.call_args_list
+            cancel_call_found = any(
+                "cancelled" in str(call).lower() or "annullat" in str(call).lower()  # English or Italian
+                for call in calls
+            )
+            assert cancel_call_found
+
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_open_create_layer_dialog_error(self, mock_logger):
+        """Test create layer dialog when an error occurs during layer creation."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+        mock_iface.mainWindow.return_value = Mock()
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Mock the dialog to be accepted but with error in layer creation
+        with patch("dip_strike_tools.plugin_main.DlgCreateLayer") as mock_dialog:
+            mock_dlg_instance = Mock()
+            mock_dlg_instance.result.return_value = 1  # QDialog.Accepted
+            mock_dlg_instance.get_layer_config.side_effect = Exception("Test error")
+            mock_dialog.return_value = mock_dlg_instance
+            mock_dialog.Accepted = 1
+
+            # Call the method
+            plugin.open_create_layer_dialog()
+
+            # Verify error was logged
+            assert mock_log_instance.call_count >= 1
+            calls = mock_log_instance.call_args_list
+            error_call_found = any("error" in str(call).lower() for call in calls)
+            assert error_call_found
+
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_toggle_dip_strike_tool_methods(self, mock_logger):
+        """Test toggle, activate, and deactivate methods."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Mock the action
+        plugin.insert_dip_strike_action = Mock()
+
+        # Test toggle when checked (should activate)
+        plugin.insert_dip_strike_action.isChecked.return_value = True
+        plugin.activate_dip_strike_tool = Mock()
+        plugin.toggle_dip_strike_tool()
+        plugin.activate_dip_strike_tool.assert_called_once()
+
+        # Test toggle when unchecked (should deactivate)
+        plugin.insert_dip_strike_action.isChecked.return_value = False
+        plugin.deactivate_dip_strike_tool = Mock()
+        plugin.toggle_dip_strike_tool()
+        plugin.deactivate_dip_strike_tool.assert_called_once()
+
+    @patch("dip_strike_tools.plugin_main.PlgLogger")
+    def test_map_tool_changed_handler(self, mock_logger):
+        """Test the map tool change handler."""
+        try:
+            from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
+        except ImportError:
+            pytest.skip("QGIS modules not available")
+
+        # Mock the QGIS interface
+        mock_iface = Mock()
+        mock_iface.addToolBar.return_value = Mock()
+
+        # Mock logger
+        mock_log_instance = Mock()
+        mock_logger.return_value.log = mock_log_instance
+
+        plugin = DipStrikeToolsPlugin(mock_iface)
+
+        # Mock the action
+        plugin.insert_dip_strike_action = Mock()
+
+        # Mock our custom tool
+        mock_tool = Mock()
+        plugin.custom_tool = mock_tool
+
+        # Test when our tool becomes active
+        plugin.insert_dip_strike_action.isChecked.return_value = False
+        plugin.on_map_tool_changed(mock_tool)
+        plugin.insert_dip_strike_action.setChecked.assert_called_with(True)
+
+        # Reset mock
+        plugin.insert_dip_strike_action.reset_mock()
+
+        # Test when another tool becomes active
+        other_tool = Mock()
+        plugin.insert_dip_strike_action.isChecked.return_value = True
+        plugin.on_map_tool_changed(other_tool)
+        plugin.insert_dip_strike_action.setChecked.assert_called_with(False)
+
+        # Test when no custom tool exists
+        delattr(plugin, "custom_tool")
+        plugin.insert_dip_strike_action.reset_mock()
+        plugin.insert_dip_strike_action.isChecked.return_value = True
+        plugin.on_map_tool_changed(other_tool)
+        plugin.insert_dip_strike_action.setChecked.assert_called_with(False)

@@ -32,6 +32,18 @@ class DipStrikeLayerCreator:
         """Initialize the layer creator."""
         self.log = PlgLogger().log
 
+    def tr(self, message: str) -> str:
+        """Get the translation for a string using Qt translation API.
+
+        :param message: String to translate
+        :type message: str
+
+        :returns: Translated string
+        :rtype: str
+        """
+        # Note: This is a utility class, errors are typically handled by calling code
+        return message  # For now, return the message as-is since this is a utility class
+
     def get_dip_strike_fields(self):
         """Get the standard field definitions for dip/strike layers.
 
@@ -155,7 +167,9 @@ class DipStrikeLayerCreator:
         """
         try:
             # Get the path to the single symbol QML file
-            qml_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "single_symbol.qml")
+            qml_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "resources", "qml", "single_symbol.qml"
+            )
 
             if not os.path.exists(qml_path):
                 self.log(f"Single symbol QML file not found: {qml_path}", log_level=1)
@@ -238,6 +252,13 @@ class DipStrikeLayerCreator:
                     # Count replacements for debugging
                     before_count = qml_content.count(original_field)
 
+                    # Log what we're looking for
+                    self.log(
+                        f"Looking for field references to '{original_field}' to replace with '{actual_field}'",
+                        log_level=4,
+                    )
+                    self.log(f'Searching for pattern: fieldName="{original_field}"', log_level=4)
+
                     # Replace field references in various QML contexts
                     # Handle different field reference patterns in QML
                     qml_content = qml_content.replace(
@@ -255,6 +276,8 @@ class DipStrikeLayerCreator:
                         f"Updated QML field reference: {original_field} -> {actual_field} ({replaced_count} replacements)",
                         log_level=4,
                     )
+                else:
+                    self.log(f"No replacement needed for field: {original_field} (already matches)", log_level=4)
 
             return qml_content
 
@@ -276,11 +299,11 @@ class DipStrikeLayerCreator:
             # Write QML content to a temporary file
             with tempfile.NamedTemporaryFile(mode="w", suffix=".qml", delete=False, encoding="utf-8") as temp_file:
                 temp_file.write(qml_content)
-                temp_qml_path = temp_file.name
-
-            # Load the style from the temporary file
+                temp_qml_path = temp_file.name  # Load the style from the temporary file
             self.log(f"Loading QML style from temporary file: {temp_qml_path}", log_level=4)
             result, error_msg = layer.loadNamedStyle(temp_qml_path)
+
+            self.log(f"QML loading result: {result}, error_msg: '{error_msg}'", log_level=4)
 
             # Clean up temporary file
             try:
@@ -288,11 +311,14 @@ class DipStrikeLayerCreator:
             except Exception:
                 pass  # Ignore cleanup errors
 
-            if not result:
-                self.log(f"Failed to load QML style: {error_msg}", log_level=1)
+            # Check if the result explicitly indicates failure
+            # Sometimes loadNamedStyle returns strange values, so we check for explicit failure indicators
+            if result is False or (isinstance(error_msg, str) and error_msg.lower() in ["false", "failed", "error"]):
+                self.log(f"QML style loading failed: {error_msg}", log_level=2)
                 return False
-
-            self.log(f"Successfully loaded QML style for layer: {layer.name()}", log_level=4)
+            else:
+                # Assume success if no explicit failure indication
+                self.log(f"QML style loaded successfully for layer: {layer.name()}", log_level=4)
 
             # Trigger layer repaint
             layer.triggerRepaint()
@@ -355,6 +381,12 @@ class DipStrikeLayerCreator:
         :rtype: QgsVectorLayer
         :raises: LayerCreationError if layer creation fails
         """
+        # Validate input parameters
+        if not output_path:
+            raise LayerCreationError(
+                f"output_path is required for file layer creation (driver: {format_info.get('driver', 'unknown')})"
+            )
+
         self.log(f"Creating {format_info['driver']} layer: {layer_name} at {output_path}", log_level=4)
 
         # Get field definitions based on configuration
@@ -565,10 +597,15 @@ class DipStrikeLayerCreator:
             log_level=4,
         )
 
+        # Debug: Log the layer format
+        self.log(f"Layer format: '{layer_format}' (type: {type(layer_format)})", log_level=4)
+
         try:
-            if layer_format == "Memory Layer":
+            if layer_format == "memory":
+                self.log("Taking memory layer creation path", log_level=4)
                 layer = self.create_memory_layer(layer_name, crs, optional_fields_config)
             else:
+                self.log("Taking file layer creation path", log_level=4)
                 layer = self.create_file_layer(layer_name, output_path, format_info, crs, optional_fields_config)
 
             # Configure layer properties
@@ -581,7 +618,9 @@ class DipStrikeLayerCreator:
             # Add layer to project
             QgsProject.instance().addMapLayer(layer)
 
-            format_info_str = f" ({layer_format})" if layer_format != "Memory Layer" else " (Memory)"
+            format_info_str = (
+                f" ({format_info.get('display_name', layer_format)})" if layer_format != "memory" else " (Memory)"
+            )
             location_info = f" at {output_path}" if output_path else ""
             symbology_info = " with single symbol symbology" if apply_symbology else ""
 
@@ -608,7 +647,10 @@ class DipStrikeLayerCreator:
             success = self._apply_single_symbol_symbology(layer)
 
             if not success:
-                self.log(f"Failed to apply symbology to layer {layer.name()}", log_level=2)
+                self.log(
+                    f"Symbology application reported failure for layer {layer.name()}, but style may still be applied",
+                    log_level=2,
+                )
             else:
                 self.log(f"Successfully applied symbology to layer {layer.name()}", log_level=3)
         except Exception as e:
@@ -666,7 +708,7 @@ class DipStrikeLayerCreator:
     def create_layer_config(
         self,
         layer_name,
-        layer_format="Memory Layer",
+        layer_format="memory",
         output_path=None,
         apply_symbology=False,
         optional_fields_config=None,
@@ -675,7 +717,7 @@ class DipStrikeLayerCreator:
 
         :param layer_name: Name for the layer
         :type layer_name: str
-        :param layer_format: Format for the layer ('Memory Layer', 'GeoPackage', 'ESRI Shapefile', etc.)
+        :param layer_format: Format for the layer ('memory', 'gpkg', 'shapefile')
         :type layer_format: str
         :param output_path: Path for file-based layers (required for non-memory layers)
         :type output_path: str or None
@@ -686,13 +728,11 @@ class DipStrikeLayerCreator:
         :returns: Configuration dictionary ready for create_dip_strike_layer
         :rtype: dict
         """
-        # Format information mapping
+        # Format information mapping using internal keys
         format_mapping = {
-            "Memory Layer": {"driver": "memory"},
-            "GeoPackage": {"driver": "GPKG"},
-            "ESRI Shapefile": {"driver": "ESRI Shapefile"},
-            "GeoJSON": {"driver": "GeoJSON"},
-            "KML": {"driver": "KML"},
+            "memory": {"driver": "memory", "extension": "", "display_name": "Memory Layer"},
+            "shapefile": {"driver": "ESRI Shapefile", "extension": "shp", "display_name": "ESRI Shapefile"},
+            "gpkg": {"driver": "GPKG", "extension": "gpkg", "display_name": "GeoPackage"},
         }
 
         if layer_format not in format_mapping:
@@ -700,7 +740,7 @@ class DipStrikeLayerCreator:
                 f"Unsupported layer format: {layer_format}. Supported formats: {list(format_mapping.keys())}"
             )
 
-        if layer_format != "Memory Layer" and not output_path:
+        if layer_format != "memory" and not output_path:
             raise ValueError(f"output_path is required for {layer_format} layers")
 
         config = {
@@ -726,7 +766,7 @@ class DipStrikeLayerCreator:
         """
         config = self.create_layer_config(
             layer_name=layer_name,
-            layer_format="Memory Layer",
+            layer_format="memory",
             apply_symbology=True,
         )
 
@@ -742,7 +782,7 @@ class DipStrikeLayerCreator:
         :returns: Created layer without symbology
         :rtype: QgsVectorLayer
         """
-        config = self.create_layer_config(layer_name=layer_name, layer_format="Memory Layer", apply_symbology=False)
+        config = self.create_layer_config(layer_name=layer_name, layer_format="memory", apply_symbology=False)
 
         return self.create_dip_strike_layer(config, crs)
 

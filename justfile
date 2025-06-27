@@ -37,18 +37,18 @@ dev-link QGIS_PLUGIN_PATH="/home/francesco/.local/share/QGIS/QGIS3/profiles/defa
     uv lock --upgrade
 
 trans-update:
-    uv run pylupdate5 ./dip_strike_tools/dip_strike_tools.pro
+    uv run pylupdate5 -noobsolete -verbose ./dip_strike_tools/resources/i18n/plugin_translation.pro
 
 trans-compile:
-    uv run lrelease ./dip_strike_tools/i18n/MzSTools_it.ts
+    uv run lrelease ./dip_strike_tools/resources/i18n/*.ts
 
 docs-autobuild:
     uv run sphinx-autobuild -b html docs/ docs/_build --port 8000
 
-build-docs-html:
+docs-build-html:
     uv run sphinx-build -b html -j auto -d docs/_build/cache -q docs docs/_build/html
 
-build-docs-pdf:
+docs-build-pdf:
     #!/bin/bash
     set -e
     uv run sphinx-build -b latex -j auto -d docs/_build/cache -q docs docs/_build/latex
@@ -70,18 +70,6 @@ test:
     # cp --remove-destination CREDITS.md dip_strike_tools/
     git add .
     uv run qgis-plugin-ci package -c {{ VERSION }}
-
-    # change the directory name in the zip file to MzSTools for compatibility with older versions of the plugin
-    mkdir temp
-    unzip dip_strike_tools.*.zip -d temp
-    mv temp/dip_strike_tools temp/MzSTools
-    cd temp
-    zip -r $(cd ../ && ls -1 dip_strike_tools.*.zip) MzSTools
-    cp *.zip ../
-    cd ..
-    rm -rf temp
-    mv "$(find . -name 'dip_strike_tools.*.zip')" "$(find . -name 'dip_strike_tools.*.zip' | sed 's/dip_strike_tools/MzSTools/')"
-
     just dev-link
     git add .
 
@@ -91,20 +79,9 @@ test:
     cp --remove-destination LICENSE dip_strike_tools/
     cp --remove-destination CHANGELOG.md dip_strike_tools/
     # cp --remove-destination CREDITS.md dip_strike_tools/
-    # enforce DEBUG_MODE to False
-    sed -i 's/DEBUG_MODE: bool = True/DEBUG_MODE: bool = False/g' dip_strike_tools/__about__.py
-    # change main plugin directory name to MzSTools for compatibility with older versions of the plugin
-    mv dip_strike_tools MzSTools
-    # change plugin_path in pyproject.toml
-    sed -i 's/plugin_path = "dip_strike_tools"/plugin_path = "MzSTools"/g' pyproject.toml
     git add .
-
     # run qgis-plugin-ci release without github token and osgeo auth
     uv run qgis-plugin-ci release -c {{ VERSION }}
-
-    # revert changes
-    mv MzSTools dip_strike_tools
-    sed -i 's/plugin_path = "MzSTools"/plugin_path = "dip_strike_tools"/g' pyproject.toml
     just dev-link
     git add .
 
