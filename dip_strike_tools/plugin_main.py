@@ -20,7 +20,9 @@ from dip_strike_tools.__about__ import (
     __uri_homepage__,
 )
 from dip_strike_tools.core import DipStrikeMapTool
+from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 from dip_strike_tools.core.layer_creator import DipStrikeLayerCreator
+from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues
 from dip_strike_tools.gui.dlg_create_layer import DlgCreateLayer
 from dip_strike_tools.gui.dlg_insert_dip_strike import DlgInsertDipStrike
 from dip_strike_tools.gui.dlg_settings import PlgOptionsFactory
@@ -122,8 +124,9 @@ class DipStrikeToolsPlugin:
         self.create_layer_action = self.add_action(
             # QgsApplication.getThemeIcon("mActionCapturePoint.svg"),
             # QgsApplication.getThemeIcon("mIconPointLayer.svg"),
-            QgsApplication.getThemeIcon("north_arrow.svg"),
+            # QgsApplication.getThemeIcon("north_arrow.svg"),
             # QgsApplication.getThemeIcon("mActionNewVectorLayer.svg"),
+            QgsApplication.getThemeIcon("mActionAddLayer.svg"),
             text=self.tr("Create New Dip Strike Layer"),
             callback=self.open_create_layer_dialog,
             parent=self.iface.mainWindow(),
@@ -132,10 +135,19 @@ class DipStrikeToolsPlugin:
         # -- Create new dip strike point action
         self.insert_dip_strike_action = self.add_action(
             # QgsApplication.getThemeIcon("mActionAddArrow.svg"),
-            QgsApplication.getThemeIcon("mActionMeasureBearing.svg"),
+            # QgsApplication.getThemeIcon("mActionMeasureBearing.svg"),
+            QgsApplication.getThemeIcon("north_arrow.svg"),
             # enabled_flag=enabled_flag,
-            text=self.tr("Create a Dip Strike Point"),
+            text=self.tr("Create or Update a Dip Strike Point"),
             callback=self.toggle_dip_strike_tool,
+            parent=self.iface.mainWindow(),
+        )
+
+        # -- Calculate dip or strike action
+        self.calculate_values_action = self.add_action(
+            QgsApplication.getThemeIcon("mActionCalculateField.svg"),
+            text=self.tr("Calculate Dip/Strike Values"),
+            callback=self.open_calculate_values_dialog,
             parent=self.iface.mainWindow(),
         )
 
@@ -226,24 +238,8 @@ class DipStrikeToolsPlugin:
         # Clean up our custom actions
         if hasattr(self, "create_layer_action"):
             del self.create_layer_action
-
-    def run(self):
-        """Main process.
-
-        :raises Exception: if there is no item in the feed
-        """
-        try:
-            self.log(
-                message=self.tr("Everything ran OK."),
-                log_level=3,
-                push=False,
-            )
-        except Exception as err:
-            self.log(
-                message=self.tr("Houston, we've got a problem: {}".format(err)),
-                log_level=2,
-                push=True,
-            )
+        if hasattr(self, "calculate_values_action"):
+            del self.calculate_values_action
 
     def toggle_dip_strike_tool(self):
         """Toggle the dip strike tool on/off based on button state."""
@@ -351,6 +347,35 @@ class DipStrikeToolsPlugin:
                 self.log(message=self.tr("Error creating layer: {}").format(str(e)), log_level=1)
         else:
             self.log(message=self.tr("Layer creation cancelled."), log_level=4)
+
+    def open_calculate_values_dialog(self):
+        """Open the dialog to calculate dip/strike values from existing fields."""
+        dlg = DlgCalculateValues(self.iface.mainWindow())
+        dlg.exec()
+        if dlg.result() == DlgCalculateValues.Accepted:
+            try:
+                # Get the calculation configuration from the dialog
+                config = dlg.get_calculation_config()
+
+                # Perform the calculation
+                calculator = DipStrikeCalculator()
+                success, message = calculator.process_layer(config)
+
+                if success:
+                    self.log(
+                        message=self.tr("Calculation completed successfully: {}").format(message),
+                        log_level=3,
+                        push=True,
+                    )
+                    # Refresh the layer to show updated values
+                    config["layer"].triggerRepaint()
+                else:
+                    self.log(message=self.tr("Calculation failed: {}").format(message), log_level=1, push=True)
+
+            except Exception as e:
+                self.log(message=self.tr("Error during calculation: {}").format(str(e)), log_level=1, push=True)
+        else:
+            self.log(message=self.tr("Calculation cancelled."), log_level=4)
 
     def _find_existing_feature_at_point(self, clicked_point, tolerance_pixels=10):
         """Find existing dip/strike features near the clicked point.

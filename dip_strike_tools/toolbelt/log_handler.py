@@ -27,9 +27,7 @@ class PlgLogger(logging.Handler):
     def log(
         message: str,
         application: str = __title__,
-        log_level: Union[
-            Qgis.MessageLevel, Literal[0, 1, 2, 3, 4]
-        ] = Qgis.MessageLevel.Info,
+        log_level: Union[Qgis.MessageLevel, Literal[0, 1, 2, 3, 4]] = Qgis.MessageLevel.Info,
         push: bool = False,
         duration: Optional[int] = None,
         # widget
@@ -134,16 +132,12 @@ class PlgLogger(logging.Handler):
             try:
                 message = str(message)
             except Exception as err:
-                err_msg = "Log message must be a string, not: {}. Trace: {}".format(
-                    type(message), err
-                )
+                err_msg = "Log message must be a string, not: {}. Trace: {}".format(type(message), err)
                 logging.error(err_msg)
                 message = err_msg
 
         # send it to QGIS messages panel
-        QgsMessageLog.logMessage(
-            message=message, tag=application, notifyUser=push, level=log_level
-        )
+        QgsMessageLog.logMessage(message=message, tag=application, notifyUser=push, level=log_level)
 
         # optionally, display message on QGIS Message bar (above the map canvas)
         if push and iface is not None:
@@ -163,9 +157,7 @@ class PlgLogger(logging.Handler):
             # create message with/out a widget
             if button:
                 # create output message
-                notification = iface.messageBar().createMessage(
-                    title=application, text=message
-                )
+                notification = iface.messageBar().createMessage(title=application, text=message)
                 widget_button = QPushButton(button_text or "More...")
                 if button_connect:
                     widget_button.clicked.connect(button_connect)
@@ -179,9 +171,7 @@ class PlgLogger(logging.Handler):
                     widget_button.clicked.connect(partial(mini_dlg.showMessage, False))
 
                 notification.layout().addWidget(widget_button)
-                msg_bar.pushWidget(
-                    widget=notification, level=log_level, duration=duration
-                )
+                msg_bar.pushWidget(widget=notification, level=log_level, duration=duration)
 
             else:
                 # send simple message

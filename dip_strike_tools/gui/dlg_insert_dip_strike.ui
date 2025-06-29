@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>443</width>
-    <height>452</height>
+    <width>470</width>
+    <height>663</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -378,6 +378,9 @@
         </item>
         <item row="0" column="5">
          <widget class="QgsDoubleSpinBox" name="spin_dip">
+          <property name="toolTip">
+           <string>Value of the dip angle (0-90°)</string>
+          </property>
           <property name="suffix">
            <string>°</string>
           </property>

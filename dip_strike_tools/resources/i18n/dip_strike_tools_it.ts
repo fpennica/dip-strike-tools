@@ -35,27 +35,27 @@ Questo sostituirà tutte le voci correnti con:
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="14"/>
         <source>Insert Dip Strike Data</source>
-        <translation>Inserisci Dati di Immersione e Direzione</translation>
+        <translation>Inserisci Dati di Dip e Strike</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="20"/>
         <source>Feature Layer</source>
-        <translation>Layer di Feature</translation>
+        <translation>Feature Layer</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="63"/>
         <source>Dip/Strike Data</source>
-        <translation>Dati Immersione/Direzione</translation>
+        <translation>Dati Dip/Strike (Immersione/Direzione)</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="76"/>
         <source>Strike Azimuth</source>
-        <translation>Azimut Direzione</translation>
+        <translation>Strike Azimut</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="86"/>
         <source>Dip Azimuth</source>
-        <translation>Azimut Immersione</translation>
+        <translation>Dip Azimut</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="114"/>
@@ -65,7 +65,7 @@ Questo sostituirà tutte le voci correnti con:
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="138"/>
         <source>Current CRS:</source>
-        <translation>CRS Corrente:</translation>
+        <translation>CRS corrente:</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="163"/>
@@ -93,127 +93,147 @@ Questo sostituirà tutte le voci correnti con:
         <translation>Immersione</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.ui" line="382"/>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="385"/>
         <source>°</source>
         <translation>°</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.ui" line="434"/>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="437"/>
         <source>* Azimuth value relative to true North</source>
         <translation>* Valore azimut relativo al Nord geografico</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.ui" line="444"/>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="447"/>
         <source>Optional Data</source>
         <translation>Dati Opzionali</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.ui" line="453"/>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="456"/>
         <source>Geo Type</source>
         <translation>Tipo Geologico</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.ui" line="463"/>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="466"/>
         <source>Age</source>
         <translation>Età</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.ui" line="473"/>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="476"/>
         <source>Lithology</source>
         <translation>Litologia</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.ui" line="502"/>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="505"/>
         <source>Notes</source>
         <translation>Note</translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="382"/>
+        <source>Value of the dip angle (0-90°)</source>
+        <translation>Valore dell'angolo di immersione (0-90°)</translation>
     </message>
 </context>
 <context>
     <name>DipStrikeToolsPlugin</name>
     <message>
-        <location filename="../../plugin_main.py" line="214"/>
+        <location filename="../../plugin_main.py" line="226"/>
         <source>&amp;Dip Strike Tools</source>
         <translation>&amp;Strumenti Immersione Direzione</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="103"/>
+        <location filename="../../plugin_main.py" line="105"/>
         <source>Help</source>
         <translation>Aiuto</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="110"/>
+        <location filename="../../plugin_main.py" line="112"/>
         <source>Settings</source>
         <translation>Impostazioni</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="133"/>
-        <source>Create a Dip Strike Point</source>
-        <translation>Crea un Punto di Immersione/Direzione</translation>
+        <location filename="../../plugin_main.py" line="136"/>
+        <source>Create or Update a Dip Strike Point</source>
+        <translation>Crea o Modifica un Punto di Immersione/Direzione (giacitura)</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="122"/>
+        <location filename="../../plugin_main.py" line="124"/>
         <source>Create New Dip Strike Layer</source>
-        <translation>Crea Nuovo Layer di Immersione/Direzione</translation>
+        <translation>Crea Nuovo Layer di Immersione/Direzione (giaciture)</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="144"/>
+        <location filename="../../plugin_main.py" line="156"/>
         <source>Dip Strike Tools Settings</source>
-        <translation>Impostazioni Strumenti Immersione Direzione</translation>
+        <translation>Impostazioni del plugin</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="236"/>
-        <source>Everything ran OK.</source>
-        <translation>Tutto è andato bene.</translation>
-    </message>
-    <message>
-        <location filename="../../plugin_main.py" line="242"/>
-        <source>Houston, we&apos;ve got a problem: {}</source>
-        <translation>Houston, abbiamo un problema: {}</translation>
-    </message>
-    <message>
-        <location filename="../../plugin_main.py" line="268"/>
+        <location filename="../../plugin_main.py" line="264"/>
         <source>Dip Strike Tool activated.</source>
         <translation>Strumento Immersione Direzione attivato.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="282"/>
+        <location filename="../../plugin_main.py" line="278"/>
         <source>Dip Strike Tool deactivated.</source>
         <translation>Strumento Immersione Direzione disattivato.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="317"/>
+        <location filename="../../plugin_main.py" line="313"/>
         <source>Dip Strike Point created successfully.</source>
         <translation>Punto Immersione Direzione creato con successo.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="319"/>
+        <location filename="../../plugin_main.py" line="315"/>
         <source>Dip Strike Point creation cancelled.</source>
         <translation>Creazione Punto Immersione Direzione annullata.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="341"/>
+        <location filename="../../plugin_main.py" line="337"/>
         <source>Symbology applied successfully.</source>
         <translation>Simbologia applicata con successo.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="343"/>
+        <location filename="../../plugin_main.py" line="339"/>
         <source>Failed to apply symbology.</source>
         <translation>Impossibile applicare la simbologia.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="345"/>
+        <location filename="../../plugin_main.py" line="341"/>
         <source>New dip strike layer &apos;{}&apos; created and added to project.</source>
         <translation>Nuovo layer immersione direzione '{}' creato e aggiunto al progetto.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="351"/>
+        <location filename="../../plugin_main.py" line="347"/>
         <source>Error creating layer: {}</source>
         <translation>Errore nella creazione del layer: {}</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="353"/>
+        <location filename="../../plugin_main.py" line="349"/>
         <source>Layer creation cancelled.</source>
         <translation>Creazione layer annullata.</translation>
+    </message>
+    <message>
+        <location filename="../../plugin_main.py" line="147"/>
+        <source>Calculate Dip/Strike Values</source>
+        <translation>Calcola valori di Dip/Strike</translation>
+    </message>
+    <message>
+        <location filename="../../plugin_main.py" line="365"/>
+        <source>Calculation completed successfully: {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../plugin_main.py" line="373"/>
+        <source>Calculation failed: {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../plugin_main.py" line="376"/>
+        <source>Error during calculation: {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../plugin_main.py" line="378"/>
+        <source>Calculation cancelled.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -638,69 +658,91 @@ Si prega di selezionare campi diversi per ogni mappatura.</translation>
 <context>
     <name>DlgInsertDipStrike</name>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="43"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="44"/>
         <source>Edit Dip/Strike Data - {} (Feature {})</source>
         <translation>Modifica Dati Immersione/Direzione - {} (Feature {})</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="48"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="49"/>
         <source>Insert New Dip/Strike Point</source>
         <translation>Inserisci Nuovo Punto Immersione/Direzione</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="68"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="69"/>
         <source>Configure field mappings for this layer</source>
         <translation>Configura le mappature dei campi per questo layer</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="73"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="74"/>
         <source>Create a new layer for dip/strike features</source>
         <translation>Crea un nuovo layer per le feature di immersione/direzione</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="116"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="117"/>
         <source>Enter azimuth value in decimal degrees from North (0.00-360.00°)</source>
         <translation>Inserisci il valore dell'azimut in gradi decimali dal Nord (0.00-360.00°)</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="236"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="237"/>
         <source>Layer Opacity</source>
         <translation>Opacità Layer</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="695"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="696"/>
         <source>Update</source>
         <translation>Aggiorna</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="696"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="697"/>
         <source>Update existing dip/strike data in the selected feature layer</source>
         <translation>Aggiorna i dati di immersione/direzione esistenti nel layer selezionato</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="698"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="699"/>
         <source>Save</source>
         <translation>Salva</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="699"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="700"/>
         <source>Save dip/strike data to the selected feature layer</source>
         <translation>Salva i dati di immersione/direzione nel layer selezionato</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="710"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="711"/>
         <source>Cancel and close dialog without saving</source>
         <translation>Annulla e chiudi la finestra senza salvare</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="1019"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1016"/>
         <source>* Azimuth value relative to true North</source>
         <translation>* Valore azimut relativo al Nord geografico</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="1020"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1017"/>
         <source>* Azimuth value relative to top of the map/screen</source>
         <translation>* Valore azimut relativo alla parte superiore della mappa/schermo</translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1202"/>
+        <source>Layer Configuration Required</source>
+        <translation>Configurazione del layer richiesta</translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1202"/>
+        <source>The selected layer &apos;{layer_name}&apos; is missing required fields for dip/strike data:
+
+Missing fields: {missing_fields}
+
+Would you like to configure field mappings now?
+
+This will allow you to map existing layer fields to the required dip/strike fields.</source>
+        <translation>Il layer selezionato '{layer_name}' non presenta la configurazione di alcuni dei campi richiesti:
+
+Campi mancanti: {missing_fields}
+
+Vuoi configurare i campi adesso?
+
+Questo strumento permetterà di mappare i campi esistenti del layer con quelli richiesti dal plugin.</translation>
     </message>
 </context>
 <context>
@@ -747,8 +789,8 @@ Si prega di selezionare campi diversi per ogni mappatura.</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_settings.ui" line="218"/>
-        <source>Debug mode (degraded performances)</source>
-        <translation>Modalità debug (prestazioni ridotte)</translation>
+        <source>Debug mode (verbose logging)</source>
+        <translation>Modalità debug (messaggi di log dettagliati)</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_settings.ui" line="240"/>

@@ -215,7 +215,7 @@
                                     <locale language="English" country="UnitedStates"/>
                                 </property>
                                 <property name="text">
-                                    <string>Debug mode (degraded performances)</string>
+                                    <string>Debug mode (verbose logging)</string>
                                 </property>
                                 <property name="tristate">
                                     <bool>false</bool>

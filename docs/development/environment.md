@@ -4,48 +4,137 @@
 
 > Typically on Ubuntu (but should also work on Windows with potential small adjustments).
 
-### 1. Install virtual environment
+## Prerequisites
 
-Using [qgis-venv-creator](https://github.com/GispoCoding/qgis-venv-creator) (see [this article](https://blog.geotribu.net/2024/11/25/creating-a-python-virtual-environment-for-pyqgis-development-with-vs-code-on-windows/#with-the-qgis-venv-creator-utility)) through [pipx](https://pipx.pypa.io) (`sudo apt install pipx`):
+Before setting up the development environment, you need to install the following tools:
 
-```sh
+1. **uv** - Fast Python package installer and dependency manager
+2. **just** - Command runner for project automation
+
+### Install uv
+
+```bash
+# Using curl (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or using pip
+pip install uv
+```
+
+### Install just
+
+```bash
+# On Ubuntu/Debian
+sudo apt install just
+
+# Or using cargo
+cargo install just
+
+# Or download from releases
+curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+```
+
+## Quick Setup (Recommended)
+
+The easiest way to set up the development environment is using the automated setup:
+
+```bash
+# Create virtual environment, install dependencies, and set up development links
+just bootstrap-dev
+```
+
+This command will:
+
+- Create a Python virtual environment with system-site-packages (for PyQGIS)
+- Install all development dependencies using uv
+- Create symbolic links for development
+
+## Manual Setup
+
+If you prefer to set up the environment step by step:
+
+### 1. Create virtual environment
+
+Using uv (recommended):
+
+```bash
+# Create virtual environment with system-site-packages for PyQGIS
+just create-venv
+```
+
+You can also specify Python version and QGIS Python library path:
+
+```bash
+just create-venv 3.11 /usr/share/qgis/python
+```
+
+Alternative methods:
+
+Using [qgis-venv-creator](https://github.com/GispoCoding/qgis-venv-creator) through [pipx](https://pipx.pypa.io):
+
+```bash
+# Install pipx if not already installed
+sudo apt install pipx
+
+# Create QGIS-compatible virtual environment
 pipx run qgis-venv-creator --venv-name ".venv"
 ```
 
-Then enter into the virtual environment:
-
-```sh
-. .venv/bin/activate
-# or
-source .venv/bin/activate
-```
-
-Old school way:
+Traditional method:
 
 ```bash
-# create virtual environment linking to system packages (for pyqgis)
+# Create virtual environment linking to system packages (for PyQGIS)
 python3 -m venv .venv --system-site-packages
 source .venv/bin/activate
 ```
 
 ### 2. Install development dependencies
 
-```sh
-# bump dependencies inside venv
+With uv (recommended):
+
+```bash
+# Install all dependency groups (dev, testing, docs, ci)
+uv sync --all-groups
+
+# Or install specific groups
+uv sync --group dev --group testing
+```
+
+Traditional method:
+
+```bash
+# Activate virtual environment first
+source .venv/bin/activate
+
+# Upgrade pip and install dependencies
 python -m pip install -U pip
 python -m pip install -U -r requirements/development.txt
 
-# install git hooks (pre-commit)
+# Install git hooks (pre-commit)
 pre-commit install
 ```
 
-### 3. Dedicated QGIS profile
+### 3. Development Links and QGIS Profile
+
+#### Create Development Links
+
+To develop the plugin, you need to create symbolic links so QGIS can find your plugin:
+
+```bash
+# Create symbolic links to your QGIS plugins directory
+just dev-link
+
+# Or specify a custom QGIS plugin path
+just dev-link /path/to/your/qgis/plugins
+```
+
+#### Dedicated QGIS Profile
 
 It's recommended to create a dedicated QGIS profile for the development of the plugin to avoid conflicts with other plugins.
 
 1. From the command-line (a terminal with qgis executable in `PATH` or OSGeo4W Shell):
 
-    ```sh
+    ```bash
     # Linux
     qgis --profile plg_dip_strike_tools
     # Windows - OSGeo4W Shell
@@ -54,10 +143,104 @@ It's recommended to create a dedicated QGIS profile for the development of the p
     PS C:\Program Files\QGIS 3.40.4\LTR\bin> .\qgis-ltr-bin.exe --profile plg_dip_strike_tools
     ```
 
-1. Then, set the `QGIS_PLUGINPATH` environment variable to the path of the plugin in profile preferences:
+2. Then, set the `QGIS_PLUGINPATH` environment variable to the path of the plugin in profile preferences:
 
     ![QGIS - Add QGIS_PLUGINPATH environment variable in profile settings](../static/dev_qgis_set_pluginpath_envvar.png)
 
-1. Finally, enable the plugin in the plugin manager (ignore invalid folders like documentation, tests, etc.):
+3. Finally, enable the plugin in the plugin manager (ignore invalid folders like documentation, tests, etc.):
 
     ![QGIS - Enable the plugin in the plugin manager](../static/dev_qgis_enable_plugin.png)
+
+#### Alternative: Using Docker
+
+For a consistent development environment, you can use Docker to run QGIS:
+
+```bash
+# Pull the latest QGIS LTR Docker image
+just qgis-ltr-pull
+
+# Start QGIS in Docker (Linux only)
+just qgis-docker
+```
+
+This automatically mounts your plugin directory and provides a clean QGIS environment.
+
+## Common Development Tasks
+
+The project uses `just` as a command runner to automate common development tasks. Here are the most useful commands:
+
+```bash
+# Show all available tasks
+just
+
+# Create virtual environment and set up development links
+just bootstrap-dev
+
+# Update dependencies to latest versions
+just update-deps
+
+# Run tests with coverage
+just test
+
+# Update translation files
+just trans-update
+
+# Compile translation files
+just trans-compile
+
+# Build documentation with auto-reload (for development)
+just docs-autobuild
+
+# Build HTML documentation
+just docs-build-html
+
+# Create development symlinks (if not using bootstrap-dev)
+just dev-link
+
+# Start QGIS LTR in Docker (Linux only)
+just qgis-docker
+
+# Package the plugin for distribution
+just package <version>
+```
+
+### Using uv directly
+
+You can also use `uv` directly for package management:
+
+```bash
+# Run commands in the virtual environment
+uv run pytest
+uv run ruff check
+uv run pre-commit run --all-files
+
+# Add new dependencies
+uv add requests  # Runtime dependency
+uv add --group dev black  # Development dependency
+uv add --group testing pytest-mock  # Testing dependency
+
+# Install packages
+uv sync  # Install all dependencies
+uv sync --group dev  # Install dev dependencies only
+uv sync --all-groups  # Install all dependency groups
+
+# Update dependencies
+uv lock --upgrade  # Update lock file
+uv sync  # Apply updates
+```
+
+## Development Workflow
+
+1. **Setup**: Run `just bootstrap-dev` to set up everything
+2. **Code**: Make your changes to the plugin code
+3. **Test**: Run `just test` to execute the test suite
+4. **QGIS Testing**: Launch QGIS (native or Docker) to test your changes
+5. **Dependencies**: Use `uv add <package>` to add new dependencies
+6. **Documentation**: Use `just docs-autobuild` for live documentation updates
+
+## Important Notes
+
+- Always use `uv run <command>` to ensure commands run in the correct virtual environment
+- The project uses dependency groups in `pyproject.toml` to organize dependencies by purpose
+- Testing is done with pytest and pytest-qgis for QGIS-specific functionality
+- Translation files are managed through the `just trans-update` and `just trans-compile` commands

@@ -61,16 +61,10 @@ def plugin_metadata_as_dict() -> dict:
 __plugin_md__: dict = plugin_metadata_as_dict()
 
 __author__: str = __plugin_md__.get("general").get("author")
-__copyright__: str = "2025 - {0}, {1}".format(
-    date.today().year, __author__
-)
+__copyright__: str = "2025 - {0}, {1}".format(date.today().year, __author__)
 __email__: str = __plugin_md__.get("general").get("email")
-__icon_path__: Path = DIR_PLUGIN_ROOT.resolve() / __plugin_md__.get("general").get(
-    "icon"
-)
-__keywords__: list = [
-    t.strip() for t in __plugin_md__.get("general").get("repository").split("tags")
-]
+__icon_path__: Path = DIR_PLUGIN_ROOT.resolve() / __plugin_md__.get("general").get("icon")
+__keywords__: list = [t.strip() for t in __plugin_md__.get("general").get("repository").split("tags")]
 __license__: str = "GPLv2+"
 __summary__: str = "{}\n{}".format(
     __plugin_md__.get("general").get("description"),
@@ -87,10 +81,7 @@ __uri__: str = __uri_repository__
 
 __version__: str = __plugin_md__.get("general").get("version")
 __version_info__: tuple = tuple(
-    [
-        int(num) if num.isdigit() else num
-        for num in __version__.replace("-", ".", 1).split(".")
-    ]
+    [int(num) if num.isdigit() else num for num in __version__.replace("-", ".", 1).split(".")]
 )
 
 # #############################################################################

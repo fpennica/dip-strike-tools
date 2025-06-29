@@ -15,6 +15,7 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QDial, QDialog, QDoubleSpinBox, QGraphicsScene, QGraphicsView, QMessageBox, QSizePolicy
 from qgis.utils import iface
 
+from ..core import dip_strike_math
 from ..core.layer_creator import DipStrikeLayerCreator, LayerCreationError
 from ..core.rubber_band_marker import RubberBandMarker
 from ..toolbelt import PlgLogger
@@ -986,15 +987,22 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
             # Determine if we're in strike or dip mode
             is_strike_mode = self.rdio_strike.isChecked()
+            is_true_north_adjust_enabled = self.chk_true_north.isChecked()
 
+            # Use unified calculation function
+            adjusted_strike_azimuth, adjusted_dip_azimuth = dip_strike_math.get_strike_and_dip_from_azimuth(
+                azimuth=azimuth,
+                is_strike_mode=is_strike_mode,
+                true_north_bearing=self._true_north_bearing,
+                apply_true_north=is_true_north_adjust_enabled,
+                decimal_places=2,  # You can make this configurable if needed
+            )
+
+            # For the display item, use the unadjusted strike azimuth
             if is_strike_mode:
-                # Azimuth represents strike direction - use directly
                 strike_azimuth = azimuth
             else:
-                # Azimuth represents dip direction - convert to strike (perpendicular)
-                # Dip direction is 90° clockwise from strike direction
-                # So strike direction is 90° counter-clockwise from dip direction
-                strike_azimuth = (azimuth - 90) % 360
+                strike_azimuth = dip_strike_math.calculate_strike_from_dip(azimuth)
 
             self.dip_strike_item.setAzimuth(strike_azimuth)
             self.dip_strike_item.setShowStrike(True)
@@ -1003,17 +1011,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Refresh the canvas to show changes
             self.map_canvas_widget.refresh()
 
-            is_true_north_adjust_enabled = self.chk_true_north.isChecked()
-            adjusted_strike_azimuth = (
-                strike_azimuth
-                if not is_true_north_adjust_enabled
-                else (strike_azimuth - self._true_north_bearing) % 360
-            )
-            adjusted_dip_azimuth = (
-                (strike_azimuth + 90) % 360
-                if not is_true_north_adjust_enabled
-                else (strike_azimuth + 90 - self._true_north_bearing) % 360
-            )
             self.lbl_strike_dir.setText(self._format_bearing(adjusted_strike_azimuth))
             self.lbl_dip_dir.setText(self._format_bearing(adjusted_dip_azimuth))
             msg_true_north = self.tr("* Azimuth value relative to true North")
@@ -1021,10 +1018,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             self.label_true_north_relative.setText(
                 f"{msg_true_north if is_true_north_adjust_enabled else msg_top_map}"
             )
-
-            # self.log(
-            #     f"Adjusted azimuth relative to true North: {strike_azimuth - self._true_north_bearing}°", log_level=4
-            # )
 
     def get_azimuth_value(self):
         """Get the current azimuth value as a float"""
@@ -1208,11 +1201,13 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Show informative message to user about why the dialog is opening
         reply = QMessageBox.question(
             self,
-            "Layer Configuration Required",
-            f"The selected layer '{layer.name()}' is missing required fields for dip/strike data:\n\n"
-            f"Missing fields: {', '.join(missing_fields)}\n\n"
-            f"Would you like to configure field mappings now?\n\n"
-            f"This will allow you to map existing layer fields to the required dip/strike fields.",
+            self.tr("Layer Configuration Required"),
+            self.tr(
+                "The selected layer '{layer_name}' is missing required fields for dip/strike data:\n\n"
+                "Missing fields: {missing_fields}\n\n"
+                "Would you like to configure field mappings now?\n\n"
+                "This will allow you to map existing layer fields to the required dip/strike fields."
+            ).format(layer_name=layer.name(), missing_fields=", ".join(missing_fields)),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes,
         )
@@ -1579,25 +1574,15 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         """
         azimuth = self.get_azimuth_value()
         is_strike_mode = self.rdio_strike.isChecked()
-
-        if is_strike_mode:
-            # Azimuth represents strike direction - use directly
-            strike_azimuth = azimuth
-        else:
-            # Azimuth represents dip direction - convert to strike (perpendicular)
-            # Dip direction is 90° clockwise from strike direction
-            # So strike direction is 90° counter-clockwise from dip direction
-            strike_azimuth = (azimuth - 90) % 360
-
-        # Apply true north adjustment if enabled
         is_true_north_adjust_enabled = self.chk_true_north.isChecked()
-        adjusted_strike_azimuth = (
-            strike_azimuth if not is_true_north_adjust_enabled else (strike_azimuth - self._true_north_bearing) % 360
-        )
-        adjusted_dip_azimuth = (
-            (strike_azimuth + 90) % 360
-            if not is_true_north_adjust_enabled
-            else (strike_azimuth + 90 - self._true_north_bearing) % 360
+
+        # Use unified calculation function
+        adjusted_strike_azimuth, adjusted_dip_azimuth = dip_strike_math.get_strike_and_dip_from_azimuth(
+            azimuth=azimuth,
+            is_strike_mode=is_strike_mode,
+            true_north_bearing=self._true_north_bearing,
+            apply_true_north=is_true_north_adjust_enabled,
+            decimal_places=2,  # You can make this configurable if needed
         )
 
         return adjusted_strike_azimuth, adjusted_dip_azimuth
