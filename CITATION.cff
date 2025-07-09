@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+title: Dip-Strike Tools
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Giuseppe
+    family-names: Cosentino
+    orcid: 'https://orcid.org/0000-0001-8691-3430'
+    affiliation: CNR-IGG
+  - given-names: Francesco
+    family-names: Pennica
+    orcid: 'https://orcid.org/0000-0002-8141-9246'
+    affiliation: CNR-IGAG
+identifiers:
+  - type: doi
+    value: 
+repository-code: 'https://github.com/fpennica/dip-strike-tools'
+abstract: QGIS plugin for italian Seismic Microzonation.
+license: GPL-3.0

@@ -1,10 +1,10 @@
 [general]
-name=Dip Strike Tools
-about=Tools to digitize and manage dip and strike data from scanned geological maps.
+name=Dip-Strike Tools
+about=Tools for digitizing, managing, and analyzing geological dip and strike data.
 category=Database
 hasProcessingProvider=False
-description=Tools to digitize and manage dip and strike data from scanned geological maps.
-icon=resources/images/default_icon.png
+description=Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digitizing, managing, and analyzing geological dip and strike data. It currently provides basic tools to streamline the workflow for geologists working with structural geology datasets, enabling efficient data capture and management within QGIS.
+icon=resources/images/icon.png
 tags=geology, dip, strike
 
 # credits and contact
