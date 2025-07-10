@@ -1,18 +1,28 @@
 # Plugin Overview
 
-The Dip Strike Tools plugin is designed to streamline geological field data collection and analysis within QGIS. It provides an integrated workflow for recording, managing, and analyzing geological strike and dip measurements.
+Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digitizing, managing, and analyzing plane orientation or attitude data (dip and strike) of planar geologic features. It currently provides basic tools to streamline the workflow for geologists working with structural geology datasets, enabling efficient dip and strike data capture and management within QGIS.
 
 ## What are Strike and Dip?
 
-**Strike** and **dip** are fundamental measurements in structural geology that describe the orientation of planar geological features such as rock layers, fault planes, and fractures.
+**Strike** and **dip** are fundamental measurements in structural geology that describe the orientation of planar geological features such as rock layers, fault planes, and fractures. The *dip* is the angle the slope descends, while the *direction* of descent can be represented by either by *strike direction* or *dip direction*.
 
 :::{note}
 **Key Definitions**:
 
-- **Strike**: The compass direction of a horizontal line on an inclined plane (0-360°)
+- **Strike Azimuth**: The compass direction of a horizontal line on an inclined plane (0-360°)
 - **Dip**: The angle of inclination of a plane from horizontal (0-90°)
 - **Dip Azimuth**: The compass direction of the steepest descent down the plane (strike + 90°)
 :::
+
+On geological maps, strike and dip can be represented by a T symbol with a label that gives the dip angle, in degrees, below horizontal. The longer line represents strike, and is in the same orientation as the strike angle. Dip is represented by the shorter line, which is perpendicular to the strike line in the downhill direction. Strike and dip information recorded on a map can be used to reconstruct various structures, determine the orientation of subsurface features, or detect the presence of anticline or syncline folds.
+
+### Dip and strike data collection and representation
+
+In GIS-based geological mapping, strike and dip symbols are typically represented as point features with associated numerical attributes for strike and dip. These points are then styled using appropriate symbology to visually communicate the orientation of planar features on the map.
+
+When entering data, geologists often need to determine the correct azimuth for strike or dip directions, or convert between strike and dip azimuths. These calculations can be tedious and prone to error if done manually.
+
+The Dip-Strike Tools plugin streamlines these tasks by providing intuitive tools for data entry and conversion. It automates common calculations, reduces the risk of mistakes, and helps ensure that your geological data is both accurate and consistently formatted. The plugin is designed to grow, with future updates planned to add more advanced tools for data management and geological analysis.
 
 ## Plugin Architecture
 
