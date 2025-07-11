@@ -19,3 +19,5 @@ https://gitlab.com/CNR-IGAG/dip_strike_tools//plugins.xml
 
 Be careful, this version can be unstable.
 :::
+
+For developers interested in contributing or understanding the plugin architecture, see the [development documentation](../development/contribute.md).

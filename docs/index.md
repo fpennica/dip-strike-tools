@@ -12,16 +12,16 @@
 
 ## Overview
 
-The Dip Strike Tools plugin provides comprehensive tools for geological field data collection, management, and analysis in QGIS. It enables geologists to efficiently record and visualize geological strike and dip measurements with interactive tools and automated calculations.
+Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digitizing, managing, and analyzing plane orientation or attitude data (dip and strike) of planar geologic features. It currently provides basic tools to streamline the workflow for geologists working with structural geology datasets, enabling efficient dip and strike data capture and management within QGIS.
 
 ### Key Features
 
 - **Interactive Data Collection**: Point-and-click interface for recording dip/strike measurements directly on the map
+- **True North Correction**: Automatic adjustment for grid convergence
 - **Layer Management**: Automated creation and configuration of specialized geological data layers
 - **Field Calculations**: Batch calculation tools for converting between strike and dip azimuths
 - **Customizable Geology Types**: Configurable geological type classifications (strata, foliation, faults, etc.)
 - **Multi-format Support**: Works with shapefiles, GeoPackages, and other vector formats
-- **True North Correction**: Automatic adjustment for magnetic declination and grid convergence
 
 ```{toctree}
 ---

@@ -4,33 +4,74 @@ Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digiti
 
 ## What are Strike and Dip?
 
-**Strike** and **dip** are fundamental measurements in structural geology that describe the orientation of planar geological features such as rock layers, fault planes, and fractures. The *dip* is the angle the slope descends, while the *direction* of descent can be represented by either by *strike direction* or *dip direction*.
+**Strike** and **dip** are fundamental measurements in structural geology that describe the orientation of planar geological features such as rock layers, fault planes, and fractures. The *dip* is the angle the slope descends, while the *direction* of descent can be represented by either *strike direction* or *dip direction*.
+
+```{figure} https://upload.wikimedia.org/wikipedia/commons/8/80/Streichbild.svg
+:align: center
+
+Schematic depiction of "strike" and "dip" in structural geology. Z: strike line of the red plane, σ: strike angle, F: dip direction, φ: dip angle. (https://en.wikipedia.org/wiki/File:Streichbild.svg)
+
+```
 
 :::{note}
 **Key Definitions**:
 
-- **Strike Azimuth**: The compass direction of a horizontal line on an inclined plane (0-360°)
-- **Dip**: The angle of inclination of a plane from horizontal (0-90°)
-- **Dip Azimuth**: The compass direction of the steepest descent down the plane (strike + 90°)
+- **Strike** or **Strike line**: a line representing the intersection of a planar feature with a horizontal plane
+- **Strike Azimuth** or **Strike direction**: The compass direction of the strike line (0-360°)
+- **Dip** or **Dip angle**: The angle of inclination of the planar feature from horizontal (0-90°)
+- **Dip Azimuth** or **Dip direction**: The compass direction of the steepest descent down the plane (perpendicular to the strike line)
 :::
 
 On geological maps, strike and dip can be represented by a T symbol with a label that gives the dip angle, in degrees, below horizontal. The longer line represents strike, and is in the same orientation as the strike angle. Dip is represented by the shorter line, which is perpendicular to the strike line in the downhill direction. Strike and dip information recorded on a map can be used to reconstruct various structures, determine the orientation of subsurface features, or detect the presence of anticline or syncline folds.
 
+```{figure} https://upload.wikimedia.org/wikipedia/commons/5/5a/Guide_to_common_map_symbols.svg
+:align: center
+
+Common map symbols (https://en.wikipedia.org/wiki/File:Guide_to_common_map_symbols.svg)
+
+```
+
 ### Dip and strike data collection and representation
 
-In GIS-based geological mapping, strike and dip symbols are typically represented as point features with associated numerical attributes for strike and dip. These points are then styled using appropriate symbology to visually communicate the orientation of planar features on the map.
+In GIS-based geological mapping, strike and dip are typically represented as point features with associated numerical attributes for strike and dip. These points are then styled using appropriate symbology to visually communicate the orientation of planar features on the map.
+
+```{figure} ../static/map_example.png
+:align: center
+
+Example of dip/strike representation on map
+```
 
 When entering data, geologists often need to determine the correct azimuth for strike or dip directions, or convert between strike and dip azimuths. These calculations can be tedious and prone to error if done manually.
 
+A common scenario is the digitization of data from scanned historical (cartaceous) geological maps. In these cases, the dip angle is often provided as a label next to the strike and dip symbol. However, the strike or dip azimuth is usually not explicitly stated and must be determined manually by measuring the orientation (azimuth) of the strike line depicted on the symbol. This manual process can be time-consuming and prone to error, especially when working with large datasets.
+
+```{figure} ../static/insert_point.png
+:align: center
+
+Inserting a new dip/strike feature
+```
+
 The Dip-Strike Tools plugin streamlines these tasks by providing intuitive tools for data entry and conversion. It automates common calculations, reduces the risk of mistakes, and helps ensure that your geological data is both accurate and consistently formatted. The plugin is designed to grow, with future updates planned to add more advanced tools for data management and geological analysis.
 
-## Plugin Architecture
+### "True" north and grid convergence
 
-The plugin uses a unified mathematical engine that ensures consistency across all tools. All calculations use the same mathematical functions, strike and dip azimuths are automatically normalized to 0-360° range, true north corrections are applied consistently, and robust input validation prevents data entry errors.
+A bearing (or azimuth) is a clockwise angle measured from North to a direction of interest. However, "North" can refer to different reference directions depending on context:
+
+- **Grid north** is the direction of the map’s vertical (south-to-north) grid lines, defined by the map projection.
+- **True north** is the direction along the Earth's surface towards the geographic North Pole (the local meridian).
+- **Magnetic north** is the direction a compass needle points, towards the Earth's magnetic pole.
+
+:::{note}
+*Magnetic declination* is the angle between magnetic north and true north. For most geological mapping, this angle is small and does not significantly affect dip/strike measurements, so the plugin does not account for it.
+:::
+
+The **grid convergence** (or *meridian convergence*) is the angle between true north and grid north at a specific location. This angle varies depending on your position on the map and the map projection in use.
+
+When determining the dip or strike azimuth for a feature in QGIS, the plugin can automatically account for local grid convergence, applying the necessary correction to convert between "grid" azimuths (as measured on the map) and true azimuths (relative to true north). This helps ensure that your orientation data is accurate and consistent, regardless of the coordinate reference system or projection used.
 
 ## Available Tools
 
-The plugin provides four main tools accessible from the QGIS toolbar:
+The plugin currently provides four main tools accessible from the QGIS toolbar:
 
 ### 1. Create New Dip Strike Layer
 
@@ -80,25 +121,4 @@ Configure plugin behavior and customize geological type classifications for your
 
 ## Data Storage Formats
 
-The plugin supports multiple vector formats including **memory layers** for temporary layers for quick analysis, **shapefiles** for traditional GIS format with field mapping support, **GeoPackages** for modern format with extended field names and attributes, and **PostGIS** for enterprise database storage with spatial indexing.
-
-## Quality Assurance Features
-
-The plugin provides **input validation** with automatic checking of azimuth values (0-360° range), **user warnings** with alerts for potentially invalid data and option to continue, **consistent calculations** where all tools use the same mathematical engine, and **data integrity** with required field validation preventing incomplete records.
-
-## Integration with QGIS
-
-The plugin integrates seamlessly with QGIS through **native UI** following QGIS design patterns and conventions, **settings integration** with configuration panel in QGIS preferences, **layer management** working with QGIS layer tree and styling, **coordinate systems** with automatic CRS handling and transformations, and **undo/redo** with full support for QGIS editing history.
-
-## Next Steps
-
-:::{tip}
-**Getting Started**:
-
-- **Installation**: [Install the plugin](installation.md) from the QGIS Plugin Repository
-- **First Use**: Start with [creating a new layer](layer-creation.md) for your project
-- **Data Collection**: Learn the [interactive data insertion](data-insertion.md) workflow
-- **Customization**: Configure [plugin settings](settings.md) for your specific needs
-:::
-
-For developers interested in contributing or understanding the plugin architecture, see the [development documentation](../development/contribute.md).
+The plugin supports multiple vector formats including **memory layers** for temporary layers for quick analysis, **shapefiles** for traditional GIS format with field mapping support and **GeoPackages** for modern format with extended field names and attributes.
