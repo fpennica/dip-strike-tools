@@ -436,12 +436,12 @@ class DlgFieldConfig(QDialog):
             combo.currentTextChanged.connect(self.validate_mappings)
 
         # Button box
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
         # Store reference to OK button for enabling/disabling
-        self.ok_button = self.button_box.button(QDialogButtonBox.Ok)
+        self.ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
 
         layout.addWidget(self.button_box)
 

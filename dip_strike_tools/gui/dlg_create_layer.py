@@ -101,7 +101,7 @@ class DlgCreateLayer(QDialog):
 
         # File path selection using QgsFileWidget (initially hidden for memory layers and GeoPackage)
         self.file_widget = QgsFileWidget()
-        self.file_widget.setStorageMode(QgsFileWidget.SaveFile)
+        self.file_widget.setStorageMode(QgsFileWidget.StorageMode.SaveFile)
         self.file_widget.setDialogTitle(self.tr("Save Dip/Strike Layer"))
 
         # Set default root to current QGIS project directory
@@ -246,7 +246,7 @@ class DlgCreateLayer(QDialog):
         main_layout.addWidget(self.desc_label)
 
         # Dialog buttons
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         main_layout.addWidget(self.button_box)
@@ -319,10 +319,10 @@ class DlgCreateLayer(QDialog):
                 # For GeoPackage, allow selecting existing files (to add layers)
                 # For other formats, use SaveFile mode (to create new files)
                 if selected_format_key == "gpkg":
-                    self.file_widget.setStorageMode(QgsFileWidget.GetFile)
+                    self.file_widget.setStorageMode(QgsFileWidget.StorageMode.GetFile)
                     self.file_widget.setDialogTitle(self.tr("Select or Create GeoPackage"))
                 else:
-                    self.file_widget.setStorageMode(QgsFileWidget.SaveFile)
+                    self.file_widget.setStorageMode(QgsFileWidget.StorageMode.SaveFile)
                     self.file_widget.setDialogTitle(self.tr("Save Dip/Strike Layer"))
 
             # Update the output filename
@@ -410,10 +410,10 @@ class DlgCreateLayer(QDialog):
                             "Current name: '{}' ({} characters)\n\n"
                             "Continue anyway?"
                         ).format(name_without_ext, len(name_without_ext)),
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.No,
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No,
                     )
-                    if reply == QMessageBox.No:
+                    if reply == QMessageBox.StandardButton.No:
                         return False
 
             # Update the path in case extension was added
@@ -444,10 +444,10 @@ class DlgCreateLayer(QDialog):
                             "The new layer will be added to this existing GeoPackage database.\n"
                             "Continue?"
                         ).format(output_path),
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.Yes,
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.Yes,
                     )
-                    if reply == QMessageBox.No:
+                    if reply == QMessageBox.StandardButton.No:
                         return False
                 else:
                     # For other formats, ask about overwriting
@@ -455,10 +455,10 @@ class DlgCreateLayer(QDialog):
                         self,
                         self.tr("File Exists"),
                         self.tr("The file '{}' already exists.\n\nOverwrite it?").format(output_path),
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.No,
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No,
                     )
-                    if reply == QMessageBox.No:
+                    if reply == QMessageBox.StandardButton.No:
                         return False
 
         # Store validated values

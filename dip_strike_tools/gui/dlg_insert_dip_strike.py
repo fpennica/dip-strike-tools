@@ -8,6 +8,7 @@ from qgis.core import (
     QgsCoordinateTransformContext,
     QgsProject,
     QgsSettings,
+    QgsVectorLayer,
 )
 from qgis.gui import QgisInterface, QgsMapCanvas, QgsMapToolPan
 from qgis.PyQt import uic
@@ -242,7 +243,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # self.grp_optional.setCollapsed(True)
         self._initial_collapse_state = True
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         self.setMinimumSize(0, 0)
         self.grp_optional.collapsedStateChanged.connect(self._on_optional_group_collapsed)
         self.grp_optional.collapsedStateChanged.connect(self._save_ui_settings)
@@ -495,11 +496,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 elif widget == self.cbo_geo_type:
                     # For combo box, ensure it's populated normally
                     pass  # TODO: Handle combo box population
-
-                self.log(
-                    message=f"Enabled optional field: {field_key} (mapped to '{mapped_field}')",
-                    log_level=4,
-                )
             else:
                 # Set placeholder text for disabled fields
                 placeholder_text = "Field not configured for feature layer"
@@ -513,18 +509,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     widget.clear()
                     widget.addItem(placeholder_text)
 
-                self.log(
-                    message=f"Disabled optional field: {field_key} (not mapped)",
-                    log_level=4,
-                )
-
         # The Optional Data group box remains always visible
         # self.groupBox_3.setVisible(True)
-
-        self.log(
-            message=f"Optional Data section: {enabled_count} field(s) enabled, {len(field_widgets) - enabled_count} disabled",
-            log_level=4,
-        )
 
     def _load_existing_feature_data(self):
         """Load data from existing feature into the dialog controls.
@@ -540,7 +526,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         self.log(
             message=f"Loading existing feature data from layer '{layer.name()}' (Feature ID: {feature.id()})",
-            log_level=3,
+            log_level=4,
         )
 
         try:
@@ -568,7 +554,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                         self.rdio_strike.setChecked(True)
                         # Set the azimuth value (this will trigger dial and spinbox updates)
                         self.azimuth_spinbox.setValue(strike_azimuth)
-                        self.log(message=f"Loaded strike azimuth: {strike_azimuth}°", log_level=4)
                     except (ValueError, TypeError) as e:
                         self.log(message=f"Error parsing strike azimuth value '{strike_value}': {e}", log_level=2)
 
@@ -582,7 +567,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                         self.rdio_dip.setChecked(True)
                         # Set the azimuth value (this will trigger dial and spinbox updates)
                         self.azimuth_spinbox.setValue(dip_azimuth)
-                        self.log(message=f"Loaded dip azimuth: {dip_azimuth}°", log_level=4)
                     except (ValueError, TypeError) as e:
                         self.log(message=f"Error parsing dip azimuth value '{dip_azimuth_value}': {e}", log_level=2)
 
@@ -593,7 +577,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     try:
                         dip_value = float(dip_val)
                         self.spin_dip.setValue(dip_value)
-                        self.log(message=f"Loaded dip value: {dip_value}°", log_level=4)
                     except (ValueError, TypeError) as e:
                         self.log(message=f"Error parsing dip value '{dip_val}': {e}", log_level=2)
 
@@ -615,7 +598,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
                     if index >= 0:
                         self.cbo_geo_type.setCurrentIndex(index)
-                        self.log(message=f"Loaded geological type: {geo_type_value}", log_level=4)
                     else:
                         # Add the value if it's not in the list (fallback for custom values)
                         self.cbo_geo_type.addItem(str(geo_type_value), str(geo_type_value))
@@ -626,24 +608,18 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 age_value = feature[age_field]
                 if age_value:
                     self.line_age.setText(str(age_value))
-                    self.log(message=f"Loaded age: {age_value}", log_level=4)
 
             # Lithology
             if lithology_field and layer.fields().lookupField(lithology_field) != -1 and hasattr(self, "text_litho"):
                 lithology_value = feature[lithology_field]
                 if lithology_value:
                     self.text_litho.setPlainText(str(lithology_value))
-                    self.log(message=f"Loaded lithology: {lithology_value}", log_level=4)
 
             # Notes
             if notes_field and layer.fields().lookupField(notes_field) != -1 and hasattr(self, "text_notes"):
                 notes_value = feature[notes_field]
                 if notes_value:
                     self.text_notes.setPlainText(str(notes_value))
-                    self.log(
-                        message=f"Loaded notes: {str(notes_value)[:50]}{'...' if len(str(notes_value)) > 50 else ''}",
-                        log_level=4,
-                    )
 
             # Update the map display with the loaded values
             self.on_strike_dip_mode_changed()
@@ -746,7 +722,105 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         settings.endGroup()
 
+    def _get_selected_layer_from_tree(self):
+        """Get the currently selected layer from the QGIS layer tree.
+
+        :return: The selected layer if it's a point layer, None otherwise
+        :rtype: QgsVectorLayer or None
+        """
+        try:
+            # Get the active layer from the interface
+            active_layer = self.iface.activeLayer()
+
+            if (
+                active_layer is not None
+                and isinstance(active_layer, QgsVectorLayer)
+                and active_layer.geometryType() == 0
+            ):  # Point geometry
+                self.log(
+                    message=f"Found selected point layer in tree: {active_layer.name()}",
+                    log_level=3,
+                )
+                return active_layer
+        except Exception as e:
+            self.log(
+                message=f"Error getting selected layer from tree: {e}",
+                log_level=2,
+            )
+
+        return None
+
+    def _is_layer_suitable_for_dip_strike(self, layer):
+        """Check if a layer is suitable for storing dip/strike data.
+
+        A layer is considered suitable if:
+        1. It's a point layer
+        2. It's already configured for dip/strike tools, OR
+        3. It has the required fields naturally, OR
+        4. It can be configured (e.g., shapefile that can have field mappings)
+
+        :param layer: The layer to check
+        :type layer: QgsVectorLayer
+        :return: True if the layer is suitable, False otherwise
+        :rtype: bool
+        """
+        if not layer or not layer.isValid():
+            return False
+
+        # Must be a point layer
+        if layer.geometryType() != 0:
+            return False
+
+        # Check if already configured
+        if layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer":
+            return True
+
+        # Check if it has required fields naturally
+        required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
+        missing_required_fields = [field for field in required_fields if layer.fields().lookupField(field) == -1]
+
+        if not missing_required_fields:
+            return True
+
+        # Check if it's a shapefile (can be configured with field mappings)
+        is_shapefile = layer.dataProvider().name() == "ogr" and layer.source().lower().endswith(".shp")
+        if is_shapefile:
+            return True
+
+        # For other layer types, check if they have enough fields that could be mapped
+        # (this is a more permissive check for layers that might be configurable)
+        layer_field_count = len(layer.fields())
+        if layer_field_count >= len(required_fields):
+            return True
+        return False
+
     def _restore_last_feature_layer(self):
+        """Restore the best available feature layer.
+
+        Priority order for new point insertion:
+        1. Currently selected layer in QGIS tree (if suitable)
+        2. Last used layer from settings (if still exists)
+        3. No layer selected
+        """
+        # For existing feature editing, skip the selected layer check
+        if self.existing_feature:
+            self._restore_saved_feature_layer()
+            return
+
+        # Check if the currently selected layer in QGIS is suitable
+        selected_layer = self._get_selected_layer_from_tree()
+        if selected_layer is not None and self._is_layer_suitable_for_dip_strike(selected_layer):
+            self.cbo_feature_layer.setLayer(selected_layer)
+            self.log(
+                message=f"Using selected layer from QGIS tree: {selected_layer.name()}",
+                log_level=3,
+            )
+            return
+
+        # Fall back to last used layer from settings
+        self._restore_saved_feature_layer()
+
+    def _restore_saved_feature_layer(self):
         """Restore the last used feature layer from settings if it still exists."""
         settings = QgsSettings()
         settings.beginGroup("dip_strike_tools")
@@ -757,10 +831,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         settings.endGroup()
 
         if not last_layer_id:
-            self.log(
-                message="No previously used feature layer found in settings",
-                log_level=4,
-            )
             return
 
         # Try to find the layer by ID first (most reliable)
@@ -781,20 +851,12 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Verify it's still a point layer
             if layer.geometryType() == 0:  # Point geometry
                 target_layer = layer
-                self.log(
-                    message=f"Found last used layer by ID: {layer.name()} (ID: {layer.id()})",
-                    log_level=4,
-                )
 
         # If not found by ID, try to find by name as fallback
         if not target_layer and last_layer_name:
             for layer_id, layer in all_layers.items():
                 if layer.name() == last_layer_name and layer.geometryType() == 0:  # Point geometry
                     target_layer = layer
-                    self.log(
-                        message=f"Found last used layer by name: {layer.name()} (ID: {layer.id()})",
-                        log_level=4,
-                    )
                     break
 
         if target_layer:
@@ -805,10 +867,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 log_level=3,
             )
         else:
-            self.log(
-                message=f"Last used feature layer '{last_layer_name}' (ID: {last_layer_id}) no longer exists",
-                log_level=4,
-            )
             # Clear the saved settings since the layer no longer exists
             self._save_last_feature_layer(None)
 
@@ -832,11 +890,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         settings.endGroup()
 
-        self.log(
-            message=f"Saved UI settings - True North: {self.chk_true_north.isChecked()}, Optional Group Collapsed: {self.grp_optional.isCollapsed()}, Strike Mode: {self.rdio_strike.isChecked()}",
-            log_level=4,
-        )
-
     def _restore_ui_settings(self):
         """Restore UI settings from QSettings."""
         settings = QgsSettings()
@@ -856,10 +909,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         for old_setting in old_settings:
             if settings.contains(old_setting):
                 settings.remove(old_setting)
-                self.log(
-                    message=f"Removed old UI setting: {old_setting}",
-                    log_level=4,
-                )
 
         settings.endGroup()
 
@@ -888,11 +937,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # Update the marker to reflect the restored strike/dip mode
         self.update_marker_azimuth()
-
-        self.log(
-            message=f"Restored UI settings - True North: {true_north_enabled}, Optional Group Collapsed: {optional_group_collapsed}, Strike Mode: {strike_mode_selected}",
-            log_level=4,
-        )
 
     def _update_save_button_state(self, layer):
         """Update the save button state based on layer configuration.
@@ -1208,14 +1252,14 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 "Would you like to configure field mappings now?\n\n"
                 "This will allow you to map existing layer fields to the required dip/strike fields."
             ).format(layer_name=layer.name(), missing_fields=", ".join(missing_fields)),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,  # type: ignore
+            QMessageBox.StandardButton.Yes,
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             self.log(
                 message=f"Auto-opening field configuration dialog for layer: {layer.name()}",
-                log_level=3,
+                log_level=4,
             )
 
             # Import and open the field configuration dialog
@@ -1406,7 +1450,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 feature = self.existing_feature["feature"]
                 feature_id = feature.id()
 
-                self.log(message=f"Updating existing feature {feature_id} in layer '{layer.name()}'", log_level=3)
+                self.log(message=f"Updating existing feature {feature_id} in layer '{layer.name()}'", log_level=4)
 
                 # Update field values
                 changes = {}
@@ -1494,7 +1538,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
                 self.log(
                     message=f"Creating new feature in layer '{layer.name()}' (ID: {layer.id()}) at {geometry.asPoint()}",
-                    log_level=3,
+                    log_level=4,
                 )
 
                 # Create new feature

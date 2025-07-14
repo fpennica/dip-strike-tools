@@ -130,7 +130,7 @@ class DlgCalculateValues(QDialog):
         layout.addWidget(rounding_group)
 
         # Button box
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=self)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
@@ -287,10 +287,10 @@ class DlgCalculateValues(QDialog):
                         "Invalid values: {invalid_count} out of {total_count} total values.\n\n"
                         "Do you want to continue with the calculation?",
                     ).format(invalid_count=invalid_count, total_count=total_count),
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No,
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
                 )
-                if reply == QMessageBox.No:
+                if reply == QMessageBox.StandardButton.No:
                     return False
 
         return True

@@ -228,11 +228,11 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
                 "This will replace all current entries with:\n"
                 "1: Strata, 2: Foliation, 3: Fault, 4: Joint, 5: Cleavage"
             ),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             # Clear the table
             self.table_geological_types.setRowCount(0)
 
