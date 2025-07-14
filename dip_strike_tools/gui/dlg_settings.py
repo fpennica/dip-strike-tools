@@ -228,7 +228,7 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
                 "This will replace all current entries with:\n"
                 "1: Strata, 2: Foliation, 3: Fault, 4: Joint, 5: Cleavage"
             ),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,  # type: ignore
             QMessageBox.StandardButton.No,
         )
 

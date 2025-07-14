@@ -72,4 +72,3 @@ jobs:
           name: pyqt6-checker-error-report
           path: pyqt6_checker.log
           retention-days: 7
-  

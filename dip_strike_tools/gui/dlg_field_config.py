@@ -436,7 +436,7 @@ class DlgFieldConfig(QDialog):
             combo.currentTextChanged.connect(self.validate_mappings)
 
         # Button box
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)  # type: ignore
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 

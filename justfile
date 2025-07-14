@@ -16,18 +16,18 @@ dev-link QGIS_PLUGIN_PATH="/home/francesco/.local/share/QGIS/QGIS3/profiles/defa
     # Ensure the target directory exists
     mkdir -p {{ QGIS_PLUGIN_PATH }}
     rm -rf {{ QGIS_PLUGIN_PATH }}/dip_strike_tools
-    
+
     # Create a relative path symlink
     PLUGIN_SOURCE=$(pwd)/dip_strike_tools
     cd {{ QGIS_PLUGIN_PATH }}
     ln -sf $(python3 -c "import os; print(os.path.relpath('$PLUGIN_SOURCE', os.getcwd()))")
     cd -
-    
+
     # Create symlinks for supporting files
     ln -sf $(pwd)/LICENSE $(pwd)/dip_strike_tools/LICENSE
     # ln -sf $(pwd)/CREDITS.md $(pwd)/dip_strike_tools/CREDITS.md
     ln -sf $(pwd)/CHANGELOG.md $(pwd)/dip_strike_tools/CHANGELOG.md
-    
+
     # Show success message
     echo "Plugin symlink created at {{ QGIS_PLUGIN_PATH }}/dip_strike_tools"
 
@@ -93,31 +93,31 @@ qgis-docker VERSION="ltr" QGIS_PYTHON_PATH=".local/share/QGIS/QGIS3/profiles/def
     #!/bin/bash
     # Allow local X server connections
     xhost +local:
-    
+
     # Define paths and variables
     USER_ID=$(id -u)
     GROUP_ID=$(id -g)
-    
+
     # Create necessary directories with correct permissions
     TEMP_DIR=$(mktemp -d)
     mkdir -p ${TEMP_DIR}/certificates
     mkdir -p ${TEMP_DIR}/qgis_config/{processing,profile,cache,data/expressions}
     mkdir -p ${TEMP_DIR}/qgis_config/python/expressions
-    
+
     # Copy and set permissions for certificates
     cp -L /etc/ssl/certs/ca-certificates.crt ${TEMP_DIR}/certificates/
     chmod 644 ${TEMP_DIR}/certificates/ca-certificates.crt
-    
+
     # Set permissions for QGIS config directories
     chmod -R 777 ${TEMP_DIR}/qgis_config
-    
+
     # Create an empty qgis.db file that QGIS can write to
     touch ${TEMP_DIR}/qgis_config/data/qgis.db
     chmod 666 ${TEMP_DIR}/qgis_config/data/qgis.db
-    
+
     # Ensure plugin directory exists in host
     mkdir -p ${HOME}/{{ QGIS_PYTHON_PATH }}/plugins
-    
+
     # Run QGIS in container with proper mounts and environment
     docker run --rm --name qgis_ltr \
         -it \
@@ -138,7 +138,7 @@ qgis-docker VERSION="ltr" QGIS_PYTHON_PATH=".local/share/QGIS/QGIS3/profiles/def
         -e PYTHONHOME= \
         --user ${USER_ID}:${GROUP_ID} \
         qgis/qgis:{{ VERSION }} qgis
-    
+
     # Clean up temporary directory
     rm -rf ${TEMP_DIR}
 

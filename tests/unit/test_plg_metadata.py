@@ -1,13 +1,13 @@
 #! python3  # noqa E265
 
 """
-    Usage from the repo root folder:
+Usage from the repo root folder:
 
-    .. code-block:: bash
-        # for whole tests
-        python -m unittest tests.unit.test_plg_metadata
-        # for specific test
-        python -m unittest tests.unit.test_plg_metadata.TestPluginMetadata.test_version_semver
+.. code-block:: bash
+    # for whole tests
+    python -m unittest tests.unit.test_plg_metadata
+    # for specific test
+    python -m unittest tests.unit.test_plg_metadata.TestPluginMetadata.test_version_semver
 """
 
 # standard library
@@ -26,7 +26,6 @@ from dip_strike_tools import __about__
 
 
 class TestPluginMetadata(unittest.TestCase):
-
     """Test about module"""
 
     def test_metadata_types(self):
@@ -58,20 +57,12 @@ class TestPluginMetadata(unittest.TestCase):
         self.assertLessEqual(len(__about__.__title_clean__), len(__about__.__title__))
 
         # QGIS versions
-        self.assertIsInstance(
-            __about__.__plugin_md__.get("general").get("qgisminimumversion"), str
-        )
+        self.assertIsInstance(__about__.__plugin_md__.get("general").get("qgisminimumversion"), str)
 
-        self.assertIsInstance(
-            __about__.__plugin_md__.get("general").get("qgismaximumversion"), str
-        )
+        self.assertIsInstance(__about__.__plugin_md__.get("general").get("qgismaximumversion"), str)
 
-        min_version_parsed = parse(
-            __about__.__plugin_md__.get("general").get("qgisminimumversion")
-        )
-        max_version_parsed = parse(
-            __about__.__plugin_md__.get("general").get("qgismaximumversion")
-        )
+        min_version_parsed = parse(__about__.__plugin_md__.get("general").get("qgisminimumversion"))
+        max_version_parsed = parse(__about__.__plugin_md__.get("general").get("qgismaximumversion"))
         self.assertLessEqual(min_version_parsed, max_version_parsed)
 
     def test_version_semver(self):

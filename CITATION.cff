@@ -15,7 +15,7 @@ authors:
     affiliation: CNR-IGAG
 identifiers:
   - type: doi
-    value: 
+    value:
 repository-code: 'https://github.com/fpennica/dip-strike-tools'
 abstract: QGIS plugin for italian Seismic Microzonation.
 license: GPL-3.0

@@ -159,7 +159,7 @@ class TestMyModule:
     def test_basic_functionality(self):
         # Basic unit test
         pass
-        
+
     @patch('my_module.qgis_dependency')
     def test_with_mocked_qgis(self, mock_qgis):
         # Test with mocked QGIS

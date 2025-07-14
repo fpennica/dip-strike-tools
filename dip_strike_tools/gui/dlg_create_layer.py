@@ -246,7 +246,7 @@ class DlgCreateLayer(QDialog):
         main_layout.addWidget(self.desc_label)
 
         # Dialog buttons
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)  # type: ignore
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         main_layout.addWidget(self.button_box)
@@ -410,7 +410,7 @@ class DlgCreateLayer(QDialog):
                             "Current name: '{}' ({} characters)\n\n"
                             "Continue anyway?"
                         ).format(name_without_ext, len(name_without_ext)),
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,  # type: ignore
                         QMessageBox.StandardButton.No,
                     )
                     if reply == QMessageBox.StandardButton.No:
@@ -444,7 +444,7 @@ class DlgCreateLayer(QDialog):
                             "The new layer will be added to this existing GeoPackage database.\n"
                             "Continue?"
                         ).format(output_path),
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,  # type: ignore
                         QMessageBox.StandardButton.Yes,
                     )
                     if reply == QMessageBox.StandardButton.No:
@@ -455,7 +455,7 @@ class DlgCreateLayer(QDialog):
                         self,
                         self.tr("File Exists"),
                         self.tr("The file '{}' already exists.\n\nOverwrite it?").format(output_path),
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,  # type: ignore
                         QMessageBox.StandardButton.No,
                     )
                     if reply == QMessageBox.StandardButton.No:
