@@ -261,7 +261,7 @@ class DipStrikeToolsPlugin:
             )
 
         # Set the custom map tool to the map canvas
-        self.log(message=self.tr("Dip Strike Tool activated."), log_level=3)
+        self.log(message="Dip Strike Tool activated.", log_level=4)
         self.iface.mapCanvas().setMapTool(self.custom_tool)
 
         # Update button state
@@ -275,7 +275,7 @@ class DipStrikeToolsPlugin:
         # If our tool is active, unset it
         if hasattr(self, "custom_tool") and current_tool == self.custom_tool:
             self.iface.mapCanvas().unsetMapTool(self.custom_tool)
-            self.log(message=self.tr("Dip Strike Tool deactivated."), log_level=3)
+            self.log(message="Dip Strike Tool deactivated.", log_level=4)
 
         # Update button state
         self.insert_dip_strike_action.setChecked(False)
@@ -310,9 +310,9 @@ class DipStrikeToolsPlugin:
         )
         dlg.exec()
         if dlg.result() == DlgInsertDipStrike.Accepted:
-            self.log(message=self.tr("Dip Strike Point created successfully."), log_level=3)
+            self.log(message="Dip Strike Point created successfully.", log_level=3)
         else:
-            self.log(message=self.tr("Dip Strike Point creation cancelled."), log_level=4)
+            self.log(message="Dip Strike Point creation cancelled.", log_level=4)
 
     def open_create_layer_dialog(self):
         """Open the dialog to create a new dip strike layer."""

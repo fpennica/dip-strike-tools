@@ -36,9 +36,10 @@ python -m pip install -U -r requirements/testing.txt
 just test
 
 # The justfile command is equivalent to:
-# uv sync --no-group ci
-# uv sync --group testing  
-# uv run pytest -v --cov=dip_strike_tools --cov-report=term-missing
+uv sync --no-group ci
+# the "--no-group ci" option might be required to avoid Qt library conflicts with qgis-plugin-ci dependencies
+uv sync --group testing  
+uv run pytest -v --cov=dip_strike_tools --cov-report=term-missing
 ```
 
 ### Using pytest directly
@@ -53,8 +54,14 @@ uv run pytest -v --cov=dip_strike_tools --cov-report=term-missing
 # Run only unit tests (no QGIS required)
 uv run pytest -m unit -v
 
+# Run only integration tests
+uv run pytest -m integration -v
+
 # Run only QGIS tests  
 uv run pytest -m qgis -v
+
+# Run unit and integration tests (no QGIS required)
+uv run pytest -m "unit or integration" -v
 
 # Run tests excluding QGIS tests (useful when QGIS is not available)
 uv run pytest -m "not qgis" -v
@@ -98,6 +105,18 @@ class TestMyModule:
     @patch('my_module.QgsProject')
     def test_something(self, mock_project):
         # Test with mocked QGIS dependencies
+        pass
+```
+
+### Integration Tests
+
+Integration tests test interactions between components. They can be in the same file as unit tests but are marked separately:
+
+```python
+@pytest.mark.integration
+class TestMyModuleIntegration:
+    def test_component_interaction(self):
+        # Test interactions between mocked components
         pass
 ```
 
@@ -174,49 +193,6 @@ class TestMyModuleQGIS:
         # Test with real QGIS
         pass
 ```
-
-## Current Test Status
-
-As of the latest version, the plugin has **95 tests** with the following coverage:
-
-### Modules with Tests
-
-- **plugin_main.py**: 29 tests (70% coverage)
-  - 18 unit tests for basic functionality
-  - 26 QGIS integration tests
-- **env_var_parser.py**: 11 tests (100% coverage)
-- **dlg_create_layer.py**: 4 unit tests (12% coverage)
-- **dlg_field_config.py**: 8 unit tests (10% coverage)
-- **layer_creator.py**: 13 unit tests (46% coverage)
-- **dlg_insert_dip_strike.py**: 10 QGIS tests (34% coverage)
-- **plg_preferences.py**: 2 QGIS tests (61% coverage)
-- **plg_metadata.py**: 2 unit tests (96% coverage)
-
-### Test Distribution
-
-- **Unit tests**: 57 tests (no QGIS required)
-- **QGIS tests**: 38 tests (require QGIS environment)
-
-### Test Organization
-
-Tests are now correctly organized according to their dependencies:
-
-#### `tests/unit/` (57 tests)
-
-- `test_plugin_main.py` - Plugin basic functionality with mocking
-- `test_plg_metadata.py` - Plugin metadata validation
-- `test_env_var_parser.py` - Environment variable parsing
-- `test_dlg_create_layer.py` - Layer creation dialog (mocked)
-- `test_dlg_field_config.py` - Field configuration dialog (mocked)
-- `test_layer_creator.py` - Layer creation functionality (mocked)
-
-#### `tests/qgis/` (38 tests)
-
-- `test_plugin_main_qgis.py` - Plugin integration with real QGIS
-- `test_dlg_insert_dip_strike.py` - Dip/strike dialog with QGIS integration
-- `test_plg_preferences.py` - Plugin preferences with QGIS testing framework
-
-Run `just test` to see the current coverage report with detailed line-by-line coverage information.
 
 ## Continuous Integration
 

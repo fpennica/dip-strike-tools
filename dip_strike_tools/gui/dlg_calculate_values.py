@@ -24,6 +24,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..core.layer_utils import check_layer_editability
 from ..toolbelt import PlgLogger
 
 
@@ -131,7 +132,8 @@ class DlgCalculateValues(QDialog):
 
         # Button box
         self.button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=self
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,  # type: ignore
+            parent=self,
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -162,7 +164,22 @@ class DlgCalculateValues(QDialog):
         self.output_field_combo.clear()
 
         if current_layer is None:
+            # Re-enable OK button when no layer is selected
+            self.button_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(True)
             return
+
+        # Check if the selected layer is editable
+        is_editable, error_message = check_layer_editability(current_layer, "calculating values")
+
+        if not is_editable:
+            # Show warning message to user
+            QMessageBox.warning(self, self.tr("Read-Only Layer"), error_message)
+            # Disable OK button
+            self.button_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+            return
+        else:
+            # Re-enable OK button if layer is editable
+            self.button_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(True)
 
         # Populate input field combo with numeric fields
         self.input_field_combo.addItem(self.tr("-- Select input field --"), None)
@@ -289,7 +306,7 @@ class DlgCalculateValues(QDialog):
                         "Invalid values: {invalid_count} out of {total_count} total values.\n\n"
                         "Do you want to continue with the calculation?",
                     ).format(invalid_count=invalid_count, total_count=total_count),
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,  # type: ignore
                     QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.No:

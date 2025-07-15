@@ -18,6 +18,7 @@ from qgis.utils import iface
 
 from ..core import dip_strike_math
 from ..core.layer_creator import DipStrikeLayerCreator, LayerCreationError
+from ..core.layer_utils import check_layer_editability
 from ..core.rubber_band_marker import RubberBandMarker
 from ..toolbelt import PlgLogger
 
@@ -338,6 +339,21 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 message=f"Selected feature layer: {layer.name()}",
                 log_level=4,
             )
+
+            # Check if the selected layer is editable
+            is_editable, error_message = check_layer_editability(layer, "inserting features")
+
+            if not is_editable:
+                # Show warning message to user
+                from qgis.PyQt.QtWidgets import QMessageBox
+
+                QMessageBox.warning(self, self.tr("Read-Only Layer"), error_message)
+                # Disable both save and configure buttons for read-only layers
+                if hasattr(self, "save_button") and self.save_button:
+                    self.save_button.setEnabled(False)
+                self.btn_configure_layer.setEnabled(False)
+                return
+
             # Check if this is a shapefile first
             is_shapefile = layer.dataProvider().name() == "ogr" and layer.source().lower().endswith(".shp")
 

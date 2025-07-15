@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QApplication
 
+from dip_strike_tools.core.layer_utils import check_layer_editability
 from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues
 
 
@@ -204,7 +205,7 @@ class TestDlgCalculateValues(unittest.TestCase):
         dialog.check_input_value_range = MagicMock(return_value=(True, 5, 20))
 
         # Mock user clicking "Yes" to continue
-        mock_msgbox.warning.return_value = mock_msgbox.Yes
+        mock_msgbox.warning.return_value = mock_msgbox.StandardButton.Yes
 
         # Set up combo boxes to return valid data
         dialog.input_field_combo = MagicMock()
@@ -231,7 +232,7 @@ class TestDlgCalculateValues(unittest.TestCase):
         dialog.check_input_value_range = MagicMock(return_value=(True, 8, 15))
 
         # Mock user clicking "No" to cancel
-        mock_msgbox.warning.return_value = mock_msgbox.No
+        mock_msgbox.warning.return_value = mock_msgbox.StandardButton.No
 
         # Set up combo boxes to return valid data
         dialog.input_field_combo = MagicMock()
@@ -244,6 +245,67 @@ class TestDlgCalculateValues(unittest.TestCase):
         # Should return False (user chose to cancel)
         self.assertFalse(result)
         mock_msgbox.warning.assert_called_once()
+
+    @patch("dip_strike_tools.gui.dlg_calculate_values.QMessageBox")
+    def test_on_layer_changed_with_readonly_layer(self, mock_msgbox):
+        """Test on_layer_changed with a read-only layer."""
+        dialog = DlgCalculateValues()
+
+        # Set up the UI components
+        dialog.layer_combo = MagicMock()
+        dialog.input_field_combo = MagicMock()
+        dialog.output_field_combo = MagicMock()
+        dialog.button_box = MagicMock()
+        mock_ok_button = MagicMock()
+        dialog.button_box.button.return_value = mock_ok_button
+
+        # Mock a delimited text layer
+        mock_layer = MagicMock()
+        mock_data_provider = MagicMock()
+        mock_data_provider.name.return_value = "delimitedtext"
+        mock_layer.dataProvider.return_value = mock_data_provider
+        dialog.layer_combo.currentData.return_value = mock_layer
+
+        # Call the method
+        dialog.on_layer_changed()
+
+        # Verify warning was shown and OK button was disabled
+        mock_msgbox.warning.assert_called_once()
+        mock_ok_button.setEnabled.assert_called_once_with(False)
+
+    @patch("dip_strike_tools.gui.dlg_calculate_values.QMessageBox")
+    def test_on_layer_changed_with_editable_layer(self, mock_msgbox):
+        """Test on_layer_changed with an editable layer."""
+        dialog = DlgCalculateValues()
+
+        # Set up the UI components
+        dialog.layer_combo = MagicMock()
+        dialog.input_field_combo = MagicMock()
+        dialog.output_field_combo = MagicMock()
+        dialog.button_box = MagicMock()
+        mock_ok_button = MagicMock()
+        dialog.button_box.button.return_value = mock_ok_button
+
+        # Mock an editable layer
+        mock_layer = MagicMock()
+        mock_data_provider = MagicMock()
+        mock_data_provider.name.return_value = "ogr"
+        mock_layer.dataProvider.return_value = mock_data_provider
+        mock_layer.isEditable.return_value = False
+        mock_layer.startEditing.return_value = True
+        mock_layer.rollBack.return_value = True
+        mock_layer.fields.return_value = [self.mock_field1, self.mock_field2]
+        dialog.layer_combo.currentData.return_value = mock_layer
+
+        # Call the method
+        dialog.on_layer_changed()
+
+        # Verify no warning was shown and OK button was enabled
+        mock_msgbox.warning.assert_not_called()
+        mock_ok_button.setEnabled.assert_called_once_with(True)
+        # Verify field combos were populated
+        dialog.input_field_combo.addItem.assert_called()
+        dialog.output_field_combo.addItem.assert_called()
 
 
 if __name__ == "__main__":

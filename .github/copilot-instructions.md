@@ -6,14 +6,38 @@ translations, etc.
 In `pyproject.toml` dependencies are grouped into categories such as `ci`, `testing`, and
 `development`.
 
-When launching terminal commands, use `uv run` to ensure the correct environment
-is activated. Moreover, to avoid possible issues with the fish shell, use `bash -c` to run
-commands that require a shell environment.
+When launching terminal commands, use `uv run` to ensure the correct environment is activated. To avoid possible issues with the fish shell, the use of `bash -c` might be required to run commands that require a shell environment.
 
-The plugin uses pytest and pytest-qgis for testing, with specific markers for unit tests
-and QGIS-related tests.
+When adding text messages directed to the user, use the `QCoreApplication.translate` function to ensure proper translation support. Use a module level function or method for translations (keeping it at the bottom of the file), like this:
 
-The documentation is built using Sphinx with `MyST` for Markdown support, so markdown files
-can leverage the additional syntax to use all Sphinx features.
+```python
+self.tr("Dip Strike Tool activated.")
+...
+
+def tr(self, message: str) -> str:
+    """Get the translation for a string using Qt translation API.
+
+    :param message: string to be translated.
+    :type message: str
+
+    :returns: Translated version of message.
+    :rtype: str
+    """
+    return QCoreApplication.translate(self.__class__.__name__, message)
+```
+
+Avoid translation of log messages, especially at debug level, as these are meant for developers and not end-users. Avoid translation of technical identifiers such as field names or variable names, as these should remain consistent across languages for clarity and maintainability.
+
+The plugin uses pytest and pytest-qgis for testing, with specific markers for unit tests and QGIS-related tests.
+
+When running tests, use the `uv run pytest` command to ensure the correct environment is activated. If there are Qt library issues, use the `--no-group ci` option:
+
+```bash
+uv sync --no-group ci
+uv sync --group testing
+uv run pytest -v
+```
+
+The documentation is built using Sphinx with `MyST` for Markdown support, so markdown files can leverage the additional syntax to use all Sphinx features.
 
 Refer to `docs/development/*.md` files for more details on specific development tasks.
