@@ -57,27 +57,27 @@ jobs:
           # Install uv
           curl -LsSf https://astral.sh/uv/install.sh | sh
           # Add uv to PATH for this session
-          export PATH="$HOME/.cargo/bin:$PATH"
+          export PATH="$HOME/.local/bin:$PATH"
           # Navigate to workspace directory
           cd /home/root/
           # Create QGIS virtual environment using pipx
           pipx run qgis-venv-creator --venv-name ".venv"
           # Install project dependencies using uv
           rm -f /home/root/uv.lock
-          ~/.cargo/bin/uv sync --group testing --python .venv/bin/python
+          uv sync --group testing --python .venv/bin/python
 
       - name: Run Unit tests
         run: |
           cd /home/root/
           # Add uv to PATH
-          export PATH="$HOME/.cargo/bin:$PATH"
+          export PATH="$HOME/.local/bin:$PATH"
           # Run unit tests (pure Python tests)
-          xvfb-run ~/.cargo/bin/uv run --python .venv/bin/python pytest tests/unit/ -v
+          xvfb-run uv run --python .venv/bin/python pytest tests/unit/ -v
 
       - name: Run QGIS tests
         run: |
           cd /home/root/
           # Add uv to PATH
-          export PATH="$HOME/.cargo/bin:$PATH"
+          export PATH="$HOME/.local/bin:$PATH"
           # Run QGIS-specific tests
-          xvfb-run ~/.cargo/bin/uv run --python .venv/bin/python pytest tests/qgis/ -v --junitxml=junit/test-results-qgis.xml --cov-report=xml:coverage-reports/coverage-qgis.xml
+          xvfb-run uv run --python .venv/bin/python pytest tests/qgis/ -v --junitxml=junit/test-results-qgis.xml --cov-report=xml:coverage-reports/coverage-qgis.xml
