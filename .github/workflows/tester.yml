@@ -39,7 +39,10 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --group testing --no-lock
+        run: |
+          # Remove corrupted lock file and regenerate
+          rm -f uv.lock
+          uv sync --group testing
 
       - name: Run Unit tests
         run: uv run pytest -p no:qgis tests/unit/
@@ -88,7 +91,8 @@ jobs:
           # Create QGIS virtual environment using pipx
           pipx run qgis-venv-creator --venv-name ".venv"
           # Install project dependencies using uv
-          ~/.cargo/bin/uv sync --group testing --python .venv/bin/python --no-lock
+          rm -f /home/root/uv.lock
+          ~/.cargo/bin/uv sync --group testing --python .venv/bin/python
 
       - name: Run Unit tests
         run: |
