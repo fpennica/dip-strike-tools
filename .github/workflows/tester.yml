@@ -8,7 +8,6 @@ on:
       - '**.py'
       - .github/workflows/tester.yml
       - pyproject.toml
-      - uv.lock
 
   pull_request:
     branches:
@@ -17,7 +16,6 @@ on:
       - '**.py'
       - .github/workflows/tester.yml
       - pyproject.toml
-      - uv.lock
 
 env:
   PROJECT_FOLDER: "dip_strike_tools"
@@ -41,7 +39,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --group testing
+        run: uv sync --group testing --no-lock
 
       - name: Run Unit tests
         run: uv run pytest -p no:qgis tests/unit/
@@ -90,7 +88,7 @@ jobs:
           # Create QGIS virtual environment using pipx
           pipx run qgis-venv-creator --venv-name ".venv"
           # Install project dependencies using uv
-          ~/.cargo/bin/uv sync --group testing --python .venv/bin/python
+          ~/.cargo/bin/uv sync --group testing --python .venv/bin/python --no-lock
 
       - name: Run Unit tests
         run: |
