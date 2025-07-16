@@ -329,6 +329,7 @@ docs = [
     { name = "sphinx-rtd-theme" },
 ]
 testing = [
+    { name = "packaging" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-qgis" },
@@ -350,6 +351,7 @@ docs = [
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
 ]
 testing = [
+    { name = "packaging", specifier = ">=23.0" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-qgis", specifier = ">=2.1.0" },

@@ -2,7 +2,7 @@ name: "📦 Package & 🚀 Release"
 
 env:
   PROJECT_FOLDER: dip_strike_tools
-  PYTHON_VERSION: 3.9
+  PYTHON_VERSION: "3.11"
 
 on:
   push:
@@ -13,6 +13,7 @@ on:
       - 'docs/**/*'
       - "dip_strike_tools/**/*.py"
       - "dip_strike_tools/metadata.txt"
+      - pyproject.toml
     tags:
       - "*"
 
@@ -68,17 +69,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          cache: "pip"
-          cache-dependency-path: "requirements/packaging.txt"
-          python-version: ${{ env.PYTHON_VERSION }}
+          version: "0.5.11"
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: |
-          python -m pip install -U pip setuptools wheel
-          python -m pip install -U -r requirements/packaging.txt
+          rm -f uv.lock
+          uv sync --group ci
 
       - name: Download translations
         uses: actions/download-artifact@v4
@@ -98,7 +100,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          qgis-plugin-ci package latest \
+          cp --remove-destination LICENSE ${{ env.PROJECT_FOLDER }}/
+          cp --remove-destination CHANGELOG.md ${{ env.PROJECT_FOLDER }}/
+          cp --remove-destination CREDITS.md ${{ env.PROJECT_FOLDER }}/
+          git add .
+          uv run qgis-plugin-ci package latest \
             --allow-uncommitted-changes \
             --plugin-repo-url $(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.html_url')
 
@@ -125,17 +131,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          cache: "pip"
-          cache-dependency-path: "requirements/packaging.txt"
-          python-version: ${{ env.PYTHON_VERSION }}
+          version: "0.5.11"
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install project requirements
         run: |
-          python -m pip install -U pip setuptools wheel
-          python -m pip install -U -r requirements/packaging.txt
+          rm -f uv.lock
+          uv sync --group ci
 
       - name: Download translations
         uses: actions/download-artifact@v4
@@ -158,11 +165,14 @@ jobs:
           generate_release_notes: true
 
       - name: Deploy plugin
-        run: >-
-          qgis-plugin-ci
-          release ${GITHUB_REF/refs\/tags\//}
-          --allow-uncommitted-changes
-          --create-plugin-repo
-          --github-token ${{ secrets.GITHUB_TOKEN }}
-          --osgeo-username ${{ secrets.OSGEO_USER }}
-          --osgeo-password ${{ secrets.OSGEO_PASSWORD }}
+        run: |
+          cp --remove-destination LICENSE ${{ env.PROJECT_FOLDER }}/
+          cp --remove-destination CHANGELOG.md ${{ env.PROJECT_FOLDER }}/
+          cp --remove-destination CREDITS.md ${{ env.PROJECT_FOLDER }}/
+          git add .
+          uv run qgis-plugin-ci release ${GITHUB_REF/refs\/tags\//} \
+            --allow-uncommitted-changes \
+            --create-plugin-repo \
+            --github-token ${{ secrets.GITHUB_TOKEN }} \
+            --osgeo-username ${{ secrets.OSGEO_USER }} \
+            --osgeo-password ${{ secrets.OSGEO_PASSWORD }}

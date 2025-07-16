@@ -2,17 +2,14 @@
 
 """Main plugin module."""
 
-# standard
 from functools import partial
 from pathlib import Path
 
-# PyQGIS
 from qgis.core import QgsApplication, QgsProject, QgsSettings
 from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator, QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 
-# project
 from dip_strike_tools.__about__ import (
     DIR_PLUGIN_ROOT,
     __icon_path__,
@@ -24,13 +21,10 @@ from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 from dip_strike_tools.core.layer_creator import DipStrikeLayerCreator
 from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues
 from dip_strike_tools.gui.dlg_create_layer import DlgCreateLayer
+from dip_strike_tools.gui.dlg_info import PluginInfo
 from dip_strike_tools.gui.dlg_insert_dip_strike import DlgInsertDipStrike
 from dip_strike_tools.gui.dlg_settings import PlgOptionsFactory
 from dip_strike_tools.toolbelt import PlgLogger
-
-# ############################################################################
-# ########## Classes ###############
-# ##################################
 
 
 class DipStrikeToolsPlugin:
@@ -57,6 +51,8 @@ class DipStrikeToolsPlugin:
             self.translator = QTranslator()
             self.translator.load(str(locale_path.resolve()))
             QCoreApplication.installTranslator(self.translator)
+
+        self.dlg_info = PluginInfo(self.iface.mainWindow())
 
         self.actions = []
 
@@ -153,12 +149,33 @@ class DipStrikeToolsPlugin:
 
         self.toolbar.addSeparator()
 
+        tools_menu_button = QToolButton()
+        tools_menu_button.setIcon(QgsApplication.getThemeIcon("/mActionOptions.svg"))
+        tools_menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        tools_menu_button.setToolTip(self.tr("Additional Tools and Plugin Info"))
+        tools_menu = QMenu()
+        self.tools_menu_button = tools_menu_button  # Store reference for cleanup
+        self.toolbar.addWidget(tools_menu_button)
+
         self.settings_action = self.add_action(
             QgsApplication.getThemeIcon("/mActionOptions.svg"),
-            text=self.tr("Dip Strike Tools Settings"),
+            text=self.tr("Dip-Strike Tools Settings"),
             callback=lambda: self.iface.showOptionsDialog(currentPage="mOptionsPage{}".format(__title__)),
             parent=self.iface.mainWindow(),
+            add_to_toolbar=False,
         )
+        tools_menu.addAction(self.settings_action)
+
+        self.info_action = self.add_action(
+            QgsApplication.getThemeIcon("mActionHelpContents.svg"),
+            text=self.tr("Dip-Strike Tools Info"),
+            callback=self.dlg_info.show,
+            parent=self.iface.mainWindow(),
+            add_to_toolbar=False,
+        )
+        tools_menu.addAction(self.info_action)
+
+        tools_menu_button.setMenu(tools_menu)
 
         # Make the action toggleable
         self.insert_dip_strike_action.setCheckable(True)
@@ -228,8 +245,9 @@ class DipStrikeToolsPlugin:
         del self.toolbar
 
         # remove from QGIS help/extensions menu
-        if self.action_help_plugin_menu_documentation:
+        if hasattr(self, "action_help_plugin_menu_documentation") and self.action_help_plugin_menu_documentation:
             self.iface.pluginHelpMenu().removeAction(self.action_help_plugin_menu_documentation)
+            del self.action_help_plugin_menu_documentation
 
         # remove actions
         del self.action_settings
@@ -238,8 +256,25 @@ class DipStrikeToolsPlugin:
         # Clean up our custom actions
         if hasattr(self, "create_layer_action"):
             del self.create_layer_action
+        if hasattr(self, "insert_dip_strike_action"):
+            del self.insert_dip_strike_action
         if hasattr(self, "calculate_values_action"):
             del self.calculate_values_action
+        if hasattr(self, "settings_action"):
+            del self.settings_action
+        if hasattr(self, "info_action"):
+            del self.info_action
+
+        # Clean up toolbar widgets
+        if hasattr(self, "tools_menu_button"):
+            self.toolbar.removeAction(
+                self.tools_menu_button.defaultAction()
+            ) if self.tools_menu_button.defaultAction() else None
+            del self.tools_menu_button
+
+        # Clean up dialogs
+        if hasattr(self, "dlg_info"):
+            del self.dlg_info
 
     def toggle_dip_strike_tool(self):
         """Toggle the dip strike tool on/off based on button state."""

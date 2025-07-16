@@ -25,7 +25,7 @@ dev-link QGIS_PLUGIN_PATH="/home/francesco/.local/share/QGIS/QGIS3/profiles/defa
 
     # Create symlinks for supporting files
     ln -sf $(pwd)/LICENSE $(pwd)/dip_strike_tools/LICENSE
-    # ln -sf $(pwd)/CREDITS.md $(pwd)/dip_strike_tools/CREDITS.md
+    ln -sf $(pwd)/CREDITS.md $(pwd)/dip_strike_tools/CREDITS.md
     ln -sf $(pwd)/CHANGELOG.md $(pwd)/dip_strike_tools/CHANGELOG.md
 
     # Show success message

@@ -1,18 +1,21 @@
 [general]
 name=Dip-Strike Tools
 description=Tools for digitizing, managing, and analyzing plane orientation data (dip and strike) of planar geologic features.
+description[it]=Strumenti per la digitalizzazione, gestione e analisi dei dati di orientamento (dip e strike) delle superfici geologiche (giaciture).
 about=Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digitizing, managing, and analyzing plane orientation or attitude data (dip and strike) of planar geologic features. It currently provides basic tools to streamline the workflow for geologists working with structural geology datasets, enabling efficient dip and strike data capture and management within QGIS.
+about[it]=Dip-Strike Tools è un plugin per QGIS che ha l'obiettivo di fornire un insieme di strumenti per la digitalizzazione, gestione e analisi dei dati di orientamento (dip e strike) delle superfici geologiche. Attualmente offre strumenti di base per semplificare il flusso di lavoro dei geologi che lavorano con dataset di geologia strutturale, consentendo l'inserimento e la gestione efficiente dei dati di dip e strike all'interno di QGIS.
 category=Database
 hasProcessingProvider=False
 icon=resources/images/icon.png
-tags=geology, dip, strike
+tags=geology, structural geology, geologic features, attitude, plane orientation, dip, strike, azimuth, geology tools, geoscience, geological mapping
+tags[it]=geologia, geologia strutturale, giaciture, orientamento, giacitura, azimut, strumenti geologici, scienze geologiche, mappatura geologica
 
 # credits and contact
 author=Francesco Pennica, Giuseppe Cosentino
 email=labgis@igag.cnr.it
-homepage=https://gitlab.com/CNR-IGAG/dip_strike_tools/
-repository=https://gitlab.com/CNR-IGAG/dip_strike_tools/
-tracker=https://gitlab.com/CNR-IGAG/dip_strike_tools//issues/
+homepage=https://github.com/fpennica/dip-strike-tools
+repository=https://github.com/fpennica/dip-strike-tools
+tracker=https://github.com/fpennica/dip-strike-tools/issues/
 
 # experimental flag
 deprecated=False
@@ -22,5 +25,5 @@ qgisMaximumVersion=3.99
 supportsQt6=True
 
 # versioning
-version=0.1.0
+version=0.1.0-beta1
 changelog=

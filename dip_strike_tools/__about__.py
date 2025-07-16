@@ -23,6 +23,7 @@ __all__: list = [
     "__email__",
     "__license__",
     "__summary__",
+    "__summary_it__",
     "__title__",
     "__uri__",
     "__version__",
@@ -70,11 +71,16 @@ __summary__: str = "{}\n{}".format(
     __plugin_md__.get("general").get("description"),
     __plugin_md__.get("general").get("about"),
 )
+__summary_it__: str = "{}\n\n{}".format(
+    __plugin_md__.get("general").get("description[it]"),
+    __plugin_md__.get("general").get("about[it]"),
+)
 
 __title__: str = __plugin_md__.get("general").get("name")
 __title_clean__: str = "".join(e for e in __title__ if e.isalnum())
 
 __uri_homepage__: str = __plugin_md__.get("general").get("homepage")
+__uri_docs__: str = "CHANGE_ME"
 __uri_repository__: str = __plugin_md__.get("general").get("repository")
 __uri_tracker__: str = __plugin_md__.get("general").get("tracker")
 __uri__: str = __uri_repository__
