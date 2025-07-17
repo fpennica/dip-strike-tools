@@ -65,13 +65,13 @@ class DipStrikeToolsPlugin:
     def add_action(
         self,
         icon_path,
-        text,
+        text: str,
         callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
+        enabled_flag: bool = True,
+        add_to_menu: bool = True,
+        add_to_toolbar: bool = True,
+        status_tip: str | None = None,
+        whats_this: str | None = None,
         parent=None,
     ):
         icon = QIcon(icon_path)
@@ -88,6 +88,7 @@ class DipStrikeToolsPlugin:
         if add_to_menu:
             self.iface.addPluginToDatabaseMenu(self.menu, action)
         self.actions.append(action)
+        return action
         return action
 
     def initGui(self):
@@ -164,7 +165,7 @@ class DipStrikeToolsPlugin:
             parent=self.iface.mainWindow(),
             add_to_toolbar=False,
         )
-        tools_menu.addAction(self.settings_action)
+        tools_menu.addAction(self.settings_action)  # type: ignore[arg-type]
 
         self.info_action = self.add_action(
             QgsApplication.getThemeIcon("mActionHelpContents.svg"),
@@ -173,7 +174,7 @@ class DipStrikeToolsPlugin:
             parent=self.iface.mainWindow(),
             add_to_toolbar=False,
         )
-        tools_menu.addAction(self.info_action)
+        tools_menu.addAction(self.info_action)  # type: ignore[arg-type]
 
         tools_menu_button.setMenu(tools_menu)
 
@@ -239,6 +240,10 @@ class DipStrikeToolsPlugin:
         # -- Clean up preferences panel in QGIS settings
         self.iface.unregisterOptionsWidgetFactory(self.options_factory)
 
+        # Clean up toolbar widgets BEFORE deleting the toolbar
+        if hasattr(self, "tools_menu_button"):
+            del self.tools_menu_button
+
         for action in self.actions:
             self.iface.removePluginDatabaseMenu(self.tr("&Dip Strike Tools"), action)
             self.iface.removeToolBarIcon(action)
@@ -264,13 +269,6 @@ class DipStrikeToolsPlugin:
             del self.settings_action
         if hasattr(self, "info_action"):
             del self.info_action
-
-        # Clean up toolbar widgets
-        if hasattr(self, "tools_menu_button"):
-            self.toolbar.removeAction(
-                self.tools_menu_button.defaultAction()
-            ) if self.tools_menu_button.defaultAction() else None
-            del self.tools_menu_button
 
         # Clean up dialogs
         if hasattr(self, "dlg_info"):

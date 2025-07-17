@@ -152,7 +152,7 @@
          <item>
           <widget class="QScrollArea" name="scrollArea">
            <property name="styleSheet">
-            <string notr="true">QWidget{ background-color: white } 
+            <string notr="true">QWidget{ background-color: white }
  QScrollBar{ background-color: none }</string>
            </property>
            <property name="frameShape">
@@ -234,7 +234,7 @@ p, li { white-space: pre-wrap; }
          <item>
           <widget class="QScrollArea" name="scrollArea_3">
            <property name="styleSheet">
-            <string notr="true">QWidget{ background-color: white } 
+            <string notr="true">QWidget{ background-color: white }
 QScrollBar{ background-color: none }</string>
            </property>
            <property name="frameShape">
@@ -295,7 +295,7 @@ QScrollBar{ background-color: none }</string>
          <item>
           <widget class="QScrollArea" name="scrollArea_4">
            <property name="styleSheet">
-            <string notr="true">QWidget{ background-color: white } 
+            <string notr="true">QWidget{ background-color: white }
 QScrollBar{ background-color: none }</string>
            </property>
            <property name="frameShape">
@@ -356,7 +356,7 @@ QScrollBar{ background-color: none }</string>
          <item>
           <widget class="QScrollArea" name="scrollArea_2">
            <property name="styleSheet">
-            <string notr="true">QWidget{ background-color: white } 
+            <string notr="true">QWidget{ background-color: white }
 QScrollBar{ background-color: none }</string>
            </property>
            <property name="frameShape">

@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QApplication
 
-from dip_strike_tools.core.layer_utils import check_layer_editability
 from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues
 
 
