@@ -3,9 +3,7 @@ from pathlib import Path
 from qgis.core import (
     Qgis,
     QgsApplication,
-    QgsBearingUtils,
     QgsCoordinateReferenceSystem,
-    QgsCoordinateTransformContext,
     QgsProject,
     QgsSettings,
     QgsVectorLayer,
@@ -116,11 +114,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         self.azimuth_spinbox.setSingleStep(1)
         self.azimuth_spinbox.setValue(0.0)
         self.azimuth_spinbox.setSuffix("°")
-        self.azimuth_spinbox.setToolTip(
-            QCoreApplication.translate(
-                "DlgInsertDipStrike", "Enter azimuth value in decimal degrees from North (0.00-360.00°)"
-            )
-        )
+        self.azimuth_spinbox.setToolTip(self.tr("Enter azimuth value in decimal degrees from North (0.00-360.00°)"))
 
         # Add spinbox and label to layout
         self.azimuth_hlayout.addWidget(self.azimuth_spinbox)
@@ -180,9 +174,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 message=f"Setting dip-strike marker center to clicked point: {clicked_point}",
                 log_level=4,
             )
-            self._true_north_bearing = QgsBearingUtils.bearingTrueNorth(
-                destination_crs, QgsCoordinateTransformContext(), clicked_point
-            )
+            self._true_north_bearing = dip_strike_math.calculate_true_north_bearing(destination_crs, clicked_point)
             self.log(f"North bearing: {self._true_north_bearing}", log_level=4)
             crs_type = destination_crs.type()
             if crs_type == Qgis.CrsType.Projected:
@@ -191,7 +183,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             else:
                 self.lbl_coord_x.setText(f"Lon: {clicked_point.x():.4f}")
                 self.lbl_coord_y.setText(f"Lat: {clicked_point.y():.4f}")
-            self.lbl_north_bearing.setText(self._format_bearing(self._true_north_bearing))
+            self.lbl_north_bearing.setText(dip_strike_math.format_bearing(self._true_north_bearing))
         else:
             canvas_center = self.map_canvas_widget.extent().center()
             self.dip_strike_item.setCenter(canvas_center)
@@ -199,9 +191,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 message=f"Setting dip-strike marker center to canvas center: {canvas_center}",
                 log_level=4,
             )
-            self._true_north_bearing = QgsBearingUtils.bearingTrueNorth(
-                destination_crs, QgsCoordinateTransformContext(), canvas_center
-            )
+            self._true_north_bearing = dip_strike_math.calculate_true_north_bearing(destination_crs, canvas_center)
             self.log(f"North bearing: {self._true_north_bearing}", log_level=4)
             crs_type = destination_crs.type()
             if crs_type == Qgis.CrsType.Projected:
@@ -210,7 +200,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             else:
                 self.lbl_coord_x.setText(f"Lon: {canvas_center.x():.4f}")
                 self.lbl_coord_y.setText(f"Lat: {canvas_center.y():.4f}")
-            self.lbl_north_bearing.setText(self._format_bearing(self._true_north_bearing))
+            self.lbl_north_bearing.setText(dip_strike_math.format_bearing(self._true_north_bearing))
 
         # Ensure the marker is visible and force updates
         self.dip_strike_item.setVisible(True)
@@ -1038,7 +1028,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         else:
             tooltip_text = "Enter dip azimuth in decimal degrees from North (0.00-360.00°)"
 
-        self.azimuth_spinbox.setToolTip(QCoreApplication.translate("DlgInsertDipStrike", tooltip_text))
+        self.azimuth_spinbox.setToolTip(self.tr(tooltip_text))
 
     def update_marker_azimuth(self):
         """Update the marker with current azimuth value"""
@@ -1071,8 +1061,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Refresh the canvas to show changes
             self.map_canvas_widget.refresh()
 
-            self.lbl_strike_dir.setText(self._format_bearing(adjusted_strike_azimuth))
-            self.lbl_dip_dir.setText(self._format_bearing(adjusted_dip_azimuth))
+            self.lbl_strike_dir.setText(dip_strike_math.format_bearing(adjusted_strike_azimuth))
+            self.lbl_dip_dir.setText(dip_strike_math.format_bearing(adjusted_dip_azimuth))
             msg_true_north = self.tr("* Azimuth value relative to true North")
             msg_top_map = self.tr("* Azimuth value relative to top of the map/screen")
             self.label_true_north_relative.setText(
@@ -1647,17 +1637,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         return adjusted_strike_azimuth, adjusted_dip_azimuth
 
-    def tr(self, message: str) -> str:
-        """Get the translation for a string using Qt translation API.
-
-        :param message: string to be translated.
-        :type message: str
-
-        :returns: Translated version of message.
-        :rtype: str
-        """
-        return QCoreApplication.translate(self.__class__.__name__, message)
-
     def _populate_geological_types(self):
         """Populate the geological types combo box with values from preferences."""
         try:
@@ -1711,21 +1690,17 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             center_point = self.dip_strike_item.center()
             destination_crs = self.map_canvas_widget.mapSettings().destinationCrs()
 
-            self._true_north_bearing = QgsBearingUtils.bearingTrueNorth(
-                destination_crs, QgsCoordinateTransformContext(), center_point
-            )
+            self._true_north_bearing = dip_strike_math.calculate_true_north_bearing(destination_crs, center_point)
             self.log(f"Refreshed north bearing: {self._true_north_bearing}", log_level=4)
-            self.lbl_north_bearing.setText(self._format_bearing(self._true_north_bearing))
+            self.lbl_north_bearing.setText(dip_strike_math.format_bearing(self._true_north_bearing))
 
-    def _format_bearing(self, bearing_value):
-        """Format a bearing value to avoid negative zero display.
+    def tr(self, message: str) -> str:
+        """Get the translation for a string using Qt translation API.
 
-        :param bearing_value: The bearing value to format
-        :type bearing_value: float
-        :returns: Formatted bearing string
+        :param message: string to be translated.
+        :type message: str
+
+        :returns: Translated version of message.
         :rtype: str
         """
-        # Handle negative zero by converting to positive zero
-        if abs(bearing_value) < 0.005:  # Less than 0.01 when rounded to 2 decimal places
-            bearing_value = 0.0
-        return f"{bearing_value:.2f}°"
+        return QCoreApplication.translate(self.__class__.__name__, message)

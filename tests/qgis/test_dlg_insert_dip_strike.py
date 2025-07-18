@@ -33,7 +33,7 @@ class TestDlgInsertDipStrike:
         # Mock the iface global and problematic QGIS calls
         with (
             patch("dip_strike_tools.gui.dlg_insert_dip_strike.iface", qgis_iface),
-            patch("dip_strike_tools.gui.dlg_insert_dip_strike.QgsBearingUtils.bearingTrueNorth", return_value=0.0),
+            patch("dip_strike_tools.core.dip_strike_math.calculate_true_north_bearing", return_value=0.0),
         ):
             return DlgInsertDipStrike(**kwargs)
 
@@ -187,15 +187,12 @@ class TestDlgInsertDipStrike:
         assert dialog.get_azimuth_value() == 360.0
 
     def test_format_bearing_method(self, qgis_iface):
-        """Test the _format_bearing method for proper formatting and negative zero handling."""
+        """Test the format_bearing function for proper formatting and negative zero handling."""
         try:
             # Test import availability
-            from dip_strike_tools.gui.dlg_insert_dip_strike import DlgInsertDipStrike  # noqa: F401
+            from dip_strike_tools.core import dip_strike_math
         except ImportError:
             pytest.skip("QGIS modules not available")
-
-        # Initialize dialog using helper method
-        dialog = self._create_dialog_with_mocks(qgis_iface)
 
         # Test cases for bearing formatting
         test_cases = [
@@ -224,7 +221,7 @@ class TestDlgInsertDipStrike:
 
         # Test each case
         for input_value, expected_output, description in test_cases:
-            result = dialog._format_bearing(input_value)
+            result = dip_strike_math.format_bearing(input_value)
             assert result == expected_output, (
                 f"Failed for {description}: input={input_value}, expected={expected_output}, got={result}"
             )
@@ -238,7 +235,7 @@ class TestDlgInsertDipStrike:
         ]
 
         for input_value, expected_output, description in epsilon_tests:
-            result = dialog._format_bearing(input_value)
+            result = dip_strike_math.format_bearing(input_value)
             assert result == expected_output, (
                 f"Failed epsilon test for {description}: input={input_value}, expected={expected_output}, got={result}"
             )
@@ -254,8 +251,8 @@ class TestDlgInsertDipStrike:
         # Initialize dialog first, then test different bearing values
         dialog = self._create_dialog_with_mocks(qgis_iface)
 
-        # Mock QgsBearingUtils to return a negative zero value and refresh
-        with patch("dip_strike_tools.gui.dlg_insert_dip_strike.QgsBearingUtils.bearingTrueNorth", return_value=-0.0):
+        # Mock calculate_true_north_bearing to return a negative zero value and refresh
+        with patch("dip_strike_tools.core.dip_strike_math.calculate_true_north_bearing", return_value=-0.0):
             dialog._refresh_bearing_labels()
 
             # Check that the north bearing label uses proper formatting
@@ -265,14 +262,14 @@ class TestDlgInsertDipStrike:
             assert "-0.00°" not in bearing_text
 
         # Test with a small negative value that should be converted to zero
-        with patch("dip_strike_tools.gui.dlg_insert_dip_strike.QgsBearingUtils.bearingTrueNorth", return_value=-0.003):
+        with patch("dip_strike_tools.core.dip_strike_math.calculate_true_north_bearing", return_value=-0.003):
             dialog._refresh_bearing_labels()
             bearing_text = dialog.lbl_north_bearing.text()
             assert "0.00°" in bearing_text
             assert "-0.00°" not in bearing_text
 
         # Test with a normal bearing value
-        with patch("dip_strike_tools.gui.dlg_insert_dip_strike.QgsBearingUtils.bearingTrueNorth", return_value=45.67):
+        with patch("dip_strike_tools.core.dip_strike_math.calculate_true_north_bearing", return_value=45.67):
             dialog._refresh_bearing_labels()
             bearing_text = dialog.lbl_north_bearing.text()
             assert "45.67°" in bearing_text
@@ -454,15 +451,15 @@ class TestDlgInsertDipStrike:
         dialog = self._create_dialog_with_mocks(qgis_iface)
 
         # Test that key methods exist
-        assert hasattr(dialog, "_format_bearing")
-        assert callable(dialog._format_bearing)
         assert hasattr(dialog, "_refresh_bearing_labels")
         assert callable(dialog._refresh_bearing_labels)
 
-        # Test _format_bearing with simple values
-        assert dialog._format_bearing(0.0) == "0.00°"
-        assert dialog._format_bearing(90.0) == "90.00°"
-        assert dialog._format_bearing(180.0) == "180.00°"
+        # Test format_bearing function from math module
+        from dip_strike_tools.core import dip_strike_math
+
+        assert dip_strike_math.format_bearing(0.0) == "0.00°"
+        assert dip_strike_math.format_bearing(90.0) == "90.00°"
+        assert dip_strike_math.format_bearing(180.0) == "180.00°"
 
     def test_utility_methods_exist(self, qgis_iface):
         """Test that utility methods exist and are callable."""
@@ -688,11 +685,15 @@ class TestDlgInsertDipStrike:
             try:
                 if value is None:
                     # Should handle None gracefully or raise TypeError
+                    from dip_strike_tools.core import dip_strike_math
+
                     with pytest.raises(TypeError):
-                        dialog._format_bearing(value)
+                        dip_strike_math.format_bearing(value)
                 else:
                     # Should handle infinity values gracefully
-                    result = dialog._format_bearing(value)
+                    from dip_strike_tools.core import dip_strike_math
+
+                    result = dip_strike_math.format_bearing(value)
                     assert isinstance(result, str)
             except Exception as e:
                 # At minimum, shouldn't crash the test process
@@ -843,9 +844,7 @@ class TestDlgInsertDipStrike:
 
     def test_bearing_format_comprehensive(self, qgis_iface):
         """Test comprehensive bearing formatting scenarios."""
-        dialog = self._create_dialog_with_mocks(qgis_iface)
-
-        # Test standard compass bearings
+        # Test standard compass bearings using the math module function
         test_cases = [
             (0.0, "0.00°"),
             (90.0, "90.00°"),
@@ -855,8 +854,10 @@ class TestDlgInsertDipStrike:
             (360.0, "360.00°"),
         ]
 
+        from dip_strike_tools.core import dip_strike_math
+
         for bearing, expected in test_cases:
-            result = dialog._format_bearing(bearing)
+            result = dip_strike_math.format_bearing(bearing)
             assert result == expected, f"Failed for bearing {bearing}: expected {expected}, got {result}"
 
         # Test negative zero and small values
@@ -869,7 +870,7 @@ class TestDlgInsertDipStrike:
         ]
 
         for bearing, expected in negative_zero_cases:
-            result = dialog._format_bearing(bearing)
+            result = dip_strike_math.format_bearing(bearing)
             assert result == expected, f"Failed for negative bearing {bearing}: expected {expected}, got {result}"
 
     def test_comprehensive_widget_ranges(self, qgis_iface):

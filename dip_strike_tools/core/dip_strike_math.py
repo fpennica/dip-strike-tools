@@ -9,6 +9,50 @@ dip and strike azimuths, with support for rounding and value validation.
 
 from typing import Any, Optional, Tuple, Union
 
+# Import QGIS utilities for true north calculations
+try:
+    from qgis.core import QgsBearingUtils, QgsCoordinateReferenceSystem, QgsCoordinateTransformContext, QgsPointXY
+except ImportError:
+    # Handle case where QGIS is not available (for testing)
+    QgsBearingUtils = None
+    QgsCoordinateReferenceSystem = None
+    QgsCoordinateTransformContext = None
+    QgsPointXY = None
+
+
+def calculate_true_north_bearing(crs, point) -> float:
+    """Calculate the true north bearing for a given point and coordinate system.
+
+    This function determines the bearing adjustment needed to convert between
+    map-relative azimuths and true north azimuths at a specific location.
+
+    :param crs: The coordinate reference system (QgsCoordinateReferenceSystem)
+    :type crs: QgsCoordinateReferenceSystem
+    :param point: The point for which to calculate the bearing (QgsPointXY)
+    :type point: QgsPointXY
+    :return: True north bearing in degrees
+    :rtype: float
+    :raises RuntimeError: If QGIS is not available
+    """
+    if QgsBearingUtils is None or QgsCoordinateTransformContext is None:
+        raise RuntimeError("QGIS is not available for true north calculations")
+
+    return QgsBearingUtils.bearingTrueNorth(crs, QgsCoordinateTransformContext(), point)
+
+
+def format_bearing(bearing_value: float) -> str:
+    """Format a bearing value to avoid negative zero display.
+
+    :param bearing_value: The bearing value to format
+    :type bearing_value: float
+    :return: Formatted bearing string
+    :rtype: str
+    """
+    # Handle negative zero by converting to positive zero
+    if abs(bearing_value) < 0.005:  # Less than 0.01 when rounded to 2 decimal places
+        bearing_value = 0.0
+    return f"{bearing_value:.2f}°"
+
 
 def validate_azimuth_range(azimuth: Any) -> bool:
     """Validate that an azimuth value is within the valid 0-360° range.

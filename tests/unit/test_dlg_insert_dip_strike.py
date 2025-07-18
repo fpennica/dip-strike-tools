@@ -14,10 +14,7 @@ class TestDlgInsertDipStrikeUnit(unittest.TestCase):
 
     def test_format_bearing_comprehensive(self):
         """Test comprehensive bearing formatting scenarios."""
-        from dip_strike_tools.gui.dlg_insert_dip_strike import DlgInsertDipStrike
-
-        # This method can be tested without Qt initialization
-        dialog = DlgInsertDipStrike.__new__(DlgInsertDipStrike)
+        from dip_strike_tools.core import dip_strike_math
 
         # Test comprehensive bearing cases
         test_cases = [
@@ -37,7 +34,7 @@ class TestDlgInsertDipStrikeUnit(unittest.TestCase):
         ]
 
         for input_val, expected in test_cases:
-            result = dialog._format_bearing(input_val)
+            result = dip_strike_math.format_bearing(input_val)
             assert result == expected, f"Failed for {input_val}: expected {expected}, got {result}"
 
     def test_is_layer_suitable_for_dip_strike(self):

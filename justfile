@@ -67,7 +67,7 @@ test:
     uv sync --group ci
     cp --remove-destination LICENSE dip_strike_tools/
     cp --remove-destination CHANGELOG.md dip_strike_tools/
-    # cp --remove-destination CREDITS.md dip_strike_tools/
+    cp --remove-destination CREDITS.md dip_strike_tools/
     git add .
     uv run qgis-plugin-ci package -c {{ VERSION }}
     just dev-link
@@ -78,7 +78,7 @@ test:
     uv sync --group ci
     cp --remove-destination LICENSE dip_strike_tools/
     cp --remove-destination CHANGELOG.md dip_strike_tools/
-    # cp --remove-destination CREDITS.md dip_strike_tools/
+    cp --remove-destination CREDITS.md dip_strike_tools/
     git add .
     # run qgis-plugin-ci release without github token and osgeo auth
     uv run qgis-plugin-ci release -c {{ VERSION }}
