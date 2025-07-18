@@ -217,6 +217,12 @@ class DlgCreateLayer(QDialog):
         self.notes_check.setToolTip(self.tr("Add a field to store additional notes"))
         optional_fields_layout.addWidget(self.notes_check)
 
+        # Z-value field checkbox
+        self.z_value_check = QCheckBox(self.tr("Elevation (z_value)"))
+        self.z_value_check.setChecked(True)  # Default to enabled
+        self.z_value_check.setToolTip(self.tr("Add a field to store elevation/z-value information"))
+        optional_fields_layout.addWidget(self.z_value_check)
+
         # Connect geo_type checkbox to show/hide storage mode
         self.geo_type_check.toggled.connect(self.update_geo_type_storage_visibility)
 
@@ -502,6 +508,7 @@ class DlgCreateLayer(QDialog):
             "age": self.age_check.isChecked(),
             "lithology": self.lithology_check.isChecked(),
             "notes": self.notes_check.isChecked(),
+            "z_value": self.z_value_check.isChecked(),
         }
 
         return {

@@ -92,7 +92,12 @@ class DipStrikeLayerCreator:
         notes_field.setType(QMetaType.Type.QString)
         notes_field.setLength(255)
 
-        optional_fields = [geo_type_field, age_field, lithology_field, notes_field]
+        z_value_field = QgsField()
+        z_value_field.setName("z_value")
+        z_value_field.setType(QMetaType.Type.Int)
+        z_value_field.setLength(10)
+
+        optional_fields = [geo_type_field, age_field, lithology_field, notes_field, z_value_field]
 
         return required_fields, optional_fields
 

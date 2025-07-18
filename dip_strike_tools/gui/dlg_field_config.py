@@ -74,6 +74,7 @@ class DlgFieldConfig(QDialog):
             "age": self.tr("Age"),
             "lithology": self.tr("Lithology"),
             "notes": self.tr("Notes"),
+            "z_value": self.tr("Elevation"),
         }
 
         # Store field mapping comboboxes
@@ -140,6 +141,7 @@ class DlgFieldConfig(QDialog):
             "age": ["age", "period", "era", "time"],
             "lithology": ["lithology", "litho", "rock", "material"],
             "notes": ["notes", "comment", "description", "remark"],
+            "z_value": ["z", "elevation", "height", "altitude", "elev", "dem", "dtm"],
         }
 
         if field_key not in suggestions:

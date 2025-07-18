@@ -56,6 +56,14 @@ class TestDipStrikeLayerCreator:
         assert "dip_azimuth" in field_names
         assert "dip_value" in field_names
 
+        # Check that optional fields include expected fields
+        optional_field_names = [field.name() for field in optional_fields]
+        assert "geo_type" in optional_field_names
+        assert "age" in optional_field_names
+        assert "lithology" in optional_field_names
+        assert "notes" in optional_field_names
+        assert "z_value" in optional_field_names
+
     def test_get_shapefile_field_mapping(self):
         """Test getting field mapping for shapefiles."""
         try:

@@ -15,6 +15,7 @@ from qgis.PyQt.QtWidgets import QDial, QDialog, QDoubleSpinBox, QGraphicsScene, 
 from qgis.utils import iface
 
 from ..core import dip_strike_math
+from ..core.elevation_utils import ElevationExtractor
 from ..core.layer_creator import DipStrikeLayerCreator, LayerCreationError
 from ..core.layer_utils import check_layer_editability
 from ..core.rubber_band_marker import RubberBandMarker
@@ -249,6 +250,9 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # Populate geological types combo box
         self._populate_geological_types()
 
+        # Initialize elevation functionality
+        self._setup_elevation_controls()
+
         # Restore UI settings first (but not layer selection yet)
         self._restore_ui_settings()
 
@@ -318,7 +322,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
     def check_feature_layer(self):
         """Check if a feature layer is selected and enable/disable controls accordingly"""
         required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
-        optional_fields = ["geo_type", "age", "lithology", "notes"]
+        optional_fields = ["geo_type", "age", "lithology", "notes", "z_value"]
         layer = self.cbo_feature_layer.currentLayer()
 
         if layer and layer.isValid():
@@ -479,11 +483,15 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             "age": self.line_age,
             "lithology": self.text_litho,
             "notes": self.text_notes,
+            "z_value": getattr(self, "line_elevation", None),
         }
 
         enabled_count = 0
 
         for field_key, widget in field_widgets.items():
+            if widget is None:
+                continue  # Skip if widget doesn't exist
+
             # Check if this optional field is mapped for the current layer
             mapped_field = layer.customProperty(f"dip_strike_tools/{field_key}", "")
             is_mapped = bool(mapped_field and layer.fields().lookupField(mapped_field) != -1)
@@ -502,6 +510,11 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 elif widget == self.cbo_geo_type:
                     # For combo box, ensure it's populated normally
                     pass  # TODO: Handle combo box population
+                elif widget == getattr(self, "line_elevation", None):
+                    # For elevation line edit when enabled, keep current value or clear if not set
+                    if not hasattr(self, "_elevation_initialized"):
+                        self._set_elevation_value(None)  # Clear the field initially
+                        self._elevation_initialized = True
             else:
                 # Set placeholder text for disabled fields
                 placeholder_text = "Field not configured for feature layer"
@@ -514,9 +527,31 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     # For combo box, clear items and add placeholder item
                     widget.clear()
                     widget.addItem(placeholder_text)
+                elif widget == getattr(self, "line_elevation", None):
+                    # For elevation line edit, clear field and set placeholder when disabled
+                    self._set_elevation_value(None)  # Clear the field
+                    widget.setPlaceholderText(placeholder_text)
 
         # The Optional Data group box remains always visible
         # self.groupBox_3.setVisible(True)
+
+    def _get_valid_value(self, qvariant_value):
+        """Helper function to safely extract value from QVariant, handling NULL properly.
+
+        :param qvariant_value: Value that might be a QVariant
+        :return: Python value or None if NULL
+        """
+        from qgis.PyQt.QtCore import QVariant
+
+        if qvariant_value is None:
+            return None
+        elif isinstance(qvariant_value, QVariant):
+            if qvariant_value.isNull():
+                return None
+            else:
+                return qvariant_value.value()
+        else:
+            return qvariant_value
 
     def _load_existing_feature_data(self):
         """Load data from existing feature into the dialog controls.
@@ -546,6 +581,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             age_field = layer.customProperty("dip_strike_tools/age", "")
             lithology_field = layer.customProperty("dip_strike_tools/lithology", "")
             notes_field = layer.customProperty("dip_strike_tools/notes", "")
+            z_value_field = layer.customProperty("dip_strike_tools/z_value", "")
 
             # First, set the layer in the combo box to enable proper field mapping
             self.cbo_feature_layer.setLayer(layer)
@@ -589,8 +625,8 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             # Load optional fields if they exist and are mapped
             # Geological Type
             if geo_type_field and layer.fields().lookupField(geo_type_field) != -1 and hasattr(self, "cbo_geo_type"):
-                geo_type_value = feature[geo_type_field]
-                if geo_type_value:
+                geo_type_value = self._get_valid_value(feature[geo_type_field])
+                if geo_type_value is not None:
                     # Try to find the item by data first (for code values)
                     index = -1
                     for i in range(self.cbo_geo_type.count()):
@@ -611,21 +647,37 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
             # Age
             if age_field and layer.fields().lookupField(age_field) != -1 and hasattr(self, "line_age"):
-                age_value = feature[age_field]
-                if age_value:
+                age_value = self._get_valid_value(feature[age_field])
+                if age_value is not None:
                     self.line_age.setText(str(age_value))
 
             # Lithology
             if lithology_field and layer.fields().lookupField(lithology_field) != -1 and hasattr(self, "text_litho"):
-                lithology_value = feature[lithology_field]
-                if lithology_value:
+                lithology_value = self._get_valid_value(feature[lithology_field])
+                if lithology_value is not None:
                     self.text_litho.setPlainText(str(lithology_value))
 
             # Notes
             if notes_field and layer.fields().lookupField(notes_field) != -1 and hasattr(self, "text_notes"):
-                notes_value = feature[notes_field]
-                if notes_value:
+                notes_value = self._get_valid_value(feature[notes_field])
+                if notes_value is not None:
                     self.text_notes.setPlainText(str(notes_value))
+
+            # Elevation (Z value)
+            if z_value_field and layer.fields().lookupField(z_value_field) != -1 and hasattr(self, "line_elevation"):
+                z_value = self._get_valid_value(feature[z_value_field])
+
+                if z_value is not None:
+                    try:
+                        elevation_value = float(z_value)
+                        self._set_elevation_value(elevation_value)
+                    except (ValueError, TypeError) as e:
+                        self.log(message=f"Error parsing elevation value '{z_value}': {e}", log_level=2)
+                        # Set to "no data" when parsing fails
+                        self._set_elevation_value(None)
+                else:
+                    # Set to "no data" when field value is NULL
+                    self._set_elevation_value(None)
 
             # Update the map display with the loaded values
             self.on_strike_dip_mode_changed()
@@ -644,10 +696,14 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             "age": self.line_age,
             "lithology": self.text_litho,
             "notes": self.text_notes,
+            "z_value": getattr(self, "line_elevation", None),
         }
 
         # Disable all widgets and set placeholder text
         for field_key, widget in field_widgets.items():
+            if widget is None:
+                continue  # Skip if widget doesn't exist
+
             widget.setEnabled(False)
             placeholder_text = "No layer selected"
 
@@ -660,6 +716,10 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 # For combo box, clear and add placeholder item
                 widget.clear()
                 widget.addItem(placeholder_text)
+            elif widget == getattr(self, "line_elevation", None):
+                # For elevation line edit, clear field and set placeholder
+                self._set_elevation_value(None)
+                widget.setPlaceholderText(placeholder_text)
 
         # Keep the Optional Data group box visible for consistent layout
         # self.groupBox_3.setVisible(True)
@@ -1389,6 +1449,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             age_field = layer.customProperty("dip_strike_tools/age", "")
             lithology_field = layer.customProperty("dip_strike_tools/lithology", "")
             notes_field = layer.customProperty("dip_strike_tools/notes", "")
+            z_value_field = layer.customProperty("dip_strike_tools/z_value", "")
 
             # Check if required fields are mapped
             required_fields = ["strike_azimuth", "dip_azimuth", "dip_value"]
@@ -1447,6 +1508,10 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 if not notes_value:
                     notes_value = None
 
+            z_value = None
+            if z_value_field and hasattr(self, "line_elevation"):
+                z_value = self._get_elevation_value()
+
             # Start editing the layer
             if not layer.isEditable():
                 layer.startEditing()
@@ -1498,6 +1563,11 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     field_idx = layer.fields().lookupField(notes_field)
                     if field_idx != -1:
                         changes[field_idx] = notes_value
+
+                if z_value_field:
+                    field_idx = layer.fields().lookupField(z_value_field)
+                    if field_idx != -1:
+                        changes[field_idx] = z_value  # This will be None if field is cleared
 
                 # Apply changes
                 if changes:
@@ -1588,6 +1658,11 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     field_idx = layer.fields().lookupField(notes_field)
                     if field_idx != -1:
                         feature.setAttribute(field_idx, notes_value)
+
+                if z_value_field:
+                    field_idx = layer.fields().lookupField(z_value_field)
+                    if field_idx != -1:
+                        feature.setAttribute(field_idx, z_value)  # This will be None if field is cleared
 
                 # Add feature to layer
                 success = layer.addFeature(feature)
@@ -1704,3 +1779,283 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         :rtype: str
         """
         return QCoreApplication.translate(self.__class__.__name__, message)
+
+    def _setup_elevation_controls(self):
+        """Setup elevation controls and initialize elevation extractor."""
+        # Initialize elevation extractor
+        self.elevation_extractor = ElevationExtractor()
+
+        # Setup DTM layer combo box if it exists
+        if hasattr(self, "cbo_map_layer_dtm"):
+            # Set filters to only show raster layers
+            self.cbo_map_layer_dtm.setFilters(Qgis.LayerFilter.RasterLayer)
+
+            # Add "No DTM layer" option
+            self.cbo_map_layer_dtm.setAllowEmptyLayer(True)
+            self.cbo_map_layer_dtm.setShowCrs(True)
+
+            self.cbo_map_layer_dtm.setLayer(None)
+            self.cbo_map_layer_dtm.layerChanged.connect(self._on_dtm_layer_changed)
+
+            # Restore saved DTM layer
+            self._restore_dtm_layer_selection()
+
+        # Setup elevation line edit if it exists
+        if hasattr(self, "line_elevation"):
+            self.line_elevation.setPlaceholderText(self.tr("Enter elevation in meters"))
+            self.line_elevation.setToolTip(self.tr("Elevation value in meters (leave empty for no data)"))
+
+            # Add input validator for integers only
+            from qgis.PyQt.QtGui import QIntValidator
+
+            validator = QIntValidator(-12000, 9000)  # Reasonable elevation range
+            self.line_elevation.setValidator(validator)
+
+            # Clear the field initially (no data)
+            self.line_elevation.clear()
+
+        # Setup refresh button if it exists
+        if hasattr(self, "btn_refresh_elevation"):
+            # set label
+            self.btn_refresh_elevation.setText("")
+            self.btn_refresh_elevation.setIcon(QgsApplication.getThemeIcon("mActionReload.svg"))
+            self.btn_refresh_elevation.clicked.connect(self._refresh_elevation_from_dtm)
+            self.btn_refresh_elevation.setToolTip(
+                self.tr("Extract elevation from selected DTM layer (requires DTM layer selection)")
+            )
+
+        # Auto-extract elevation if point is set and DTM is available
+        if self._clicked_point:
+            self._auto_extract_elevation()
+
+    def _on_dtm_layer_changed(self):
+        """Handle DTM layer selection change."""
+        dtm_layer = self.cbo_map_layer_dtm.currentLayer()
+
+        if dtm_layer:
+            # Check if layer is suitable for DTM
+            is_suitable, error_msg = self.elevation_extractor.is_suitable_dtm_layer(dtm_layer)
+
+            if not is_suitable:
+                self.log(
+                    f"Selected layer '{dtm_layer.name()}' is not suitable for elevation extraction: {error_msg}",
+                    log_level=2,
+                )
+                # Show warning to user
+                QMessageBox.warning(
+                    self,
+                    self.tr("Unsuitable DTM Layer"),
+                    self.tr(
+                        "The selected layer '{layer_name}' is not suitable for elevation extraction:\n\n{error}"
+                    ).format(layer_name=dtm_layer.name(), error=error_msg),
+                )
+                return
+
+            self.log(f"Selected DTM layer: {dtm_layer.name()}", log_level=4)
+
+            # Save selection
+            self._save_dtm_layer_selection(dtm_layer)
+
+            # Auto-extract elevation if point is available
+            self._auto_extract_elevation()
+        else:
+            # No DTM layer selected - this is a valid choice for manual elevation entry
+            self.log("No DTM layer selected - elevation will be entered manually", log_level=4)
+
+            # Clear saved selection
+            self._save_dtm_layer_selection(None)
+
+    def _refresh_elevation_from_dtm(self):
+        """Manually refresh elevation from selected DTM layer."""
+        if not hasattr(self, "cbo_map_layer_dtm") or not hasattr(self, "line_elevation"):
+            return
+
+        dtm_layer = self.cbo_map_layer_dtm.currentLayer()
+        if not dtm_layer:
+            QMessageBox.information(
+                self,
+                self.tr("No DTM Layer Selected"),
+                self.tr("Please select a DTM layer first, or enter elevation manually."),
+            )
+            return
+
+        # Get the point to extract elevation from
+        point = self._get_extraction_point()
+        if not point:
+            QMessageBox.information(
+                self, self.tr("No Point Available"), self.tr("No point available for elevation extraction.")
+            )
+            return
+
+        # Extract elevation
+        success, elevation, error_msg = self._extract_elevation_at_point(dtm_layer, point)
+
+        if success:
+            self._set_elevation_value(elevation)
+            self.log(f"Manually extracted elevation: {elevation} m", log_level=3)
+        else:
+            QMessageBox.warning(
+                self,
+                self.tr("Elevation Extraction Failed"),
+                self.tr("Failed to extract elevation from DTM:\n\n{error}").format(error=error_msg),
+            )
+            self.log(f"Failed to extract elevation: {error_msg}", log_level=1)
+
+    def _auto_extract_elevation(self):
+        """Automatically extract elevation if conditions are met."""
+        if not hasattr(self, "cbo_map_layer_dtm") or not hasattr(self, "line_elevation"):
+            return
+
+        dtm_layer = self.cbo_map_layer_dtm.currentLayer()
+        if not dtm_layer:
+            return
+
+        point = self._get_extraction_point()
+        if not point:
+            return
+
+        # Extract elevation silently
+        success, elevation, error_msg = self._extract_elevation_at_point(dtm_layer, point)
+
+        if success:
+            self._set_elevation_value(elevation)
+            self.log(f"Auto-extracted elevation: {elevation} m", log_level=4)
+        else:
+            self.log(f"Auto-extraction failed: {error_msg}", log_level=4)
+
+    def _extract_elevation_at_point(self, dtm_layer, point):
+        """Extract elevation at the given point from DTM layer.
+
+        :param dtm_layer: The DTM raster layer
+        :type dtm_layer: QgsRasterLayer
+        :param point: The point to extract elevation for
+        :type point: QgsPointXY
+        :return: Tuple of (success, elevation, error_message)
+        :rtype: tuple(bool, float or None, str)
+        """
+        # Get the CRS of the current project/map
+        destination_crs = self.map_canvas_widget.mapSettings().destinationCrs()
+
+        # Extract elevation using the utility
+        return self.elevation_extractor.extract_elevation(dtm_layer, point, destination_crs)
+
+    def _get_extraction_point(self):
+        """Get the point to use for elevation extraction.
+
+        :return: The point for extraction or None if not available
+        :rtype: QgsPointXY or None
+        """
+        if self._clicked_point:
+            return self._clicked_point
+        elif hasattr(self, "dip_strike_item") and self.dip_strike_item:
+            return self.dip_strike_item.center()
+        elif hasattr(self, "map_canvas_widget"):
+            return self.map_canvas_widget.extent().center()
+        else:
+            return None
+
+    def _save_dtm_layer_selection(self, layer):
+        """Save the currently selected DTM layer to settings.
+
+        :param layer: The DTM layer to save
+        :type layer: QgsRasterLayer or None
+        """
+        settings = QgsSettings()
+        settings.beginGroup("dip_strike_tools")
+
+        if layer and layer.isValid():
+            settings.setValue("last_dtm_layer_id", layer.id())
+            settings.setValue("last_dtm_layer_name", layer.name())
+            self.log(f"Saved DTM layer selection: {layer.name()}", log_level=4)
+        else:
+            settings.remove("last_dtm_layer_id")
+            settings.remove("last_dtm_layer_name")
+            self.log("Cleared DTM layer selection", log_level=4)
+
+        settings.endGroup()
+
+    def _restore_dtm_layer_selection(self):
+        """Restore the last selected DTM layer from settings."""
+        if not hasattr(self, "cbo_map_layer_dtm"):
+            return
+
+        settings = QgsSettings()
+        settings.beginGroup("dip_strike_tools")
+
+        last_layer_id = settings.value("last_dtm_layer_id", "")
+        last_layer_name = settings.value("last_dtm_layer_name", "")
+
+        settings.endGroup()
+
+        if not last_layer_id:
+            return
+
+        # Try to find the layer by ID first
+        project = QgsProject.instance()
+        if not project:
+            return
+
+        all_layers = project.mapLayers()
+        target_layer = None
+
+        # Find by exact ID match
+        if last_layer_id in all_layers:
+            layer = all_layers[last_layer_id]
+            if hasattr(layer, "rasterType"):  # It's a raster layer
+                target_layer = layer
+
+        # If not found by ID, try by name as fallback
+        if not target_layer and last_layer_name:
+            for layer_id, layer in all_layers.items():
+                if layer.name() == last_layer_name and hasattr(layer, "rasterType"):  # It's a raster layer
+                    target_layer = layer
+                    break
+
+        if target_layer:
+            # Temporarily disconnect signal to avoid triggering change handler
+            self.cbo_map_layer_dtm.layerChanged.disconnect()
+            self.cbo_map_layer_dtm.setLayer(target_layer)
+            self.cbo_map_layer_dtm.layerChanged.connect(self._on_dtm_layer_changed)
+
+            self.log(f"Restored DTM layer selection: {target_layer.name()}", log_level=4)
+        else:
+            # Clear saved settings since layer no longer exists
+            self._save_dtm_layer_selection(None)
+
+    def _set_elevation_value(self, elevation):
+        """Set elevation value in the line edit, handling nullable values properly.
+
+        :param elevation: The elevation value to set (can be None)
+        :type elevation: float or None
+        """
+        if not hasattr(self, "line_elevation"):
+            return
+
+        if elevation is None:
+            # Clear the field for "no data"
+            self.line_elevation.clear()
+        else:
+            # Set the elevation value as text
+            self.line_elevation.setText(str(int(round(elevation))))
+
+    def _get_elevation_value(self):
+        """Get elevation value from the line edit, handling nullable values properly.
+
+        :return: The elevation value or None if no data
+        :rtype: int or None
+        """
+        if not hasattr(self, "line_elevation"):
+            return None
+
+        elevation_text = self.line_elevation.text().strip()
+
+        if not elevation_text:
+            # Empty field means "no data"
+            return None
+
+        try:
+            # Convert to integer
+            return int(elevation_text)
+        except ValueError:
+            # Invalid number, treat as "no data"
+            return None

@@ -45,6 +45,70 @@ Additional fields include **Age** for geological age or formation name, **Lithol
 
 The interactive compass dial provides intuitive azimuth entry with **visual feedback** showing real-time needle position, **mouse interaction** for click and drag value setting, **keyboard control** using arrow keys for precise adjustment, and **automatic conversion** where strike and dip azimuths update automatically.
 
+### DTM elevation value extraction
+
+#### DTM Layer Validation
+
+- Checks for single-band raster layers
+- Validates numeric data types suitable for elevation
+- Provides clear error messages for unsuitable layers
+
+#### Automatic Elevation Extraction
+
+- Triggered when DTM layer is selected and point is available
+- Silent operation with debug logging
+- Falls back gracefully on errors
+
+#### Manual Elevation Extraction
+
+- User-initiated via refresh button
+- Provides user feedback on success/failure
+- Shows detailed error messages when extraction fails
+
+#### CRS Transformation
+
+- Automatic coordinate transformation between different CRS
+- Supports transformation from map canvas CRS to DTM layer CRS
+- Comprehensive error handling for transformation failures
+
+#### Point Validation
+
+- Checks if extraction point is within DTM extent
+- Handles nodata values appropriately
+- Validates elevation values for reasonableness
+
+#### Settings Persistence
+
+- Saves and restores selected DTM layer across sessions
+- Integrates with existing UI settings system
+- Handles layer removal/project changes gracefully
+
+#### Automatic Behaviors
+
+- Auto-extract elevation when DTM layer is selected and point is available
+- Auto-extract elevation when dialog opens with a clicked point (if DTM selected)
+- Remember DTM layer selection between sessions (including "No DTM" choice)
+- Validate DTM layers on selection
+- Allow manual elevation entry when no DTM layer is selected
+
+#### Data Flow
+
+1. **Dialog Initialization**: Setup elevation controls, restore saved DTM layer
+2. **DTM Layer Selection**: Validate layer, save selection, auto-extract if possible
+3. **Point Availability**: Use clicked point, marker center, or map center
+4. **Elevation Extraction**: Transform coordinates if needed, sample raster, validate result
+5. **Data Storage**: Save elevation as integer in z_value field
+6. **Settings Persistence**: Remember DTM layer for future use
+
+#### Usage Instructions
+
+1. **Add DTM Layer**: Load a suitable raster DTM layer in QGIS project
+2. **Open Dialog**: Create or edit a dip/strike point
+3. **Select DTM**: Choose DTM layer from dropdown (validates automatically)
+4. **Auto-Extract**: Elevation extracts automatically if point and DTM available
+5. **Manual Extract**: Use refresh button if needed
+6. **Save**: Elevation value saves with other feature data
+
 ## Layer Management
 
 ### Target Layer Selection

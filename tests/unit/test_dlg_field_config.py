@@ -372,7 +372,7 @@ class TestDlgFieldConfigMethods:
                 dialog.field_combos[field_key] = mock_combo
 
             # Create mock combos for optional fields
-            for field_key in ["geo_type", "age", "lithology", "notes"]:
+            for field_key in ["geo_type", "age", "lithology", "notes", "z_value"]:
                 mock_combo = Mock()
                 mock_combo.currentText.return_value = dialog.tr("<None>")
                 dialog.field_combos[field_key] = mock_combo
@@ -427,7 +427,7 @@ class TestDlgFieldConfigMethods:
             dialog.field_combos["dip_value"] = dip_value_combo
 
             # Optional fields
-            for field_key in ["geo_type", "age", "lithology", "notes"]:
+            for field_key in ["geo_type", "age", "lithology", "notes", "z_value"]:
                 mock_combo = Mock()
                 mock_combo.currentText.return_value = dialog.tr("<None>")
                 dialog.field_combos[field_key] = mock_combo
@@ -476,6 +476,7 @@ class TestDlgFieldConfigMethods:
                 "age": "<None>",  # Optional field not mapped
                 "lithology": "<None>",  # Optional field not mapped
                 "notes": "notes_field",
+                "z_value": "<None>",  # Optional field not mapped
             }
 
             for field_key, field_value in field_mappings.items():
@@ -574,6 +575,7 @@ class TestDlgFieldConfigMethods:
                 "age": "<None>",  # Optional field not mapped
                 "lithology": "lithology_field",
                 "notes": "<None>",  # Optional field not mapped
+                "z_value": "<None>",  # Optional field not mapped
             }
 
             for field_key, field_value in field_mappings.items():
@@ -632,7 +634,16 @@ class TestDlgFieldConfigMethods:
 
             # Set up mock combos with invalid field selections (missing required)
             dialog.field_combos = {}
-            for field_key in ["strike_azimuth", "dip_azimuth", "dip_value", "geo_type", "age", "lithology", "notes"]:
+            for field_key in [
+                "strike_azimuth",
+                "dip_azimuth",
+                "dip_value",
+                "geo_type",
+                "age",
+                "lithology",
+                "notes",
+                "z_value",
+            ]:
                 mock_combo = Mock()
                 mock_combo.currentText.return_value = "<None>"  # All fields unmapped
                 dialog.field_combos[field_key] = mock_combo

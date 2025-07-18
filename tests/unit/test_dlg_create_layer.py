@@ -763,6 +763,7 @@ class TestDlgCreateLayerMethods:
             dialog.age_check = Mock()
             dialog.lithology_check = Mock()
             dialog.notes_check = Mock()
+            dialog.z_value_check = Mock()
             dialog.geo_type_combo = Mock()
             dialog.apply_symbology_check = Mock()
 
@@ -785,6 +786,7 @@ class TestDlgCreateLayerMethods:
             dialog.age_check.isChecked.return_value = False
             dialog.lithology_check.isChecked.return_value = True
             dialog.notes_check.isChecked.return_value = False
+            dialog.z_value_check.isChecked.return_value = False
             dialog.geo_type_combo.currentData.return_value = "code"
             dialog.apply_symbology_check.isChecked.return_value = True
 
@@ -804,6 +806,7 @@ class TestDlgCreateLayerMethods:
                     "age": False,
                     "lithology": True,
                     "notes": False,
+                    "z_value": False,
                 },
             }
 
@@ -939,6 +942,7 @@ class TestDlgCreateLayerIntegration:
             dialog.age_check = Mock()
             dialog.lithology_check = Mock()
             dialog.notes_check = Mock()
+            dialog.z_value_check = Mock()
             dialog.geo_type_combo = Mock()
             mock_crs = Mock()
             mock_get_crs.return_value = mock_crs
@@ -952,6 +956,7 @@ class TestDlgCreateLayerIntegration:
             dialog.age_check.isChecked.return_value = False
             dialog.lithology_check.isChecked.return_value = True
             dialog.notes_check.isChecked.return_value = True
+            dialog.z_value_check.isChecked.return_value = False
             dialog.geo_type_combo.currentData.return_value = "description"
 
             # Set up formats dictionary
