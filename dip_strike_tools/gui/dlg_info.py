@@ -143,7 +143,7 @@ class PluginInfo(QDialog, FORM_CLASS):
 
             # If empty, try refreshing the cache and retry once
             if not plugin_metadata:
-                self.log(f"Plugin metadata empty for {plugin_name}, refreshing cache", log_level=2)
+                self.log(f"Plugin metadata empty for {plugin_name}, refreshing cache", log_level=1)
                 pyplugin_installer.instance().reloadAndExportData()
                 plugin_metadata = iface.pluginManagerInterface().pluginMetadata(plugin_name)  # type: ignore
 

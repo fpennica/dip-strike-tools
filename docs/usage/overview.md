@@ -97,28 +97,6 @@ Configure plugin behavior and customize geological type classifications for your
 
 [→ Learn more about Settings](settings.md)
 
-## Workflow Examples
-
-### Typical Field Data Collection Workflow
-
-**Setup**: Create a new dip/strike layer or configure an existing layer.
-
-**Collection**: Use the interactive map tool to record measurements at field locations.
-
-**Analysis**: Use the calculator tool to compute derived values (e.g., convert all strikes to dips).
-
-**Visualization**: Apply symbology to visualize structural trends.
-
-### Working with Existing Data
-
-**Import**: Load existing geological data into QGIS.
-
-**Configure**: Map existing fields to dip/strike structure using the field configuration dialog.
-
-**Calculate**: Use the calculator tool to fill missing values or convert between formats.
-
-**Validate**: Check data quality with built-in range validation.
-
 ## Data Storage Formats
 
 The plugin supports multiple vector formats including **memory layers** for temporary layers for quick analysis, **shapefiles** for traditional GIS format with field mapping support and **GeoPackages** for modern format with extended field names and attributes.

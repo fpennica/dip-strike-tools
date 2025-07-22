@@ -14,7 +14,7 @@ Enable experimental extensions in the QGIS plugins manager settings panel to acc
 **Early Adopters Only**: If you define yourself as early adopter or a tester and can't wait for the release, the plugin is automatically packaged for each commit to main. You can use this address as repository URL in your QGIS extensions manager settings:
 
 ```url
-https://gitlab.com/CNR-IGAG/dip_strike_tools//plugins.xml
+https://fpennica.github.io/dip-strike-tools/plugins.xml
 ```
 
 Be careful, this version can be unstable.

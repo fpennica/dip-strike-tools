@@ -28,8 +28,8 @@ Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digiti
 caption: User Guide
 maxdepth: 1
 ---
-usage/installation
 usage/overview
+usage/installation
 usage/layer-creation
 usage/data-insertion
 usage/calculate-values

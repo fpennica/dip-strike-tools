@@ -20,7 +20,7 @@ tracker=https://github.com/fpennica/dip-strike-tools/issues/
 # experimental flag
 deprecated=False
 experimental=True
-qgisMinimumVersion=3.40
+qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
 supportsQt6=True
 
