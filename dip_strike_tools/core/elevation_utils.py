@@ -127,7 +127,7 @@ class ElevationExtractor:
                     return False, None, "No elevation data available at this point (nodata value)"
 
                 # Check for unreasonable values (basic sanity check)
-                if elevation_float < -12000 or elevation_float > 9000:  # Below Dead Sea to above Everest
+                if elevation_float < -500 or elevation_float > 9000:  # Below Dead Sea (-430m) to above Everest
                     self.log(
                         f"Warning: Elevation value {elevation_float} seems unreasonable",
                         log_level=2,

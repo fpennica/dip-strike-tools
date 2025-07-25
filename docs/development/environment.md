@@ -11,6 +11,24 @@ Before setting up the development environment, you need to install the following
 1. **uv** - Fast Python package installer and dependency manager
 2. **just** - Command runner for project automation
 
+### Suggested IDE: Visual Studio Code
+
+This project includes pre-configured settings for VS Code, available in `.vscode` folder, including linting, formatting and tasks settings.
+
+To get started with VS Code:
+
+```bash
+# Install VS Code (Ubuntu/Debian)
+sudo snap install code --classic
+
+# Or download from https://code.visualstudio.com/
+
+# Open the project in VS Code
+code .
+```
+
+VS Code will automatically suggest installing recommended extensions when you open the project.
+
 ### Install uv
 
 ```bash
@@ -200,6 +218,20 @@ just qgis-docker
 # Package the plugin for distribution
 just package <version>
 ```
+
+### Using VS Code Tasks
+
+If you're using VS Code, the project includes pre-configured tasks that you can run directly from the editor:
+
+- **Ctrl+Shift+P** → "Tasks: Run Task" to see all available tasks
+- **Upgrade Dependencies**: Update all development dependencies
+- **Run Tests**: Execute the full test suite
+- **Translation Update**: Update translation files
+- **Translation Compile**: Compile translation files
+- **Create Virtual Environment**: Set up the development environment
+- **Sync Dependencies**: Install project dependencies
+
+These tasks use the same `just` and `uv` commands but provide a convenient GUI interface within VS Code.
 
 ### Using uv directly
 

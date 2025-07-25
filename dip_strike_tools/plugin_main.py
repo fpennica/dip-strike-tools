@@ -57,10 +57,10 @@ class DipStrikeToolsPlugin:
 
         self.actions = []
 
-        self.menu = self.tr("&Dip Strike Tools")
+        self.menu = self.tr("&Dip-Strike Tools")
 
         # toolbar
-        self.toolbar = self.iface.addToolBar("Dip Strike Tools")
+        self.toolbar = self.iface.addToolBar("Dip-Strike Tools")
         self.toolbar.setObjectName("DipStrikeToolsToolbar")
 
     def add_action(
@@ -246,7 +246,7 @@ class DipStrikeToolsPlugin:
             del self.tools_menu_button
 
         for action in self.actions:
-            self.iface.removePluginDatabaseMenu(self.tr("&Dip Strike Tools"), action)
+            self.iface.removePluginDatabaseMenu(self.tr("&Dip-Strike Tools"), action)
             self.iface.removeToolBarIcon(action)
         del self.toolbar
 

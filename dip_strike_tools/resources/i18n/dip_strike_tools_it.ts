@@ -45,7 +45,7 @@ Questo sostituirà tutte le voci correnti con:
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="63"/>
         <source>Dip/Strike Data</source>
-        <translation>Dati Dip/Strike (Immersione/Direzione)</translation>
+        <translation>Dati Dip/Strike</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="76"/>
@@ -89,8 +89,8 @@ Questo sostituirà tutte le voci correnti con:
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="375"/>
-        <source>Dip Value</source>
-        <translation>Immersione</translation>
+        <source>Dip Angle</source>
+        <translation type="unfinished">Inclinazione (Dip)</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="385"/>
@@ -130,99 +130,124 @@ Questo sostituirà tutte le voci correnti con:
     <message>
         <location filename="../../gui/dlg_insert_dip_strike.ui" line="382"/>
         <source>Value of the dip angle (0-90°)</source>
-        <translation>Valore dell'angolo di immersione (0-90°)</translation>
+        <translation>Valore dell'angolo dip (0-90°)</translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="551"/>
+        <source>null</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="564"/>
+        <source>m.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="571"/>
+        <source>The elevation value will be taken from this layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="596"/>
+        <source>Refresh</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.ui" line="605"/>
+        <source>Elevation</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>DipStrikeToolsPlugin</name>
     <message>
-        <location filename="../../plugin_main.py" line="243"/>
-        <source>&amp;Dip Strike Tools</source>
-        <translation>&amp;Strumenti Immersione Direzione</translation>
-    </message>
-    <message>
-        <location filename="../../plugin_main.py" line="101"/>
+        <location filename="../../plugin_main.py" line="103"/>
         <source>Help</source>
         <translation>Aiuto</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="108"/>
+        <location filename="../../plugin_main.py" line="110"/>
         <source>Settings</source>
         <translation>Impostazioni</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="132"/>
+        <location filename="../../plugin_main.py" line="134"/>
         <source>Create or Update a Dip Strike Point</source>
-        <translation>Crea o Modifica un Punto di Immersione/Direzione (giacitura)</translation>
+        <translation>Crea o Modifica un Punto Dip/Strike (giacitura)</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="120"/>
+        <location filename="../../plugin_main.py" line="122"/>
         <source>Create New Dip Strike Layer</source>
-        <translation>Crea Nuovo Layer di Immersione/Direzione (giaciture)</translation>
+        <translation>Crea Nuovo Layer Dip/Strike (giaciture)</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="372"/>
+        <location filename="../../plugin_main.py" line="371"/>
         <source>Symbology applied successfully.</source>
         <translation>Simbologia applicata con successo.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="374"/>
+        <location filename="../../plugin_main.py" line="373"/>
         <source>Failed to apply symbology.</source>
         <translation>Impossibile applicare la simbologia.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="376"/>
+        <location filename="../../plugin_main.py" line="375"/>
         <source>New dip strike layer &apos;{}&apos; created and added to project.</source>
-        <translation>Nuovo layer immersione direzione '{}' creato e aggiunto al progetto.</translation>
+        <translation>Nuovo layer dip/strike '{}' creato e aggiunto al progetto.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="382"/>
+        <location filename="../../plugin_main.py" line="381"/>
         <source>Error creating layer: {}</source>
         <translation>Errore nella creazione del layer: {}</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="384"/>
+        <location filename="../../plugin_main.py" line="383"/>
         <source>Layer creation cancelled.</source>
         <translation>Creazione layer annullata.</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="143"/>
+        <location filename="../../plugin_main.py" line="145"/>
         <source>Calculate Dip/Strike Values</source>
         <translation>Calcola valori di Dip/Strike</translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="400"/>
+        <location filename="../../plugin_main.py" line="399"/>
         <source>Calculation completed successfully: {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="408"/>
+        <location filename="../../plugin_main.py" line="407"/>
         <source>Calculation failed: {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="411"/>
+        <location filename="../../plugin_main.py" line="410"/>
         <source>Error during calculation: {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="413"/>
+        <location filename="../../plugin_main.py" line="412"/>
         <source>Calculation cancelled.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="155"/>
+        <location filename="../../plugin_main.py" line="157"/>
         <source>Additional Tools and Plugin Info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="160"/>
+        <location filename="../../plugin_main.py" line="162"/>
         <source>Dip-Strike Tools Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../plugin_main.py" line="169"/>
+        <location filename="../../plugin_main.py" line="171"/>
         <source>Dip-Strike Tools Info</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../plugin_main.py" line="249"/>
+        <source>&amp;Dip-Strike Tools</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -231,7 +256,7 @@ Questo sostituirà tutte le voci correnti con:
     <message>
         <location filename="../../gui/dlg_create_layer.py" line="53"/>
         <source>Create New Dip/Strike Layer</source>
-        <translation>Crea Nuovo Layer Immersione/Direzione</translation>
+        <translation>Crea Nuovo Layer Dip/Strike</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_create_layer.py" line="65"/>
@@ -274,9 +299,9 @@ Questo sostituirà tutte le voci correnti con:
         <translation>Formato di Output:</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="326"/>
+        <location filename="../../gui/dlg_create_layer.py" line="332"/>
         <source>Save Dip/Strike Layer</source>
-        <translation>Salva Layer Immersione/Direzione</translation>
+        <translation>Salva Layer Dip/Strike</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_create_layer.py" line="116"/>
@@ -369,57 +394,57 @@ Questo sostituirà tutte le voci correnti con:
         <translation>Aggiungi un campo per memorizzare note aggiuntive</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="226"/>
+        <location filename="../../gui/dlg_create_layer.py" line="232"/>
         <source>Symbology Options</source>
         <translation>Opzioni di Simbologia</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="230"/>
+        <location filename="../../gui/dlg_create_layer.py" line="236"/>
         <source>Apply default symbology</source>
         <translation>Applica simbologia predefinita</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="232"/>
+        <location filename="../../gui/dlg_create_layer.py" line="238"/>
         <source>Apply predefined single symbol symbology with rotated symbols and dip value labels</source>
-        <translation>Applica simbologia predefinita a simbolo singolo con simboli ruotati e etichette dei valori di immersione</translation>
+        <translation>Applica simbologia predefinita a simbolo singolo con simboli ruotati ed etichetta con valore di Dip</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="323"/>
+        <location filename="../../gui/dlg_create_layer.py" line="329"/>
         <source>Select or Create GeoPackage</source>
         <translation>Seleziona o Crea GeoPackage</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="379"/>
+        <location filename="../../gui/dlg_create_layer.py" line="385"/>
         <source>Invalid Input</source>
         <translation>Input Non Valido</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="361"/>
+        <location filename="../../gui/dlg_create_layer.py" line="367"/>
         <source>Please enter a layer name.</source>
         <translation>Inserisci un nome per il layer.</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="379"/>
+        <location filename="../../gui/dlg_create_layer.py" line="385"/>
         <source>Please specify an output file path.</source>
         <translation>Specifica un percorso per il file di output.</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="393"/>
+        <location filename="../../gui/dlg_create_layer.py" line="399"/>
         <source>Invalid Filename</source>
         <translation>Nome File Non Valido</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="393"/>
+        <location filename="../../gui/dlg_create_layer.py" line="399"/>
         <source>Shapefile names cannot contain these characters: {}</source>
         <translation>I nomi degli shapefile non possono contenere questi caratteri: {}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="405"/>
+        <location filename="../../gui/dlg_create_layer.py" line="411"/>
         <source>Long Filename</source>
         <translation>Nome File Lungo</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="405"/>
+        <location filename="../../gui/dlg_create_layer.py" line="411"/>
         <source>Shapefile names longer than 10 characters may cause issues.
 Current name: &apos;{}&apos; ({} characters)
 
@@ -430,22 +455,22 @@ Nome corrente: '{}' ({} caratteri)
 Continuare comunque?</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="428"/>
+        <location filename="../../gui/dlg_create_layer.py" line="434"/>
         <source>Error</source>
         <translation>Errore</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="428"/>
+        <location filename="../../gui/dlg_create_layer.py" line="434"/>
         <source>Cannot create output directory: {}</source>
         <translation>Impossibile creare la directory di output: {}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="439"/>
+        <location filename="../../gui/dlg_create_layer.py" line="445"/>
         <source>Add to Existing GeoPackage</source>
         <translation>Aggiungi al GeoPackage Esistente</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="439"/>
+        <location filename="../../gui/dlg_create_layer.py" line="445"/>
         <source>The GeoPackage &apos;{}&apos; already exists.
 
 The new layer will be added to this existing GeoPackage database.
@@ -456,18 +481,28 @@ Il nuovo layer sarà aggiunto a questo database GeoPackage esistente.
 Continuare?</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="454"/>
+        <location filename="../../gui/dlg_create_layer.py" line="460"/>
         <source>File Exists</source>
         <translation>File Esistente</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_create_layer.py" line="454"/>
+        <location filename="../../gui/dlg_create_layer.py" line="460"/>
         <source>The file &apos;{}&apos; already exists.
 
 Overwrite it?</source>
         <translation>Il file '{}' esiste già.
 
 Sovrascriverlo?</translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_create_layer.py" line="221"/>
+        <source>Elevation (z_value)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_create_layer.py" line="223"/>
+        <source>Add a field to store elevation/z-value information</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -480,12 +515,12 @@ Sovrascriverlo?</translation>
     <message>
         <location filename="../../gui/dlg_field_config.py" line="68"/>
         <source>Dip Azimuth</source>
-        <translation>Azimut Immersione</translation>
+        <translation>Dip Azimut</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_field_config.py" line="69"/>
         <source>Dip Value</source>
-        <translation>Valore Immersione</translation>
+        <translation>Valore Dip</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_field_config.py" line="73"/>
@@ -508,112 +543,112 @@ Sovrascriverlo?</translation>
         <translation>Note</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="555"/>
+        <location filename="../../gui/dlg_field_config.py" line="557"/>
         <source>&lt;None&gt;</source>
         <translation>&lt;Nessuno&gt;</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="219"/>
+        <location filename="../../gui/dlg_field_config.py" line="221"/>
         <source>❌ Duplicate field mappings: {mappings}</source>
         <translation>❌ Mappature di campo duplicate: {mappings}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="228"/>
+        <location filename="../../gui/dlg_field_config.py" line="230"/>
         <source>⚠️ Missing required fields: {fields}</source>
         <translation>⚠️ Campi obbligatori mancanti: {fields}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="237"/>
+        <location filename="../../gui/dlg_field_config.py" line="239"/>
         <source>✅ All required fields are mapped</source>
         <translation>✅ Tutti i campi obbligatori sono mappati</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="239"/>
+        <location filename="../../gui/dlg_field_config.py" line="241"/>
         <source> | Optional fields: {fields}</source>
         <translation> | Campi opzionali: {fields}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="256"/>
+        <location filename="../../gui/dlg_field_config.py" line="258"/>
         <source>Cannot save: duplicate field mappings detected</source>
         <translation>Impossibile salvare: rilevate mappature di campo duplicate</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="258"/>
+        <location filename="../../gui/dlg_field_config.py" line="260"/>
         <source>Cannot save: required fields are missing</source>
         <translation>Impossibile salvare: campi obbligatori mancanti</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="262"/>
+        <location filename="../../gui/dlg_field_config.py" line="264"/>
         <source>Save field mappings and close dialog</source>
         <translation>Salva mappature campi e chiudi finestra</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="298"/>
+        <location filename="../../gui/dlg_field_config.py" line="300"/>
         <source>Configure Field Mappings - {layer_name}</source>
         <translation>Configura Mappature Campi - {layer_name}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="313"/>
+        <location filename="../../gui/dlg_field_config.py" line="315"/>
         <source>Map the required and optional fields for layer: &lt;b&gt;{layer_name}&lt;/b&gt;&lt;br/&gt;&lt;small&gt;Layer has {feature_count} features and {field_count} fields.&lt;/small&gt;</source>
         <translation>Mappa i campi obbligatori e opzionali per il layer: &lt;b&gt;{layer_name}&lt;/b&gt;&lt;br/&gt;&lt;small&gt;Il layer ha {feature_count} feature e {field_count} campi.&lt;/small&gt;</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="327"/>
+        <location filename="../../gui/dlg_field_config.py" line="329"/>
         <source>Required Fields</source>
         <translation>Campi Obbligatori</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="360"/>
+        <location filename="../../gui/dlg_field_config.py" line="362"/>
         <source>Select the layer field that contains {field_type} data</source>
         <translation>Seleziona il campo del layer che contiene i dati di {field_type}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="378"/>
+        <location filename="../../gui/dlg_field_config.py" line="380"/>
         <source>Optional Fields</source>
         <translation>Campi Opzionali</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="385"/>
+        <location filename="../../gui/dlg_field_config.py" line="387"/>
         <source>Select the layer field that contains {field_type} data (optional)</source>
         <translation>Seleziona il campo del layer che contiene i dati di {field_type} (opzionale)</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="403"/>
+        <location filename="../../gui/dlg_field_config.py" line="405"/>
         <source>Geological Type Configuration</source>
         <translation>Configurazione Tipo Geologico</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="407"/>
+        <location filename="../../gui/dlg_field_config.py" line="409"/>
         <source>Store numerical code (1, 2, 3...)</source>
         <translation>Codice numerico (1, 2, 3...)</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="408"/>
+        <location filename="../../gui/dlg_field_config.py" line="410"/>
         <source>Store text description (Strata, Foliation...)</source>
         <translation>Descrizione testuale (Strati, Foliazione...)</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="409"/>
+        <location filename="../../gui/dlg_field_config.py" line="411"/>
         <source>Choose whether the geo_type field should store numerical codes or text descriptions</source>
         <translation>Scegli se il campo geo_type deve memorizzare codici numerici o descrizioni testuali</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="425"/>
+        <location filename="../../gui/dlg_field_config.py" line="427"/>
         <source>Storage Mode:</source>
         <translation>Modalità di storage:</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="516"/>
+        <location filename="../../gui/dlg_field_config.py" line="518"/>
         <source>• Field '{field}' is mapped to both {mappings}</source>
         <translation>• Il campo '{field}' è mappato a entrambi {mappings}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="522"/>
+        <location filename="../../gui/dlg_field_config.py" line="524"/>
         <source>Duplicate Field Mappings</source>
         <translation>Mappature di Campo Duplicate</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="522"/>
+        <location filename="../../gui/dlg_field_config.py" line="524"/>
         <source>Each layer field can only be mapped once:
 
 {duplicates}
@@ -626,12 +661,12 @@ Please select different fields for each mapping.</source>
 Si prega di selezionare campi diversi per ogni mappatura.</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="531"/>
+        <location filename="../../gui/dlg_field_config.py" line="533"/>
         <source>Missing Required Fields</source>
         <translation>Campi Obbligatori Mancanti</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="531"/>
+        <location filename="../../gui/dlg_field_config.py" line="533"/>
         <source>The following required fields must be mapped:
 
 {fields}</source>
@@ -640,85 +675,90 @@ Si prega di selezionare campi diversi per ogni mappatura.</translation>
 {fields}</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_field_config.py" line="531"/>
+        <location filename="../../gui/dlg_field_config.py" line="533"/>
         <source>• {field}</source>
         <translation>• {field}</translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_field_config.py" line="77"/>
+        <source>Elevation</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>DlgInsertDipStrike</name>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="46"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="45"/>
         <source>Edit Dip/Strike Data - {} (Feature {})</source>
-        <translation>Modifica Dati Immersione/Direzione - {} (Feature {})</translation>
+        <translation>Modifica Dati Dip/Strike - {} (Feature {})</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="51"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="50"/>
         <source>Insert New Dip/Strike Point</source>
-        <translation>Inserisci Nuovo Punto Immersione/Direzione</translation>
+        <translation>Inserisci Nuovo Punto Dip/Strike</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="71"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="70"/>
         <source>Configure field mappings for this layer</source>
         <translation>Configura le mappature dei campi per questo layer</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="76"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="75"/>
         <source>Create a new layer for dip/strike features</source>
-        <translation>Crea un nuovo layer per le feature di immersione/direzione</translation>
+        <translation>Crea un nuovo layer per le feature di Dip/Strike</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="119"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="118"/>
         <source>Enter azimuth value in decimal degrees from North (0.00-360.00°)</source>
         <translation>Inserisci il valore dell'azimut in gradi decimali dal Nord (0.00-360.00°)</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="239"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="230"/>
         <source>Layer Opacity</source>
         <translation>Opacità Layer</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="688"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="738"/>
         <source>Update</source>
         <translation>Aggiorna</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="689"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="739"/>
         <source>Update existing dip/strike data in the selected feature layer</source>
-        <translation>Aggiorna i dati di immersione/direzione esistenti nel layer selezionato</translation>
+        <translation>Aggiorna i dati di Dip/Strike esistenti nel layer selezionato</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="691"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="741"/>
         <source>Save</source>
         <translation>Salva</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="692"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="742"/>
         <source>Save dip/strike data to the selected feature layer</source>
-        <translation>Salva i dati di immersione/direzione nel layer selezionato</translation>
+        <translation>Salva i dati di Dip/Strike nel layer selezionato</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="703"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="753"/>
         <source>Cancel and close dialog without saving</source>
         <translation>Annulla e chiudi la finestra senza salvare</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="1076"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1126"/>
         <source>* Azimuth value relative to true North</source>
         <translation>* Valore azimut relativo al Nord geografico</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="1077"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1127"/>
         <source>* Azimuth value relative to top of the map/screen</source>
         <translation>* Valore azimut relativo alla parte superiore della mappa/schermo</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="1262"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1312"/>
         <source>Layer Configuration Required</source>
         <translation>Configurazione del layer richiesta</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="1262"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1312"/>
         <source>The selected layer &apos;{layer_name}&apos; is missing required fields for dip/strike data:
 
 Missing fields: {missing_fields}
@@ -735,8 +775,67 @@ Vuoi configurare i campi adesso?
 Questo strumento permetterà di mappare i campi esistenti del layer con quelli richiesti dal plugin.</translation>
     </message>
     <message>
-        <location filename="../../gui/dlg_insert_dip_strike.py" line="350"/>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="344"/>
         <source>Read-Only Layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1805"/>
+        <source>Enter elevation in meters</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1806"/>
+        <source>Elevation value in meters (leave empty for no data)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1823"/>
+        <source>Extract elevation from selected DTM layer (requires DTM layer selection)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1845"/>
+        <source>Unsuitable DTM Layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1845"/>
+        <source>The selected layer &apos;{layer_name}&apos; is not suitable for elevation extraction:
+
+{error}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1875"/>
+        <source>No DTM Layer Selected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1875"/>
+        <source>Please select a DTM layer first, or enter elevation manually.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1885"/>
+        <source>No Point Available</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1885"/>
+        <source>No point available for elevation extraction.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1897"/>
+        <source>Elevation Extraction Failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../gui/dlg_insert_dip_strike.py" line="1897"/>
+        <source>Failed to extract elevation from DTM:
+
+{error}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -745,12 +844,12 @@ Questo strumento permetterà di mappare i campi esistenti del layer con quelli r
     <message>
         <location filename="../../gui/dlg_settings.ui" line="14"/>
         <source>Dip Strike Tools - Settings</source>
-        <translation>Strumenti Immersione Direzione - Impostazioni</translation>
+        <translation>Strumenti Dip/Strike - Impostazioni</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_settings.ui" line="44"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;PluginTitle - Version X.X.X&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Strumenti Immersione Direzione - Versione X.X.X&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Dip/Strike Tools - Versione X.X.X&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../../gui/dlg_settings.ui" line="75"/>
