@@ -13,20 +13,6 @@ Tests are organized using pytest markers:
 - `@pytest.mark.qgis`: Tests that require QGIS environment
 - `@pytest.mark.integration`: Integration tests
 
-## Requirements
-
-- Python >= 3.11
-- QGIS 3.40 - 3.99
-- uv for dependency management
-
-```bash
-# Install testing dependencies with uv
-uv sync --group testing
-
-# Or with pip
-python -m pip install -U -r requirements/testing.txt
-```
-
 ## Run tests
 
 ### Using justfile (recommended)
@@ -75,22 +61,6 @@ uv run pytest tests/unit/test_plugin_main.py::TestDipStrikeToolsPluginBasic -v
 
 # Run specific test method
 uv run pytest tests/unit/test_plugin_main.py::TestDipStrikeToolsPluginBasic::test_plugin_import -v
-```
-
-### Legacy unittest commands (still supported)
-
-```bash
-# run only unit tests with pytest launcher (disabling pytest-qgis)
-python -m pytest -p no:qgis tests/unit
-
-# run only QGIS tests with pytest launcher
-python -m pytest tests/qgis
-
-# run a specific test module using standard unittest
-python -m unittest tests.unit.test_plg_metadata
-
-# run a specific test function using standard unittest
-python -m unittest tests.unit.test_plg_metadata.TestPluginMetadata.test_version_semver
 ```
 
 ## Test Structure
@@ -193,13 +163,3 @@ class TestMyModuleQGIS:
         # Test with real QGIS
         pass
 ```
-
-## Continuous Integration
-
-Tests are designed to work in CI environments. The project structure supports:
-
-- **Local development**: Full test suite with QGIS
-- **CI environments**: Unit tests only (when QGIS unavailable)
-- **Docker**: Tests can run in QGIS Docker containers
-
-Use markers to run appropriate test subsets in different environments.

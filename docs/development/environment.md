@@ -108,7 +108,7 @@ source .venv/bin/activate
 
 # Upgrade pip and install dependencies
 python -m pip install -U pip
-python -m pip install -U -r requirements/development.txt
+python -m pip install -U pytest  # install dependencies listed in pyproject.toml
 
 # Install git hooks (pre-commit)
 pre-commit install
@@ -206,7 +206,7 @@ just package <version>
 
 ### Using uv directly
 
-You can also use `uv` directly for package management:
+Use `uv run <command>` to ensure commands run in the correct virtual environment.
 
 ```bash
 # Run commands in the virtual environment
@@ -228,19 +228,3 @@ uv sync --all-groups  # Install all dependency groups
 uv lock --upgrade  # Update lock file
 uv sync  # Apply updates
 ```
-
-## Development Workflow
-
-1. **Setup**: Run `just bootstrap-dev` to set up everything
-2. **Code**: Make your changes to the plugin code
-3. **Test**: Run `just test` to execute the test suite
-4. **QGIS Testing**: Launch QGIS (native or Docker) to test your changes
-5. **Dependencies**: Use `uv add <package>` to add new dependencies
-6. **Documentation**: Use `just docs-autobuild` for live documentation updates
-
-## Important Notes
-
-- Always use `uv run <command>` to ensure commands run in the correct virtual environment
-- The project uses dependency groups in `pyproject.toml` to organize dependencies by purpose
-- Testing is done with pytest and pytest-qgis for QGIS-specific functionality
-- Translation files are managed through the `just trans-update` and `just trans-compile` commands

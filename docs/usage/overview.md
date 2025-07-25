@@ -96,7 +96,3 @@ Batch calculation tool for converting between strike and dip azimuths in existin
 Configure plugin behavior and customize geological type classifications for your specific workflow.
 
 [→ Learn more about Settings](settings.md)
-
-## Data Storage Formats
-
-The plugin supports multiple vector formats including **memory layers** for temporary layers for quick analysis, **shapefiles** for traditional GIS format with field mapping support and **GeoPackages** for modern format with extended field names and attributes.

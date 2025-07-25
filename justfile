@@ -31,7 +31,7 @@ dev-link QGIS_PLUGIN_PATH="/home/francesco/.local/share/QGIS/QGIS3/profiles/defa
     # Show success message
     echo "Plugin symlink created at {{ QGIS_PLUGIN_PATH }}/dip_strike_tools"
 
-@bootstrap-dev: create-venv dev-link
+@bootstrap-dev: create-venv dev-link trans-compile
 
 @update-deps:
     uv lock --upgrade
