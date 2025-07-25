@@ -2,8 +2,39 @@
 default:
   @just --list
 
-# create venv with uv on linux, assuming qgis is installed with libs in system python dist-packages and shared libraries in /usr/share/qgis/python
-create-venv PYTHON_VERSION="3.12" QGIS_PYTHON_LIB_PATH="/usr/share/qgis/python":
+# create venv with uv on linux, automatically detecting system python version and qgis path
+create-venv:
+    #!/bin/bash
+    set -euo pipefail
+
+    # Detect system Python version
+    PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    echo "Detected system Python version: $PYTHON_VERSION"
+
+    # Try to find QGIS Python libraries in common locations
+    QGIS_PYTHON_LIB_PATH=""
+    for path in "/usr/lib/python${PYTHON_VERSION}/site-packages" "/usr/share/qgis/python" "/usr/local/lib/python${PYTHON_VERSION}/site-packages"; do
+        if [ -d "$path/qgis" ]; then
+            QGIS_PYTHON_LIB_PATH="$path"
+            echo "Found QGIS libraries at: $QGIS_PYTHON_LIB_PATH"
+            break
+        fi
+    done
+
+    if [ -z "$QGIS_PYTHON_LIB_PATH" ]; then
+        echo "Warning: Could not find QGIS Python libraries. Using default path."
+        QGIS_PYTHON_LIB_PATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
+    fi
+
+    # Create virtual environment
+    rm -rf .venv
+    uv venv --system-site-packages --python "$PYTHON_VERSION"
+    echo "$QGIS_PYTHON_LIB_PATH" > .venv/lib/python${PYTHON_VERSION}/site-packages/qgis.pth
+    uv sync --all-groups
+    uv run qgis-plugin-ci changelog latest
+
+# create venv with manual python version and qgis path (for special cases)
+create-venv-manual PYTHON_VERSION QGIS_PYTHON_LIB_PATH:
     rm -rf .venv
     uv venv --system-site-packages --python "{{ PYTHON_VERSION }}"
     echo "{{ QGIS_PYTHON_LIB_PATH }}" > .venv/lib/python{{ PYTHON_VERSION }}/site-packages/qgis.pth
@@ -11,7 +42,7 @@ create-venv PYTHON_VERSION="3.12" QGIS_PYTHON_LIB_PATH="/usr/share/qgis/python":
     uv run qgis-plugin-ci changelog latest
 
 # create symbolic links for development
-dev-link QGIS_PLUGIN_PATH="/home/francesco/.local/share/QGIS/QGIS3/profiles/default/python/plugins":
+dev-link QGIS_PLUGIN_PATH="~/.local/share/QGIS/QGIS3/profiles/default/python/plugins":
     #!/bin/bash
     # Ensure the target directory exists
     mkdir -p {{ QGIS_PLUGIN_PATH }}
@@ -43,14 +74,17 @@ trans-compile:
     uv run lrelease ./dip_strike_tools/resources/i18n/*.ts
 
 docs-autobuild:
+    uv sync --group docs
     uv run sphinx-autobuild -b html docs/ docs/_build --port 8000
 
 docs-build-html:
+    uv sync --group docs
     uv run sphinx-build -b html -j auto -d docs/_build/cache -q docs docs/_build/html
 
 docs-build-pdf:
     #!/bin/bash
     set -e
+    uv sync --group docs
     uv run sphinx-build -b latex -j auto -d docs/_build/cache -q docs docs/_build/latex
     pushd docs/_build/latex
     latexmk -pdf -dvi- -ps- -interaction=nonstopmode -halt-on-error dipstriketools.tex

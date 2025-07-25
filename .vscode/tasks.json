@@ -6,30 +6,84 @@
         {
             "label": "Upgrade dependencies - Development",
             "type": "shell",
-            "osx": {
-                "command": "${config:python.defaultInterpreterPath} -m pip install -U -r requirements/development.txt"
-            },
-            "windows": {
-                "command": "${config:python.defaultInterpreterPath} -m pip install -U -r requirements/development.txt"
-            },
-            "linux": {
-                "command": "${config:python.defaultInterpreterPath} -m pip install -U -r requirements/development.txt"
+            "command": "just",
+            "args": ["upgrade-deps"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
             },
             "problemMatcher": []
         },
         {
             "label": "Translation Update",
             "type": "shell",
-            "linux": {
-                "command": "pylupdate5 -verbose dip_strike_tools/resources/i18n/plugin_translation.pro"
+            "command": "just",
+            "args": ["translation-update"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
             },
             "problemMatcher": []
         },
         {
             "label": "Translation Compile",
             "type": "shell",
-            "linux": {
-                "command": "lrelease dip_strike_tools/resources/i18n/*.ts "
+            "command": "just",
+            "args": ["translation-compile"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "just",
+            "args": ["test"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create Virtual Environment",
+            "type": "shell",
+            "command": "just",
+            "args": ["create-venv"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Sync Dependencies",
+            "type": "shell",
+            "command": "just",
+            "args": ["sync"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
             },
             "problemMatcher": []
         }

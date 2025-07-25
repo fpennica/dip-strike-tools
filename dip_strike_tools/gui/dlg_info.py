@@ -3,7 +3,11 @@ from functools import partial
 from pathlib import Path
 from typing import Dict
 
-import pyplugin_installer
+try:
+    import pyplugin_installer
+except ImportError:
+    pyplugin_installer = None
+
 from packaging.version import parse
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
@@ -144,7 +148,8 @@ class PluginInfo(QDialog, FORM_CLASS):
             # If empty, try refreshing the cache and retry once
             if not plugin_metadata:
                 self.log(f"Plugin metadata empty for {plugin_name}, refreshing cache", log_level=1)
-                pyplugin_installer.instance().reloadAndExportData()
+                if pyplugin_installer is not None:
+                    pyplugin_installer.instance().reloadAndExportData()
                 plugin_metadata = iface.pluginManagerInterface().pluginMetadata(plugin_name)  # type: ignore
 
         except AttributeError as e:

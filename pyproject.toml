@@ -3,7 +3,7 @@ name = "dip-strike-tools"
 description = "Tools to digitize and manage dip and strike data from scanned geological maps"
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 dependencies = []
 
 [dependency-groups]
@@ -23,7 +23,7 @@ ci = [
 ]
 docs = [
     "sphinx-rtd-theme>=3.0.2",
-    "myst-parser[linkify]>=4.0.0",
+    "myst-parser[linkify]>=3.0.0,<4.0.0",
     "sphinx-copybutton>=0.5.0",
     "sphinx-autobuild>=2024.1.1",
 ]

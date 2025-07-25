@@ -4,6 +4,7 @@
 
 from functools import partial
 from pathlib import Path
+from typing import Optional
 
 from qgis.core import QgsApplication, QgsProject, QgsSettings
 from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator, QUrl
@@ -70,8 +71,8 @@ class DipStrikeToolsPlugin:
         enabled_flag: bool = True,
         add_to_menu: bool = True,
         add_to_toolbar: bool = True,
-        status_tip: str | None = None,
-        whats_this: str | None = None,
+        status_tip: Optional[str] = None,
+        whats_this: Optional[str] = None,
         parent=None,
     ):
         icon = QIcon(icon_path)

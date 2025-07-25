@@ -60,12 +60,9 @@ Using uv (recommended):
 ```bash
 # Create virtual environment with system-site-packages for PyQGIS
 just create-venv
-```
 
-You can also specify Python version and QGIS Python library path:
-
-```bash
-just create-venv 3.11 /usr/share/qgis/python
+# Manual override of the system python version if needed
+just create-venv-manual 3.13
 ```
 
 Alternative methods:

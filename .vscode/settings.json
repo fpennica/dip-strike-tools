@@ -4,7 +4,6 @@
     "editor.bracketPairColorization.enabled": true,
     "editor.guides.bracketPairs": "active",
     "files.associations": {
-        "./requirements/*.txt": "pip-requirements",
         "metadata.txt": "ini",
         "**/*.model3": "xml",
         "**/*.ts": "xml",
