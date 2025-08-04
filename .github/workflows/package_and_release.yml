@@ -158,14 +158,19 @@ jobs:
           # git add full project
           git add ${{ env.PROJECT_FOLDER }}/
 
+      - name: Generate Changelog for GitHub Release
+        run: uv run qgis-plugin-ci changelog ${GITHUB_REF/refs\/tags\//} > RELEASE-CHANGELOG.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          fail_on_unmatched_files: true
-          generate_release_notes: true
+          # fail_on_unmatched_files: true
+          # generate_release_notes: true
+          body_path: RELEASE-CHANGELOG.txt
 
       - name: Deploy plugin
         run: |
+          rm RELEASE-CHANGELOG.txt
           cp --remove-destination LICENSE ${{ env.PROJECT_FOLDER }}/
           cp --remove-destination CHANGELOG.md ${{ env.PROJECT_FOLDER }}/
           cp --remove-destination CREDITS.md ${{ env.PROJECT_FOLDER }}/
