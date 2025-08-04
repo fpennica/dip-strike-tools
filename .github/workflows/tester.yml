@@ -1,0 +1,83 @@
+name: "🎳 Tester"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.py'
+      - .github/workflows/tester.yml
+      - pyproject.toml
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**.py'
+      - .github/workflows/tester.yml
+      - pyproject.toml
+
+env:
+  PROJECT_FOLDER: "dip_strike_tools"
+  PYTHON_VERSION: "3.11"
+
+
+jobs:
+  test-all:
+    runs-on: ubuntu-latest
+
+    container:
+      image: qgis/qgis:3.40
+      env:
+        CI: true
+        DISPLAY: ":1"
+        MUTE_LOGS: true
+        NO_MODALS: 1
+        PYTHONPATH: "/usr/share/qgis/python/plugins:/usr/share/qgis/python:."
+        QT_QPA_PLATFORM: "offscreen"
+        WITH_PYTHON_PEP: false
+      # be careful, things have changed since QGIS 3.40. So if you are using this setup
+      #  with a QGIS version older than 3.40, you may need to change the way you set up the container
+      volumes:
+        # Mount the X11 socket to allow GUI applications to run
+        - /tmp/.X11-unix:/tmp/.X11-unix
+        # Mount the workspace directory to the container
+        - ${{ github.workspace }}:/home/root/
+
+    steps:
+      - name: Get source code
+        uses: actions/checkout@v4
+
+      - name: Print QGIS version
+        run: qgis --version
+
+      - name: Install Python requirements
+        run: |
+          apt update && apt install -y python3-pip python3-venv pipx curl
+          # Install uv
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          # Add uv to PATH for this session
+          export PATH="$HOME/.local/bin:$PATH"
+          # Navigate to workspace directory
+          cd /home/root/
+          # Create QGIS virtual environment using pipx
+          pipx run qgis-venv-creator --venv-name ".venv"
+          # Install project dependencies using uv
+          rm -f /home/root/uv.lock
+          uv sync --group testing --python .venv/bin/python
+
+      - name: Run Unit tests
+        run: |
+          cd /home/root/
+          # Add uv to PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          # Run unit tests (pure Python tests)
+          xvfb-run uv run --python .venv/bin/python pytest tests/unit/ -v
+
+      - name: Run QGIS tests
+        run: |
+          cd /home/root/
+          # Add uv to PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          # Run QGIS-specific tests
+          xvfb-run uv run --python .venv/bin/python pytest tests/qgis/ -v --junitxml=junit/test-results-qgis.xml --cov-report=xml:coverage-reports/coverage-qgis.xml

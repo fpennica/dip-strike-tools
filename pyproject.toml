@@ -1,0 +1,161 @@
+[project]
+name = "dip-strike-tools"
+description = "Tools to digitize and manage dip and strike data from scanned geological maps"
+dynamic = ["version"]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0.1",
+    "ruff>=0.8.2",
+    "esbonio>=0.16.5",
+]
+testing = [
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "pytest-qgis>=2.1.0",
+    "packaging>=23.0",
+]
+ci = [
+    "qgis-plugin-ci>=2.8.10",
+]
+docs = [
+    "sphinx-rtd-theme>=3.0.2",
+    "myst-parser[linkify]>=3.0.0,<4.0.0",
+    "sphinx-copybutton>=0.5.0",
+    "sphinx-autobuild>=2024.1.1",
+]
+
+[tool.qgis-plugin-ci]
+plugin_name = "Dip Strike Tools"
+plugin_path = "dip_strike_tools"
+project_slug = "dip-strike-tools"
+github_organization_slug = "CNR-IGAG"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 119
+indent-width = 4
+
+# [tool.ruff.lint]
+# select = [
+#   "F",
+#   "E",
+#   "W",
+#   "C90",
+#   "I",
+#   "N",
+#   "UP",
+#   "YTT",
+#   # "ANN", # flake8-annotations: we should support this in the future but 100+ errors atm
+#   "ASYNC",
+#   "S",
+#   "BLE",
+#   "FBT",
+#   "B",
+#   "A",
+#   "COM",
+#   "C4",
+#   "DTZ",
+#   "T10",
+#   "DJ",
+#   "EM",
+#   "EXE",
+#   "FA",
+#   'ISC',
+#   "ICN",
+#   "G",
+#   'INP',
+#   'PIE',
+#   "T20",
+#   'PYI',
+#   'PT',
+#   "Q",
+#   "RSE",
+#   "RET",
+#   "SLF",
+#   "SLOT",
+#   "SIM",
+#   "TID",
+#   "TC",
+#   "INT",
+#   # "ARG", # Unused function argument
+#   "PTH",
+#   "ERA",
+#   "PD",
+#   "PGH",
+#   "PL",
+#   "TRY",
+#   "FLY",
+#   # "NPY",
+#   # "AIR",
+#   "PERF",
+#   # "FURB",
+#   # "LOG",
+#   "RUF",
+# ]
+# ignore = [
+#   "S101", # Use of assert detected https://docs.astral.sh/ruff/rules/assert/
+#   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+#   "SIM102", # sometimes it's better to nest
+#   "ERA001", # commented out code
+#   "PGH004", # noqa specifics
+#   "RUF005", # Consider iterable unpacking instead of concatenation
+#   "UP038", # Checks for uses of isinstance/issubclass that take a tuple
+#           # of types for comparison.
+#           # Deactivated because it can make the code slow:
+#           # https://github.com/astral-sh/ruff/issues/7871
+#   "COM812",
+# ]
+# # The fixes in extend-unsafe-fixes will require
+# # provide the `--unsafe-fixes` flag when fixing.
+# extend-unsafe-fixes = [
+#   "UP038",
+# ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "unit: Unit tests that don't require QGIS",
+    "qgis: Tests that require QGIS environment",
+    "integration: Integration tests",
+]
+
+[tool.coverage.run]
+source = ["dip_strike_tools"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.setuptools]
+packages = ["dip_strike_tools"]
