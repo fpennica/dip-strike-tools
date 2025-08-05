@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 
+@pytest.mark.unit
 class TestDipStrikeToolsPluginBasic:
     """Basic tests for DipStrikeToolsPlugin that don't require QGIS."""
 
@@ -174,6 +175,7 @@ class TestDipStrikeToolsPluginBasic:
             assert callable(getattr(DipStrikeToolsPlugin, method_name)), f"Method {method_name} is not callable"
 
 
+@pytest.mark.unit
 class TestPluginConstants:
     """Test plugin constants and configuration."""
 
@@ -214,6 +216,7 @@ class TestPluginConstants:
 pytestmark = pytest.mark.unit
 
 
+@pytest.mark.integration
 class TestDipStrikeToolsPluginAdvanced:
     """Advanced tests for DipStrikeToolsPlugin functionality."""
 

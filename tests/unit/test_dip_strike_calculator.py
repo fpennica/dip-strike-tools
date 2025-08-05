@@ -4,9 +4,12 @@
 
 import unittest
 
+import pytest
+
 from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
 
+@pytest.mark.unit
 class TestDipStrikeCalculator(unittest.TestCase):
     """Test DipStrikeCalculator functionality."""
 

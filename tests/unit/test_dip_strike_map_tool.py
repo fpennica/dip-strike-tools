@@ -7,6 +7,7 @@ import unittest
 import pytest
 
 
+@pytest.mark.unit
 class TestDipStrikeMapToolUnit(unittest.TestCase):
     """Unit tests for DipStrikeMapTool that don't require QGIS environment."""
 

@@ -28,7 +28,18 @@ def tr(self, message: str) -> str:
 
 Avoid translation of log messages, especially at debug level, as these are meant for developers and not end-users. Avoid translation of technical identifiers such as field names or variable names, as these should remain consistent across languages for clarity and maintainability.
 
-The plugin uses pytest and pytest-qgis for testing, with specific markers for unit tests and QGIS-related tests.
+The plugin uses pytest and [pytest-qgis](https://github.com/GispoCoding/pytest-qgis) for testing, with specific markers for unit tests and QGIS-related tests.
+
+Tests are organized in 2 separate folders:
+
+- `tests/unit`: testing code which is independent of QGIS API (uses mocking)
+- `tests/qgis`: testing code which depends on QGIS API (integration tests)
+
+Tests are organized using pytest markers:
+
+- `@pytest.mark.unit`: Unit tests that don't require QGIS
+- `@pytest.mark.qgis`: Tests that require QGIS environment
+- `@pytest.mark.integration`: Integration tests
 
 When running tests, use the `uv run pytest` command to ensure the correct environment is activated. If there are Qt library issues, use the `--no-group ci` option:
 

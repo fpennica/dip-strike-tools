@@ -72,15 +72,16 @@ The release process is automated through GitHub Actions and follows a standard g
 
 For a tag `X.y.z` (must be SemVer compliant):
 
-1. **Update CHANGELOG.md**: Add the new version entry. You can write it manually or use GitHub's auto-generated release notes:
+1. **Update `CHANGELOG.md`**: Add the new version entry. You can write it manually or use GitHub's auto-generated release notes:
    1. Go to [project's releases](https://github.com/fpennica/dip-strike-tools/releases) and click on `Draft a new release`
-   1. In `Choose a tag`, enter the new tag
-   1. Click on `Generate release notes`
-   1. Copy/paste the generated text from `## What's changed` until the line before `**Full changelog**:...` in the CHANGELOG.md, replacing `What's changed` with the tag and publication date.
+   2. In `Choose a tag`, enter the new tag
+   3. Click on `Generate release notes`
+   4. Copy/paste the generated text from `## What's changed` until the line before `**Full changelog**:...` in the `CHANGELOG.md`, replacing `What's changed` with the tag and publication date.
 
 2. **Update metadata.txt** (optional): Change the version number in `dip_strike_tools/metadata.txt`. It's recommended to use the next version number with `-DEV` suffix (e.g. `1.4.0-DEV` when `X.y.z` is `1.3.0`) to avoid confusion during development.
 
 3. **Create and push the git tag**:
+
    ```bash
    # Create annotated tag
    git tag -a X.y.z {git commit hash} -m "Release version X.y.z"
@@ -92,6 +93,7 @@ For a tag `X.y.z` (must be SemVer compliant):
    ```
 
 4. **Automated CI/CD**: The GitHub Actions workflow will automatically:
+
    - Compile translations
    - Package the plugin
    - Create a GitHub release

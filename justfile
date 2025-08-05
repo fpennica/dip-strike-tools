@@ -102,10 +102,14 @@ test:
     cp --remove-destination LICENSE dip_strike_tools/
     cp --remove-destination CHANGELOG.md dip_strike_tools/
     cp --remove-destination CREDITS.md dip_strike_tools/
+    # remove rule for compiled translations from .gitignore
+    sed -i "s|^\*\.qm|# \*\.qm|" .gitignore
     git add .
     uv run qgis-plugin-ci package -c {{ VERSION }}
     just dev-link
-    git add .
+    # add compiled translations to gitignore
+    sed -i "s|^# \*\.qm|\*\.qm|" .gitignore
+    git reset
 
 @release-test VERSION:
     #!/bin/bash
@@ -113,11 +117,13 @@ test:
     cp --remove-destination LICENSE dip_strike_tools/
     cp --remove-destination CHANGELOG.md dip_strike_tools/
     cp --remove-destination CREDITS.md dip_strike_tools/
+    sed -i "s|^\*\.qm|# \*\.qm|" .gitignore
     git add .
     # run qgis-plugin-ci release without github token and osgeo auth
     uv run qgis-plugin-ci release -c {{ VERSION }}
     just dev-link
-    git add .
+    sed -i "s|^# \*\.qm|\*\.qm|" .gitignore
+    git reset
 
 qgis-ltr-pull:
     docker pull qgis/qgis:ltr

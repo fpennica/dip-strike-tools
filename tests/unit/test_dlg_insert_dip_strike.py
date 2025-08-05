@@ -8,7 +8,10 @@ For integration tests with Qt widgets, see tests/qgis/test_dlg_insert_dip_strike
 import unittest
 from unittest.mock import Mock
 
+import pytest
 
+
+@pytest.mark.unit
 class TestDlgInsertDipStrikeUnit(unittest.TestCase):
     """Unit tests for DlgInsertDipStrike dialog methods."""
 

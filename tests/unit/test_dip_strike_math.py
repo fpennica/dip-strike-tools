@@ -1,12 +1,15 @@
 #! python3  # noqa: E265
 
 """
-Tests for dip_strike_math module.
+Unit tests for dip_strike_math module.
 """
+
+import pytest
 
 from dip_strike_tools.core import dip_strike_math
 
 
+@pytest.mark.unit
 class TestValidateAzimuthRange:
     """Test azimuth range validation."""
 
@@ -32,6 +35,7 @@ class TestValidateAzimuthRange:
         assert dip_strike_math.validate_azimuth_range([]) is False
 
 
+@pytest.mark.unit
 class TestNormalizeAzimuth:
     """Test azimuth normalization."""
 
@@ -54,6 +58,7 @@ class TestNormalizeAzimuth:
         assert dip_strike_math.normalize_azimuth(-45.5) == 314.5
 
 
+@pytest.mark.unit
 class TestCalculateDipFromStrike:
     """Test dip calculation from strike."""
 
@@ -82,6 +87,7 @@ class TestCalculateDipFromStrike:
         assert dip_strike_math.calculate_dip_from_strike("invalid") is None
 
 
+@pytest.mark.unit
 class TestCalculateStrikeFromDip:
     """Test strike calculation from dip."""
 
@@ -110,6 +116,7 @@ class TestCalculateStrikeFromDip:
         assert dip_strike_math.calculate_strike_from_dip("invalid") is None
 
 
+@pytest.mark.unit
 class TestConvertAzimuthWithTrueNorth:
     """Test azimuth conversion with true north bearing."""
 
@@ -140,6 +147,7 @@ class TestConvertAzimuthWithTrueNorth:
         assert result == 350.0
 
 
+@pytest.mark.unit
 class TestGetStrikeAndDipFromAzimuth:
     """Test comprehensive strike and dip calculation from azimuth input."""
 
@@ -200,6 +208,7 @@ class TestGetStrikeAndDipFromAzimuth:
         assert dip == 10.0
 
 
+@pytest.mark.integration
 class TestIntegrationWithExistingLogic:
     """Test integration with existing calculation patterns."""
 

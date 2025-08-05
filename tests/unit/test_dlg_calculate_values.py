@@ -5,12 +5,14 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QApplication
 
 from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues
 
 
+@pytest.mark.qgis  # This test requires QGIS environment due to Qt/PyQt imports
 class TestDlgCalculateValues(unittest.TestCase):
     """Test DlgCalculateValues dialog functionality."""
 

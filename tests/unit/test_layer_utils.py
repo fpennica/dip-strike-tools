@@ -1,10 +1,13 @@
-"""Tests for layer_utils module."""
+"""Unit tests for layer_utils module."""
 
 from unittest.mock import MagicMock
+
+import pytest
 
 from dip_strike_tools.core.layer_utils import check_layer_editability
 
 
+@pytest.mark.unit
 class TestLayerUtils:
     """Tests for layer utility functions."""
 

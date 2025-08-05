@@ -1,17 +1,43 @@
 # Testing the plugin
 
-The plugin uses pytest with pytest-qgis for comprehensive testing. Tests are organized in 2 separate folders:
+The plugin uses pytest with pytest-qgis for comprehensive testing. Tests are organized in 2 separate folders with clear separation of concerns:
 
 - `tests/unit`: testing code which is independent of QGIS API (uses mocking)
 - `tests/qgis`: testing code which depends on QGIS API (integration tests)
 
+## Test Organization Principles
+
+### Unit Tests (`tests/unit/`)
+
+- **Purpose**: Test individual functions and classes in isolation
+- **Dependencies**: Use mocking to avoid QGIS dependencies
+- **Markers**: `@pytest.mark.unit` or `@pytest.mark.integration` (for complex interactions)
+- **Speed**: Fast execution, no external dependencies
+- **Example**: Testing mathematical calculations, utility functions
+
+### QGIS Integration Tests (`tests/qgis/`)
+
+- **Purpose**: Test functionality that requires actual QGIS environment
+- **Dependencies**: Real QGIS classes and interfaces
+- **Markers**: `@pytest.mark.qgis`
+- **Speed**: Slower execution due to QGIS initialization
+- **Example**: Testing map tools, layer operations, GUI components
+
 ## Test Markers
 
-Tests are organized using pytest markers:
+Tests are organized using pytest markers that are automatically applied based on location and can be explicitly set:
 
-- `@pytest.mark.unit`: Unit tests that don't require QGIS
-- `@pytest.mark.qgis`: Tests that require QGIS environment
-- `@pytest.mark.integration`: Integration tests
+- `@pytest.mark.unit`: Unit tests that don't require QGIS (auto-applied to `tests/unit/`)
+- `@pytest.mark.qgis`: Tests that require QGIS environment (auto-applied to `tests/qgis/`)
+- `@pytest.mark.integration`: Integration tests between components (explicit)
+
+### Automatic Marker Application
+
+The test configuration (`tests/conftest.py`) automatically applies markers:
+
+- Files in `tests/unit/` get `@pytest.mark.unit` unless explicitly marked
+- Files in `tests/qgis/` get `@pytest.mark.qgis` unless explicitly marked
+- QGIS tests are automatically skipped if QGIS is not available
 
 ## Run tests
 
@@ -63,9 +89,9 @@ uv run pytest tests/unit/test_plugin_main.py::TestDipStrikeToolsPluginBasic -v
 uv run pytest tests/unit/test_plugin_main.py::TestDipStrikeToolsPluginBasic::test_plugin_import -v
 ```
 
-## Test Structure
+## Test Structure Examples
 
-### Unit Tests (`tests/unit/`)
+### Unit Test Example
 
 Unit tests use mocking to isolate functionality and don't require a QGIS environment:
 
@@ -78,7 +104,7 @@ class TestMyModule:
         pass
 ```
 
-### Integration Tests
+### Integration Test Example
 
 Integration tests test interactions between components. They can be in the same file as unit tests but are marked separately:
 
@@ -90,7 +116,7 @@ class TestMyModuleIntegration:
         pass
 ```
 
-### QGIS Integration Tests (`tests/qgis/`)
+### QGIS Integration Test Example
 
 QGIS tests use pytest-qgis and run in a real QGIS environment:
 

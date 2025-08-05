@@ -12,7 +12,11 @@ from qgis.core import (
 
 from dip_strike_tools.core.elevation_utils import ElevationExtractor
 
+# Import pytest-qgis utilities
+pytest_plugins = ["pytest_qgis"]
 
+
+@pytest.mark.qgis
 class TestElevationExtractorQGIS:
     """QGIS integration tests for ElevationExtractor."""
 

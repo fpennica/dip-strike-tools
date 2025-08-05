@@ -14,6 +14,8 @@ Usage from the repo root folder:
 import unittest
 from pathlib import Path
 
+import pytest
+
 # 3rd party
 from packaging.version import parse
 
@@ -25,6 +27,7 @@ from dip_strike_tools import __about__
 # ################################
 
 
+@pytest.mark.unit
 class TestPluginMetadata(unittest.TestCase):
     """Test about module"""
 
