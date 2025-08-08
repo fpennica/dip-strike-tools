@@ -23,6 +23,22 @@ The interactive data entry dialog provides comprehensive input options:
 Inserting a new dip/strike feature
 ```
 
+### Embedded Map
+
+The dialog's embedded map offers a preview of the point feature at the clicked location. The feature is represented by a graphical marker with strike and dip lines that automatically update based on the azimuth values you enter.
+
+:::{Note}
+It is not possible to modify the point location (coordinates) within the dialog. To change the location, close the dialog and use the interactive point tool again, clicking on the new location on the QGIS map canvas. To move an already existing point, use the standard QGIS editing tools.
+:::
+
+The embedded map displays a portion of the QGIS map around the point location. The layers shown are the same as those displayed on the main QGIS map when using the point tool. To modify the embedded map background, simply adjust the QGIS map by enabling the desired layers, applying symbology, etc., before using the tool.
+
+:::{tip}
+You can interact with the map using the mouse scroll wheel to zoom in and out, and by clicking and dragging with the left mouse button to pan.
+:::
+
+The slider at the bottom of the map controls the transparency of the embedded map background. This feature helps provide a better view of the point marker against the underlying background.
+
 ### Required Input
 
 **Strike or Dip Azimuth**: Enter the azimuth value from 0-360° using either direct numeric input in the spin box or the interactive compass dial (click and drag to set value).

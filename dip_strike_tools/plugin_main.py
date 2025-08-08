@@ -15,7 +15,7 @@ from dip_strike_tools.__about__ import (
     DIR_PLUGIN_ROOT,
     __icon_path__,
     __title__,
-    __uri_homepage__,
+    __uri_docs__,
 )
 from dip_strike_tools.core import DipStrikeMapTool
 from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
@@ -39,7 +39,6 @@ class DipStrikeToolsPlugin:
         self.iface = iface
         self.log = PlgLogger().log
 
-        # translation
         # initialize the locale
         self.locale: str = QgsSettings().value("locale/userLocale", QLocale().name())[0:2]
 
@@ -54,8 +53,6 @@ class DipStrikeToolsPlugin:
             QCoreApplication.installTranslator(self.translator)
 
         self.dlg_info = PluginInfo(self.iface.mainWindow())
-
-        self.actions = []
 
         self.menu = self.tr("&Dip-Strike Tools")
 
@@ -75,8 +72,11 @@ class DipStrikeToolsPlugin:
         whats_this: Optional[str] = None,
         parent=None,
     ):
+        # Use toolbar as parent for toolbar actions, or provided parent
+        action_parent = self.toolbar if add_to_toolbar and parent is None else parent
+
         icon = QIcon(icon_path)
-        action = QAction(icon, text, parent)  # type: ignore
+        action = QAction(icon, text, action_parent)  # type: ignore
         action.triggered.connect(callback)
         action.setEnabled(enabled_flag)
 
@@ -88,8 +88,7 @@ class DipStrikeToolsPlugin:
             self.toolbar.addAction(action)
         if add_to_menu:
             self.iface.addPluginToDatabaseMenu(self.menu, action)
-        self.actions.append(action)
-        return action
+
         return action
 
     def initGui(self):
@@ -100,30 +99,12 @@ class DipStrikeToolsPlugin:
         self.iface.registerOptionsWidgetFactory(self.options_factory)
 
         # -- Actions
-        self.action_help = QAction(
-            QgsApplication.getThemeIcon("mActionHelpContents.svg"),  # type: ignore
-            self.tr("Help"),
-            self.iface.mainWindow(),
-        )
-        self.action_help.triggered.connect(partial(QDesktopServices.openUrl, QUrl(__uri_homepage__)))
-
-        self.action_settings = QAction(
-            QgsApplication.getThemeIcon("console/iconSettingsConsole.svg"),  # type: ignore
-            self.tr("Settings"),
-            self.iface.mainWindow(),
-        )
-        self.action_settings.triggered.connect(
-            lambda: self.iface.showOptionsDialog(currentPage="mOptionsPage{}".format(__title__))
-        )
-
-        # -- Toolbar Actions
 
         # -- Create new dip strike layer action
         self.create_layer_action = self.add_action(
             QgsApplication.getThemeIcon("mActionAddLayer.svg"),
             text=self.tr("Create New Dip Strike Layer"),
             callback=self.open_create_layer_dialog,
-            parent=self.iface.mainWindow(),
         )
 
         # -- Create new dip strike point action
@@ -131,32 +112,36 @@ class DipStrikeToolsPlugin:
             QgsApplication.getThemeIcon("north_arrow.svg"),
             text=self.tr("Create or Update a Dip Strike Point"),
             callback=self.toggle_dip_strike_tool,
-            parent=self.iface.mainWindow(),
         )
+
+        # Make the dip strike point action toggleable
+        self.insert_dip_strike_action.setCheckable(True)
+        self.insert_dip_strike_action.setChecked(False)
+
+        # Connect to map canvas tool changes to update button state
+        self.iface.mapCanvas().mapToolSet.connect(self.on_map_tool_changed)
 
         # -- Calculate dip or strike action
         self.calculate_values_action = self.add_action(
             QgsApplication.getThemeIcon("mActionCalculateField.svg"),
             text=self.tr("Calculate Dip/Strike Values"),
             callback=self.open_calculate_values_dialog,
-            parent=self.iface.mainWindow(),
         )
 
         self.toolbar.addSeparator()
 
-        tools_menu_button = QToolButton()
-        tools_menu_button.setIcon(QgsApplication.getThemeIcon("/mActionOptions.svg"))
+        # -- Tools menu button
+        tools_menu_button = QToolButton(self.toolbar)  # Set toolbar as parent
+        tools_menu_button.setIcon(QgsApplication.getThemeIcon("mActionOptions.svg"))
         tools_menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         tools_menu_button.setToolTip(self.tr("Additional Tools and Plugin Info"))
-        tools_menu = QMenu()
-        self.tools_menu_button = tools_menu_button  # Store reference for cleanup
+        tools_menu = QMenu(tools_menu_button)  # Set button as parent for menu
         self.toolbar.addWidget(tools_menu_button)
 
         self.settings_action = self.add_action(
-            QgsApplication.getThemeIcon("/mActionOptions.svg"),
+            QgsApplication.getThemeIcon("mActionOptions.svg"),
             text=self.tr("Dip-Strike Tools Settings"),
             callback=lambda: self.iface.showOptionsDialog(currentPage="mOptionsPage{}".format(__title__)),
-            parent=self.iface.mainWindow(),
             add_to_toolbar=False,
         )
         tools_menu.addAction(self.settings_action)  # type: ignore[arg-type]
@@ -165,37 +150,21 @@ class DipStrikeToolsPlugin:
             QgsApplication.getThemeIcon("mActionHelpContents.svg"),
             text=self.tr("Dip-Strike Tools Info"),
             callback=self.dlg_info.show,
-            parent=self.iface.mainWindow(),
             add_to_toolbar=False,
         )
         tools_menu.addAction(self.info_action)  # type: ignore[arg-type]
 
         tools_menu_button.setMenu(tools_menu)
 
-        # Make the action toggleable
-        self.insert_dip_strike_action.setCheckable(True)
-        self.insert_dip_strike_action.setChecked(False)
-
-        # Connect to map canvas tool changes to update button state
-        self.iface.mapCanvas().mapToolSet.connect(self.on_map_tool_changed)
-
-        # -- Menu
-        self.iface.addPluginToMenu(__title__, self.action_settings)
-        self.iface.addPluginToMenu(__title__, self.action_help)
-
-        # -- Help menu
-
-        # documentation
-        self.iface.pluginHelpMenu().addSeparator()
+        # -- Plugin Help menu docs link
         self.action_help_plugin_menu_documentation = QAction(
             QIcon(str(__icon_path__)),  # type: ignore
-            f"{__title__} - Documentation",
+            __title__,
             self.iface.mainWindow(),
         )
         self.action_help_plugin_menu_documentation.triggered.connect(
-            partial(QDesktopServices.openUrl, QUrl(__uri_homepage__))
+            partial(QDesktopServices.openUrl, QUrl(__uri_docs__))
         )
-
         self.iface.pluginHelpMenu().addAction(self.action_help_plugin_menu_documentation)
 
     def tr(self, message: str) -> str:
@@ -211,62 +180,96 @@ class DipStrikeToolsPlugin:
 
     def unload(self):
         """Cleans up when plugin is disabled/uninstalled."""
-        # -- Disconnect map tool change signal
+        self.log(message="Starting plugin cleanup", log_level=4)
+
+        # Safe cleanup helper
+        def safe_cleanup(name, cleanup_func):
+            try:
+                cleanup_func()
+                self.log(message=f"Cleanup '{name}' completed", log_level=4)
+            except Exception as e:
+                self.log(message=f"Error in cleanup '{name}': {e}", log_level=2)
+
+        # Cleanup in order to prevent cascade failures
+        safe_cleanup("map_tool", self._cleanup_map_tool)
+        safe_cleanup("options_widget", self._cleanup_options_widget)
+        safe_cleanup("toolbar", self._cleanup_toolbar)
+        safe_cleanup("help_menu", self._cleanup_help_menu)
+
+        self.log(message="Plugin cleanup completed", log_level=4)
+
+    def _cleanup_map_tool(self):
+        """Clean up map tool and signals."""
+        # Disconnect signals
         try:
-            self.iface.mapCanvas().mapToolSet.disconnect(self.on_map_tool_changed)
-        except Exception:
-            pass  # Connection might not exist
+            canvas = self.iface.mapCanvas()
+            if canvas and hasattr(canvas, "mapToolSet"):
+                canvas.mapToolSet.disconnect(self.on_map_tool_changed)
+        except (AttributeError, TypeError, RuntimeError):
+            pass
 
-        # -- Clean up custom map tool
+        # Clean up custom tool
         if hasattr(self, "custom_tool") and self.custom_tool:
-            # Deactivate the tool if it's currently active
-            current_tool = self.iface.mapCanvas().mapTool()
-            if current_tool == self.custom_tool:
-                self.iface.mapCanvas().unsetMapTool(self.custom_tool)
+            try:
+                # Deactivate if active
+                canvas = self.iface.mapCanvas()
+                if canvas and canvas.mapTool() == self.custom_tool:
+                    canvas.unsetMapTool(self.custom_tool)
+                # Clean up the tool
+                if hasattr(self.custom_tool, "clean_up"):
+                    self.custom_tool.clean_up()
+            except (AttributeError, RuntimeError):
+                pass
+            finally:
+                self.custom_tool = None
 
-            self.custom_tool.clean_up()
-            self.custom_tool = None
+    def _cleanup_options_widget(self):
+        """Unregister options widget factory."""
+        if hasattr(self, "options_factory") and self.options_factory:
+            try:
+                self.iface.unregisterOptionsWidgetFactory(self.options_factory)
+            except (AttributeError, RuntimeError):
+                pass
 
-        # -- Clean up menu
-        self.iface.removePluginMenu(__title__, self.action_help)
-        self.iface.removePluginMenu(__title__, self.action_settings)
+    def _cleanup_toolbar(self):
+        """Remove toolbar and plugin menu - Qt automatically destroys all child widgets and actions."""
+        # Remove plugin menu (QGIS handles this when plugin is unloaded, but explicit cleanup is safer)
+        try:
+            self.iface.removePluginDatabaseMenu(self.tr("&Dip-Strike Tools"))
+        except (AttributeError, RuntimeError):
+            pass
 
-        # -- Clean up preferences panel in QGIS settings
-        self.iface.unregisterOptionsWidgetFactory(self.options_factory)
+        # Remove toolbar - this will automatically destroy all child actions and widgets
+        if hasattr(self, "toolbar") and self.toolbar:
+            try:
+                self.iface.mainWindow().removeToolBar(self.toolbar)
+                self.toolbar.deleteLater()  # Qt handles all children automatically
+            except (AttributeError, RuntimeError):
+                pass
+            finally:
+                self.toolbar = None
 
-        # Clean up toolbar widgets BEFORE deleting the toolbar
-        if hasattr(self, "tools_menu_button"):
-            del self.tools_menu_button
-
-        for action in self.actions:
-            self.iface.removePluginDatabaseMenu(self.tr("&Dip-Strike Tools"), action)
-            self.iface.removeToolBarIcon(action)
-        del self.toolbar
-
-        # remove from QGIS help/extensions menu
+    def _cleanup_help_menu(self):
+        """Remove help menu action and close dialog."""
+        # Clean up help menu action
         if hasattr(self, "action_help_plugin_menu_documentation") and self.action_help_plugin_menu_documentation:
-            self.iface.pluginHelpMenu().removeAction(self.action_help_plugin_menu_documentation)
-            del self.action_help_plugin_menu_documentation
+            try:
+                self.iface.pluginHelpMenu().removeAction(self.action_help_plugin_menu_documentation)
+                self.action_help_plugin_menu_documentation.deleteLater()
+            except (AttributeError, RuntimeError):
+                pass
+            finally:
+                self.action_help_plugin_menu_documentation = None
 
-        # remove actions
-        del self.action_settings
-        del self.action_help
-
-        # Clean up our custom actions
-        if hasattr(self, "create_layer_action"):
-            del self.create_layer_action
-        if hasattr(self, "insert_dip_strike_action"):
-            del self.insert_dip_strike_action
-        if hasattr(self, "calculate_values_action"):
-            del self.calculate_values_action
-        if hasattr(self, "settings_action"):
-            del self.settings_action
-        if hasattr(self, "info_action"):
-            del self.info_action
-
-        # Clean up dialogs
-        if hasattr(self, "dlg_info"):
-            del self.dlg_info
+        # Clean up dialog
+        if hasattr(self, "dlg_info") and self.dlg_info:
+            try:
+                self.dlg_info.close()
+                self.dlg_info.deleteLater()
+            except (AttributeError, RuntimeError):
+                pass
+            finally:
+                self.dlg_info = None
 
     def toggle_dip_strike_tool(self):
         """Toggle the dip strike tool on/off based on button state."""

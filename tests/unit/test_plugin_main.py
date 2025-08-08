@@ -57,8 +57,6 @@ class TestDipStrikeToolsPluginBasic:
         # Verify basic attributes
         assert plugin.iface == mock_iface
         assert plugin.log == mock_log_instance
-        assert hasattr(plugin, "actions")
-        assert isinstance(plugin.actions, list)
         assert hasattr(plugin, "locale")
         assert hasattr(plugin, "menu")
         assert hasattr(plugin, "toolbar")
@@ -262,13 +260,17 @@ class TestDipStrikeToolsPluginAdvanced:
     def test_add_action_method(self, mock_logger, mock_locale, mock_settings, mock_plugin_info):
         """Test the add_action method with various parameters."""
         try:
+            # Import Qt classes for proper mocking
+            from PyQt5.QtWidgets import QToolBar
+
             from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
         except ImportError:
             pytest.skip("QGIS modules not available")
 
         # Mock the QGIS interface
         mock_iface = Mock()
-        mock_toolbar = Mock()
+        # Create a real QToolBar instance for proper Qt compatibility
+        mock_toolbar = QToolBar()
         mock_iface.addToolBar.return_value = mock_toolbar
         mock_iface.addPluginToDatabaseMenu = Mock()
         mock_iface.mainWindow.return_value = None  # Return None instead of Mock for Qt compatibility
@@ -302,12 +304,12 @@ class TestDipStrikeToolsPluginAdvanced:
             parent=None,
         )
 
-        # Verify action was created and added to the actions list
+        # Verify action was created
         assert action is not None
-        assert action in plugin.actions
 
         # Verify the action was added to toolbar and menu
-        mock_toolbar.addAction.assert_called_with(action)
+        # QToolBar.addAction doesn't have mock assertions, but we can check action properties
+        assert action.parent() == mock_toolbar  # Action should be parented to toolbar
         mock_iface.addPluginToDatabaseMenu.assert_called()
 
     @patch("dip_strike_tools.plugin_main.PluginInfo")
@@ -354,7 +356,6 @@ class TestDipStrikeToolsPluginAdvanced:
 
         # Verify action was created but not added to toolbar/menu
         assert action is not None
-        assert action in plugin.actions
 
         # Should not have been called with this action since add_to_* are False
         assert mock_toolbar.addAction.call_count == 0  # Only called during init

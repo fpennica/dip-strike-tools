@@ -28,8 +28,6 @@ class TestDipStrikeToolsPluginQGIS:
         # Verify basic attributes
         assert plugin.iface == qgis_iface
         assert hasattr(plugin, "log")
-        assert hasattr(plugin, "actions")
-        assert isinstance(plugin.actions, list)
         assert hasattr(plugin, "toolbar")
 
         # Verify toolbar was created
@@ -57,11 +55,13 @@ class TestDipStrikeToolsPluginQGIS:
             add_to_toolbar=True,
         )
 
-        # Verify action was created and added to actions list
+        # Verify action was created
         assert action is not None
-        assert action in plugin.actions
         assert action.text() == "Test Action"
         assert action.isEnabled() is True
+        # Verify action was added to toolbar (when add_to_toolbar=True)
+        toolbar_actions = plugin.toolbar.actions()
+        assert action in toolbar_actions
 
     def test_translation_method(self, qgis_iface):
         """Test the translation method."""
@@ -94,7 +94,7 @@ class TestDipStrikeToolsPluginQGIS:
 
         if init_success:
             # If initGui succeeded, verify actions were created
-            assert len(plugin.actions) > 0
+            assert hasattr(plugin, "toolbar")
 
             # Verify toolbar actions
             assert hasattr(plugin, "insert_dip_strike_action")
@@ -711,9 +711,6 @@ class TestDipStrikeToolsPluginQGIS:
 
         # Set up objects for cleanup
         plugin.options_factory = Mock()
-        plugin.actions = [Mock()]
-        plugin.action_settings = Mock()
-        plugin.action_help = Mock()
         plugin.action_help_plugin_menu_documentation = Mock()
 
         # Mock the map canvas with disconnect failure
@@ -746,9 +743,6 @@ class TestDipStrikeToolsPluginQGIS:
 
         # Set up objects for cleanup
         plugin.options_factory = Mock()
-        plugin.actions = [Mock()]
-        plugin.action_settings = Mock()
-        plugin.action_help = Mock()
         plugin.action_help_plugin_menu_documentation = Mock()
 
         # Ensure no custom tool exists
