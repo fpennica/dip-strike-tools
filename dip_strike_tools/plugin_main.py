@@ -232,10 +232,15 @@ class DipStrikeToolsPlugin:
                 pass
 
     def _cleanup_toolbar(self):
-        """Remove toolbar and plugin menu - Qt automatically destroys all child widgets and actions."""
-        # Remove plugin menu (QGIS handles this when plugin is unloaded, but explicit cleanup is safer)
+        """Remove toolbar and plugin menu actions."""
+        # Remove actions from the database menu that were added both to the toolbar and to the menu
+        # Removing the toolbar would not remove the menu actions
+        # TODO: empty menu still remains
         try:
-            self.iface.removePluginDatabaseMenu(self.tr("&Dip-Strike Tools"))
+            if hasattr(self, "settings_action") and self.settings_action:
+                self.iface.removePluginDatabaseMenu(self.tr("&Dip-Strike Tools"), self.settings_action)
+            if hasattr(self, "info_action") and self.info_action:
+                self.iface.removePluginDatabaseMenu(self.tr("&Dip-Strike Tools"), self.info_action)
         except (AttributeError, RuntimeError):
             pass
 
