@@ -191,12 +191,22 @@ class DipStrikeToolsPlugin:
                 self.log(message=f"Error in cleanup '{name}': {e}", log_level=2)
 
         # Cleanup in order to prevent cascade failures
+        safe_cleanup("translator", self._cleanup_translator)
         safe_cleanup("map_tool", self._cleanup_map_tool)
         safe_cleanup("options_widget", self._cleanup_options_widget)
         safe_cleanup("toolbar", self._cleanup_toolbar)
         safe_cleanup("help_menu", self._cleanup_help_menu)
 
         self.log(message="Plugin cleanup completed", log_level=4)
+
+    def _cleanup_translator(self):
+        """Remove translator from Qt application."""
+        if hasattr(self, "translator") and self.translator:
+            try:
+                QCoreApplication.removeTranslator(self.translator)
+                delattr(self, "translator")  # Remove the attribute entirely
+            except (AttributeError, RuntimeError):
+                pass
 
     def _cleanup_map_tool(self):
         """Clean up map tool and signals."""
