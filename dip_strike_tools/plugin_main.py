@@ -297,8 +297,7 @@ class DipStrikeToolsPlugin:
         """Activate the dip strike map tool."""
         # Create custom tool if it doesn't exist or reuse existing one
         if not hasattr(self, "custom_tool") or self.custom_tool is None:
-            self.custom_tool = DipStrikeMapTool(self.iface.mapCanvas())
-            self.custom_tool.setPlugin(self)  # Set plugin reference for feature searching
+            self.custom_tool = DipStrikeMapTool(self.iface)
             self.custom_tool.featureClicked.connect(
                 lambda point, existing_feature: self.open_dlg_insert_dip_strike(
                     clicked_point=point, existing_feature=existing_feature
@@ -339,10 +338,12 @@ class DipStrikeToolsPlugin:
 
     def open_dlg_insert_dip_strike(self, clicked_point=None, existing_feature=None):
         """Open the dialog to insert a dip strike point."""
+        from dip_strike_tools.core.feature_finder import FeatureFinder
 
         # If existing_feature wasn't passed, search for it (backward compatibility)
         if existing_feature is None and clicked_point:
-            existing_feature = self._find_existing_feature_at_point(clicked_point)
+            feature_finder = FeatureFinder(self.iface)
+            existing_feature = feature_finder.find_feature_at_point(clicked_point)
 
         if existing_feature:
             self.log(
@@ -421,117 +422,3 @@ class DipStrikeToolsPlugin:
                 self.log(message=self.tr("Error during calculation: {}").format(str(e)), log_level=1, push=True)
         else:
             self.log(message=self.tr("Calculation cancelled."), log_level=4)
-
-    def _find_existing_feature_at_point(self, clicked_point, tolerance_pixels=10):
-        """Find existing dip/strike features near the clicked point.
-
-        :param clicked_point: The point where user clicked (in map canvas CRS)
-        :type clicked_point: QgsPointXY
-        :param tolerance_pixels: Search tolerance in pixels
-        :type tolerance_pixels: int
-        :return: Dictionary with feature info or None if no feature found
-        :rtype: dict or None
-        """
-        from qgis.core import (
-            QgsCoordinateTransform,
-            QgsFeatureRequest,
-            QgsGeometry,
-            QgsPointXY,
-            QgsProject,
-        )
-
-        # Convert pixel tolerance to map units
-        canvas = self.iface.mapCanvas()
-        tolerance_map_units = tolerance_pixels * canvas.mapUnitsPerPixel()
-
-        # Get map canvas CRS
-        canvas_crs = canvas.mapSettings().destinationCrs()
-
-        # Get all point layers from the project that are currently visible
-        project = QgsProject.instance()
-        if not project:
-            return None
-
-        # Get the layer tree root to check visibility
-        root = project.layerTreeRoot()
-        if not root:
-            return None
-
-        point_layers = []
-        for layer in project.mapLayers().values():
-            if (
-                hasattr(layer, "geometryType")
-                and layer.geometryType() == 0  # Point geometry type
-                and layer.isValid()
-            ):
-                # Always include configured dip/strike layers, even if not visible
-                is_configured_layer = layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer"
-
-                if is_configured_layer:
-                    point_layers.append(layer)
-                else:
-                    # For other layers, check if they are visible using layer tree
-                    layer_tree_layer = root.findLayer(layer.id())
-                    if layer_tree_layer and layer_tree_layer.isVisible():
-                        point_layers.append(layer)
-
-        # First, check the currently configured feature layer if available
-        configured_layers = []
-        other_layers = []
-
-        for layer in point_layers:
-            # Check if layer is configured for dip/strike tools
-            if layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer":
-                configured_layers.append(layer)
-            else:
-                other_layers.append(layer)
-
-        # Search in configured layers first, then others
-        for layer in configured_layers + other_layers:
-            try:
-                # Get layer CRS
-                layer_crs = layer.crs()
-
-                # Transform clicked point to layer CRS if needed
-                if canvas_crs != layer_crs:
-                    transform = QgsCoordinateTransform(canvas_crs, layer_crs, project)
-                    try:
-                        search_point = transform.transform(clicked_point)
-                        # Also transform tolerance: create a small offset point and transform it to calculate proper tolerance
-                        offset_point = QgsPointXY(clicked_point.x() + tolerance_map_units, clicked_point.y())
-                        transformed_offset = transform.transform(offset_point)
-                        layer_tolerance = abs(transformed_offset.x() - search_point.x())
-                    except Exception as e:
-                        self.log(
-                            message=f"Error transforming coordinates for layer '{layer.name()}': {e}", log_level=2
-                        )
-                        continue
-                else:
-                    search_point = clicked_point
-                    layer_tolerance = tolerance_map_units
-
-                # Create search geometry (circle around search point in layer CRS)
-                search_geometry = QgsGeometry.fromPointXY(search_point).buffer(layer_tolerance, 8)
-
-                # Use spatial index for more efficient searching if available
-                request = QgsFeatureRequest()
-                request.setFilterRect(search_geometry.boundingBox())
-
-                # Get features that intersect with search geometry
-                features = layer.getFeatures(request)
-                for feature in features:
-                    if feature.geometry() and feature.geometry().intersects(search_geometry):
-                        return {
-                            "feature": feature,
-                            "layer": layer,
-                            "layer_name": layer.name(),
-                            "is_configured": layer.customProperty("dip_strike_tools/layer_role")
-                            == "dip_strike_feature_layer",
-                        }
-
-            except Exception as e:
-                self.log(message=f"Error searching layer '{layer.name()}': {e}", log_level=2)
-                continue
-
-        # No feature found
-        return None

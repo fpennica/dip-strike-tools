@@ -165,7 +165,6 @@ class TestDipStrikeToolsPluginBasic:
             "on_map_tool_changed",
             "open_dlg_insert_dip_strike",
             "open_create_layer_dialog",
-            "_find_existing_feature_at_point",
         ]
 
         for method_name in custom_methods:

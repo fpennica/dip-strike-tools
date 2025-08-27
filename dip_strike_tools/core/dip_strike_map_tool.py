@@ -7,6 +7,9 @@ from qgis.gui import QgsHighlight, QgsMapTool, QgsMapToolEmitPoint
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QCursor
 
+from dip_strike_tools.core.feature_finder import FeatureFinder
+from dip_strike_tools.toolbelt import PlgLogger
+
 
 class DipStrikeMapTool(QgsMapToolEmitPoint):
     """Custom map tool to handle click events for inserting dip strike points."""
@@ -14,32 +17,27 @@ class DipStrikeMapTool(QgsMapToolEmitPoint):
     canvasClicked = pyqtSignal([int], ["QgsPointXY"])
     featureClicked = pyqtSignal(object, object)  # (point, existing_feature_dict_or_None)
 
-    def __init__(self, canvas):
-        super(QgsMapTool, self).__init__(canvas)
-        self._canvas = canvas  # Store canvas reference
+    def __init__(self, iface):
+        super(QgsMapTool, self).__init__(iface.mapCanvas())
+        self._canvas = iface.mapCanvas()  # Store canvas reference
+        self.iface = iface
         self.highlighted_feature = None
         self.current_highlight = None
-        self.plugin = None  # Will be set by the plugin
+        self.feature_finder = FeatureFinder(iface)
+        self.log = PlgLogger().log
 
     def _set_safe_cursor(self, cursor_name):
         """Safely set cursor with fallback to ArrowCursor."""
         cursor_type = getattr(Qt, cursor_name, getattr(Qt, "ArrowCursor", 0))
         self.setCursor(QCursor(cursor_type))
 
-    def setPlugin(self, plugin):
-        """Set reference to the main plugin for feature searching."""
-        self.plugin = plugin
-
     def canvasMoveEvent(self, event):
         """Handle mouse move to highlight features under cursor."""
-        if not self.plugin:
-            return
-
         # Get point under cursor
         point_canvas_crs = event.mapPoint()
 
         # Search for existing feature (without excessive logging)
-        existing_feature = self.plugin._find_existing_feature_at_point(point_canvas_crs, tolerance_pixels=15)
+        existing_feature = self.feature_finder.find_feature_at_point(point_canvas_crs, tolerance_pixels=15)
 
         if existing_feature:
             self._highlight_feature(existing_feature)
@@ -49,34 +47,32 @@ class DipStrikeMapTool(QgsMapToolEmitPoint):
     def canvasReleaseEvent(self, event):
         """Handle canvas press event to open the dip strike dialog."""
         point_canvas_crs = event.mapPoint()
-        existing_feature = None
 
         # Check if there's an existing feature at the clicked point
-        if self.plugin:
-            existing_feature = self.plugin._find_existing_feature_at_point(point_canvas_crs, tolerance_pixels=15)
-            if existing_feature:
-                # If we found an existing feature, use its geometry center as the point
-                feature_geom = existing_feature["feature"].geometry()
-                if feature_geom and not feature_geom.isEmpty():
-                    # Get the centroid of the feature geometry
-                    centroid = feature_geom.centroid().asPoint()
+        existing_feature = self.feature_finder.find_feature_at_point(point_canvas_crs, tolerance_pixels=15)
+        if existing_feature:
+            # If we found an existing feature, use its geometry center as the point
+            feature_geom = existing_feature["feature"].geometry()
+            if feature_geom and not feature_geom.isEmpty():
+                # Get the centroid of the feature geometry
+                centroid = feature_geom.centroid().asPoint()
 
-                    # Transform centroid from layer CRS to canvas CRS if needed
-                    from qgis.core import QgsCoordinateTransform, QgsProject
+                # Transform centroid from layer CRS to canvas CRS if needed
+                from qgis.core import QgsCoordinateTransform, QgsProject
 
-                    if self._canvas:
-                        canvas_crs = self._canvas.mapSettings().destinationCrs()
-                        layer_crs = existing_feature["layer"].crs()
+                if self._canvas:
+                    canvas_crs = self._canvas.mapSettings().destinationCrs()
+                    layer_crs = existing_feature["layer"].crs()
 
-                        if canvas_crs != layer_crs:
-                            try:
-                                transform = QgsCoordinateTransform(layer_crs, canvas_crs, QgsProject.instance())
-                                point_canvas_crs = transform.transform(centroid)
-                            except Exception:
-                                # If transformation fails, keep the original clicked point
-                                pass
-                        else:
-                            point_canvas_crs = centroid
+                    if canvas_crs != layer_crs:
+                        try:
+                            transform = QgsCoordinateTransform(layer_crs, canvas_crs, QgsProject.instance())
+                            point_canvas_crs = transform.transform(centroid)
+                        except Exception:
+                            # If transformation fails, keep the original clicked point
+                            pass
+                    else:
+                        point_canvas_crs = centroid
 
         # Emit the enhanced signal with both point and existing feature info
         self.featureClicked.emit(point_canvas_crs, existing_feature)
@@ -129,8 +125,7 @@ class DipStrikeMapTool(QgsMapToolEmitPoint):
 
         except Exception as e:
             # Fallback: just provide cursor feedback if highlighting fails
-            if self.plugin:
-                self.plugin.log(message=f"Highlight failed, using cursor only: {e}", log_level=2)
+            self.log(message=f"Highlight failed, using cursor only: {e}", log_level=2)
             self._set_safe_cursor("PointingHandCursor")
             self.highlighted_feature = existing_feature
 

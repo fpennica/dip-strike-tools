@@ -6,7 +6,7 @@ QGIS integration tests for DipStrikeMapTool.
 These tests require a QGIS environment and use pytest-qgis.
 """
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -31,17 +31,15 @@ class TestDipStrikeMapToolQGIS:
         """Test DipStrikeMapTool initialization in QGIS environment."""
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        # Get the map canvas from the interface
-        canvas = qgis_iface.mapCanvas()
-
-        # Create the map tool
-        map_tool = DipStrikeMapTool(canvas)
+        # Create the map tool with iface
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Test basic initialization
-        assert map_tool._canvas == canvas
+        assert map_tool._canvas == qgis_iface.mapCanvas()
+        assert map_tool.iface == qgis_iface
         assert map_tool.highlighted_feature is None
         assert map_tool.current_highlight is None
-        assert map_tool.plugin is None
+        assert map_tool.feature_finder is not None
 
         # Test that it's a proper QgsMapToolEmitPoint
         from qgis.gui import QgsMapToolEmitPoint
@@ -54,8 +52,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Test that signals exist and are pyqtSignal instances
         assert hasattr(map_tool, "canvasClicked")
@@ -63,24 +60,11 @@ class TestDipStrikeMapToolQGIS:
         assert isinstance(type(map_tool).canvasClicked, type(pyqtSignal()))
         assert isinstance(type(map_tool).featureClicked, type(pyqtSignal()))
 
-    def test_set_plugin(self, qgis_iface):
-        """Test setting plugin reference."""
-        from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
-
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
-
-        mock_plugin = Mock()
-        map_tool.setPlugin(mock_plugin)
-
-        assert map_tool.plugin == mock_plugin
-
     def test_cursor_setting(self, qgis_iface):
         """Test cursor setting functionality."""
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Test setting valid cursor
         map_tool._set_safe_cursor("CrossCursor")
@@ -97,39 +81,34 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a mock mouse event
         point = QgsPointXY(0, 0)
         event = Mock(spec=QgsMapMouseEvent)
         event.mapPoint.return_value = point
 
-        # Should not raise exception when plugin is None
+        # Should not raise exception
         map_tool.canvasMoveEvent(event)
 
     def test_canvas_move_event_with_plugin(self, qgis_iface):
-        """Test canvas move event with plugin."""
+        """Test canvas move event with feature finder."""
         from qgis.core import QgsPointXY
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
-        # Create mock plugin
-        mock_plugin = Mock()
-        mock_plugin._find_existing_feature_at_point.return_value = None
-        map_tool.setPlugin(mock_plugin)
+        # Mock the feature_finder
+        with patch.object(map_tool.feature_finder, "find_feature_at_point", return_value=None) as mock_find:
+            # Create mock event
+            point = QgsPointXY(0, 0)
+            event = Mock()
+            event.mapPoint.return_value = point
 
-        # Create mock event
-        point = QgsPointXY(0, 0)
-        event = Mock()
-        event.mapPoint.return_value = point
-
-        # Should call plugin method
-        map_tool.canvasMoveEvent(event)
-        mock_plugin._find_existing_feature_at_point.assert_called_once_with(point, tolerance_pixels=15)
+            # Should call feature finder method
+            map_tool.canvasMoveEvent(event)
+            mock_find.assert_called_once_with(point, tolerance_pixels=15)
 
     def test_canvas_release_event_signal_emission(self, qgis_iface):
         """Test that canvas release event emits signals."""
@@ -137,26 +116,22 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
-        # Create mock plugin
-        mock_plugin = Mock()
-        mock_plugin._find_existing_feature_at_point.return_value = None
-        map_tool.setPlugin(mock_plugin)
+        # Mock the feature_finder to return None
+        with patch.object(map_tool.feature_finder, "find_feature_at_point", return_value=None):
+            # Track signal emissions
+            feature_clicked_signals = []
+            canvas_clicked_signals = []
 
-        # Track signal emissions
-        feature_clicked_signals = []
-        canvas_clicked_signals = []
+            def on_feature_clicked(*args):
+                feature_clicked_signals.append(args)
 
-        def on_feature_clicked(*args):
-            feature_clicked_signals.append(args)
+            def on_canvas_clicked(*args):
+                canvas_clicked_signals.append(args)
 
-        def on_canvas_clicked(*args):
-            canvas_clicked_signals.append(args)
-
-        map_tool.featureClicked.connect(on_feature_clicked)
-        map_tool.canvasClicked["QgsPointXY"].connect(on_canvas_clicked)
+            map_tool.featureClicked.connect(on_feature_clicked)
+            map_tool.canvasClicked["QgsPointXY"].connect(on_canvas_clicked)
 
         # Create mock event
         point = QgsPointXY(10, 20)
@@ -178,8 +153,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer and feature
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -202,8 +176,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer and feature for highlighting
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -227,8 +200,7 @@ class TestDipStrikeMapToolQGIS:
         """Test map tool activation and deactivation."""
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Test activation
         map_tool.activate()
@@ -244,8 +216,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer and feature for highlighting
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -266,12 +237,13 @@ class TestDipStrikeMapToolQGIS:
 
     def test_canvas_release_event_with_coordinate_transformation(self, qgis_iface):
         """Test canvas release event with coordinate transformation."""
+        from unittest.mock import patch
+
         from qgis.core import QgsCoordinateReferenceSystem, QgsFeature, QgsGeometry, QgsPointXY, QgsVectorLayer
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer with different CRS
         layer = QgsVectorLayer("Point?crs=EPSG:3857", "test_layer", "memory")
@@ -282,11 +254,6 @@ class TestDipStrikeMapToolQGIS:
         feature.setId(1)
 
         existing_feature = {"feature": feature, "layer": layer}
-
-        # Create mock plugin that returns the feature
-        mock_plugin = Mock()
-        mock_plugin._find_existing_feature_at_point.return_value = existing_feature
-        map_tool.setPlugin(mock_plugin)
 
         # Track signal emissions
         feature_clicked_signals = []
@@ -302,10 +269,12 @@ class TestDipStrikeMapToolQGIS:
         event.mapPoint.return_value = point
 
         # Set canvas CRS to WGS84
-        canvas.mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+        qgis_iface.mapCanvas().mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
 
-        # Trigger event (should handle coordinate transformation)
-        map_tool.canvasReleaseEvent(event)
+        # Mock the feature_finder to return the feature
+        with patch.object(map_tool.feature_finder, "find_feature_at_point", return_value=existing_feature):
+            # Trigger event (should handle coordinate transformation)
+            map_tool.canvasReleaseEvent(event)
 
         # Verify signal was emitted
         assert len(feature_clicked_signals) == 1
@@ -320,8 +289,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer and feature
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -344,12 +312,13 @@ class TestDipStrikeMapToolQGIS:
 
     def test_canvas_move_event_with_existing_feature(self, qgis_iface):
         """Test canvas move event highlighting an existing feature."""
+        from unittest.mock import patch
+
         from qgis.core import QgsFeature, QgsGeometry, QgsPointXY, QgsVectorLayer
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer and feature
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -359,18 +328,15 @@ class TestDipStrikeMapToolQGIS:
 
         existing_feature = {"feature": feature, "layer": layer}
 
-        # Create mock plugin that finds the feature
-        mock_plugin = Mock()
-        mock_plugin._find_existing_feature_at_point.return_value = existing_feature
-        map_tool.setPlugin(mock_plugin)
-
         # Create mock event
         point = QgsPointXY(0, 0)
         event = Mock()
         event.mapPoint.return_value = point
 
-        # Move event should highlight the feature
-        map_tool.canvasMoveEvent(event)
+        # Mock the feature_finder to return the feature
+        with patch.object(map_tool.feature_finder, "find_feature_at_point", return_value=existing_feature):
+            # Move event should highlight the feature
+            map_tool.canvasMoveEvent(event)
 
         # Verify feature is highlighted
         assert map_tool.highlighted_feature == existing_feature
@@ -382,8 +348,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Test inheritance chain
         assert isinstance(map_tool, QgsMapToolEmitPoint)
@@ -405,8 +370,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer with different CRS
         layer = QgsVectorLayer("Point?crs=EPSG:3857", "test_layer", "memory")
@@ -417,11 +381,6 @@ class TestDipStrikeMapToolQGIS:
         feature.setId(1)
 
         existing_feature = {"feature": feature, "layer": layer}
-
-        # Create mock plugin that returns the feature
-        mock_plugin = Mock()
-        mock_plugin._find_existing_feature_at_point.return_value = existing_feature
-        map_tool.setPlugin(mock_plugin)
 
         # Track signal emissions
         feature_clicked_signals = []
@@ -437,7 +396,7 @@ class TestDipStrikeMapToolQGIS:
         event.mapPoint.return_value = point
 
         # Set canvas CRS to different from layer CRS
-        canvas.mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+        qgis_iface.mapCanvas().mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
 
         # Mock coordinate transformation to fail
         with patch("qgis.core.QgsCoordinateTransform") as mock_transform_class:
@@ -445,8 +404,10 @@ class TestDipStrikeMapToolQGIS:
             mock_transform.transform.side_effect = Exception("Transform failed")
             mock_transform_class.return_value = mock_transform
 
-            # Trigger event (should handle transformation failure gracefully)
-            map_tool.canvasReleaseEvent(event)
+            # Mock the feature_finder to return the feature
+            with patch.object(map_tool.feature_finder, "find_feature_at_point", return_value=existing_feature):
+                # Trigger event (should handle transformation failure gracefully)
+                map_tool.canvasReleaseEvent(event)
 
             # Should still emit signal with original point when transformation fails
             assert len(feature_clicked_signals) == 1
@@ -461,8 +422,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer and feature
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -488,8 +448,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create mock highlight that fails on scene removal
         mock_highlight = Mock()
@@ -514,8 +473,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create mock highlight
         mock_highlight = Mock()
@@ -538,8 +496,7 @@ class TestDipStrikeMapToolQGIS:
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create mock highlight that fails on all methods
         mock_highlight = Mock()
@@ -557,12 +514,13 @@ class TestDipStrikeMapToolQGIS:
 
     def test_canvas_release_event_with_different_crs_same_result(self, qgis_iface):
         """Test canvas release event with different CRS that are actually equal."""
+        from unittest.mock import patch
+
         from qgis.core import QgsCoordinateReferenceSystem, QgsFeature, QgsGeometry, QgsPointXY, QgsVectorLayer
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -573,11 +531,6 @@ class TestDipStrikeMapToolQGIS:
         feature.setId(1)
 
         existing_feature = {"feature": feature, "layer": layer}
-
-        # Create mock plugin that returns the feature
-        mock_plugin = Mock()
-        mock_plugin._find_existing_feature_at_point.return_value = existing_feature
-        map_tool.setPlugin(mock_plugin)
 
         # Track signal emissions
         feature_clicked_signals = []
@@ -593,10 +546,12 @@ class TestDipStrikeMapToolQGIS:
         event.mapPoint.return_value = click_point
 
         # Set canvas CRS to same as layer CRS (should use centroid)
-        canvas.mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+        qgis_iface.mapCanvas().mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
 
-        # Trigger event
-        map_tool.canvasReleaseEvent(event)
+        # Mock the feature_finder to return the feature
+        with patch.object(map_tool.feature_finder, "find_feature_at_point", return_value=existing_feature):
+            # Trigger event
+            map_tool.canvasReleaseEvent(event)
 
         # Should use feature centroid since CRS are the same
         assert len(feature_clicked_signals) == 1
@@ -607,12 +562,13 @@ class TestDipStrikeMapToolQGIS:
 
     def test_canvas_release_same_crs_using_centroid(self, qgis_iface):
         """Test canvas release event using feature centroid when CRS are the same."""
+        from unittest.mock import patch
+
         from qgis.core import QgsCoordinateReferenceSystem, QgsFeature, QgsGeometry, QgsPointXY, QgsVectorLayer
 
         from dip_strike_tools.core.dip_strike_map_tool import DipStrikeMapTool
 
-        canvas = qgis_iface.mapCanvas()
-        map_tool = DipStrikeMapTool(canvas)
+        map_tool = DipStrikeMapTool(qgis_iface)
 
         # Create a test layer with specific CRS
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "test_layer", "memory")
@@ -625,11 +581,6 @@ class TestDipStrikeMapToolQGIS:
         feature.setId(1)
 
         existing_feature = {"feature": feature, "layer": layer}
-
-        # Create mock plugin that returns the feature
-        mock_plugin = Mock()
-        mock_plugin._find_existing_feature_at_point.return_value = existing_feature
-        map_tool.setPlugin(mock_plugin)
 
         # Track signal emissions
         feature_clicked_signals = []
@@ -645,10 +596,12 @@ class TestDipStrikeMapToolQGIS:
         event.mapPoint.return_value = click_point
 
         # Set canvas CRS to be exactly the same as layer CRS
-        canvas.mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+        qgis_iface.mapCanvas().mapSettings().setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
 
-        # Trigger event
-        map_tool.canvasReleaseEvent(event)
+        # Mock the feature_finder to return the feature
+        with patch.object(map_tool.feature_finder, "find_feature_at_point", return_value=existing_feature):
+            # Trigger event
+            map_tool.canvasReleaseEvent(event)
 
         # Should use feature centroid (not click point) since CRS are the same
         assert len(feature_clicked_signals) == 1

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1-beta1 - 2025-08-27 [Unreleased]
+
+- Code refactoring
+
 ## 0.2.0 - 2025-08-04
 
 - First public release

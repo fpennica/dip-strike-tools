@@ -307,7 +307,6 @@ class TestDipStrikeToolsPluginQGIS:
         # These methods should exist and be callable
         assert callable(plugin.open_dlg_insert_dip_strike)
         assert callable(plugin.open_create_layer_dialog)
-        assert callable(plugin._find_existing_feature_at_point)
 
     @patch("dip_strike_tools.plugin_main.DlgInsertDipStrike")
     def test_open_dlg_insert_dip_strike_no_existing_feature(self, mock_dialog, qgis_iface):
@@ -323,9 +322,6 @@ class TestDipStrikeToolsPluginQGIS:
         mock_dlg_instance.result.return_value = 1  # QDialog.Accepted
         mock_dialog.return_value = mock_dlg_instance
         mock_dialog.Accepted = 1
-
-        # Mock the feature finding to return None
-        plugin._find_existing_feature_at_point = Mock(return_value=None)
 
         # Test with clicked point but no existing feature
         test_point = QgsPointXY(100, 200)
@@ -438,9 +434,8 @@ class TestDipStrikeToolsPluginQGIS:
             # Test activation
             plugin.activate_dip_strike_tool()
 
-            # Verify tool was created and set
-            mock_map_tool.assert_called_once_with(mock_canvas)
-            mock_tool_instance.setPlugin.assert_called_once_with(plugin)
+            # Verify tool was created and set with iface (not canvas)
+            mock_map_tool.assert_called_once_with(qgis_iface)
             mock_tool_instance.featureClicked.connect.assert_called_once()
             mock_canvas.setMapTool.assert_called_once_with(mock_tool_instance)
             plugin.insert_dip_strike_action.setChecked.assert_called_once_with(True)
@@ -508,190 +503,6 @@ class TestDipStrikeToolsPluginQGIS:
         plugin.on_map_tool_changed(other_tool)
 
         plugin.insert_dip_strike_action.setChecked.assert_called_once_with(False)
-
-    @patch("dip_strike_tools.plugin_main.QgsProject")
-    def test_find_existing_feature_at_point_no_layers(self, mock_project, qgis_iface):
-        """Test feature finding when no layers exist."""
-        from qgis.core import QgsPointXY
-
-        from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
-
-        plugin = DipStrikeToolsPlugin(qgis_iface)
-
-        # Mock project with no layers
-        mock_project_instance = Mock()
-        mock_project_instance.mapLayers.return_value = {}
-        mock_project.instance.return_value = mock_project_instance
-
-        test_point = QgsPointXY(100, 200)
-        result = plugin._find_existing_feature_at_point(test_point)
-
-        assert result is None
-
-    @patch("dip_strike_tools.plugin_main.QgsProject")
-    def test_find_existing_feature_at_point_with_configured_layer(self, mock_project, qgis_iface):
-        """Test feature finding with a configured layer containing features (simplified)."""
-        from qgis.core import QgsPointXY
-
-        from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
-
-        plugin = DipStrikeToolsPlugin(qgis_iface)
-
-        # Mock project with no layers to get predictable result for now
-        mock_project_instance = Mock()
-        mock_project_instance.mapLayers.return_value = {}
-        mock_project.instance.return_value = mock_project_instance
-
-        test_point = QgsPointXY(100, 200)
-        result = plugin._find_existing_feature_at_point(test_point)
-
-        # For now, just verify the method can be called and returns None for empty project
-        assert result is None
-
-    @patch("dip_strike_tools.plugin_main.QgsProject")
-    def test_find_existing_feature_early_returns(self, mock_project, qgis_iface):
-        """Test feature finding method's early return conditions."""
-        from qgis.core import QgsPointXY
-
-        from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
-
-        plugin = DipStrikeToolsPlugin(qgis_iface)
-        test_point = QgsPointXY(100, 200)
-
-        # Test when project is None
-        mock_project.instance.return_value = None
-        result = plugin._find_existing_feature_at_point(test_point)
-        assert result is None
-
-        # Test when layer tree root is None
-        mock_project_instance = Mock()
-        mock_project_instance.layerTreeRoot.return_value = None
-        mock_project.instance.return_value = mock_project_instance
-        result = plugin._find_existing_feature_at_point(test_point)
-        assert result is None
-
-    @patch("dip_strike_tools.plugin_main.QgsProject")
-    def test_find_existing_feature_coordinate_transform_error(self, mock_project, qgis_iface):
-        """Test feature finding when coordinate transformation fails."""
-        from qgis.core import QgsPointXY
-
-        from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
-
-        plugin = DipStrikeToolsPlugin(qgis_iface)
-
-        # Mock layer with different CRS that causes transform error
-        mock_layer = Mock()
-        mock_layer.geometryType.return_value = 0  # Point geometry
-        mock_layer.isValid.return_value = True
-        mock_layer.customProperty.return_value = "dip_strike_feature_layer"
-        mock_layer.crs.return_value = Mock()
-        mock_layer.name.return_value = "Test Layer"
-        mock_layer.id.return_value = "layer_1"
-
-        # Mock project
-        mock_project_instance = Mock()
-        mock_project_instance.mapLayers.return_value = {"layer_1": mock_layer}
-
-        # Mock layer tree
-        mock_layer_tree_layer = Mock()
-        mock_layer_tree_layer.isVisible.return_value = True
-        mock_root = Mock()
-        mock_root.findLayer.return_value = mock_layer_tree_layer
-        mock_project_instance.layerTreeRoot.return_value = mock_root
-
-        mock_project.instance.return_value = mock_project_instance
-
-        # Mock canvas with different CRS than layer
-        mock_canvas = Mock()
-        mock_canvas.mapUnitsPerPixel.return_value = 1.0
-        mock_canvas_settings = Mock()
-        mock_canvas_crs = Mock()
-        mock_canvas_settings.destinationCrs.return_value = mock_canvas_crs
-        mock_canvas.mapSettings.return_value = mock_canvas_settings
-
-        # Make layer CRS different from canvas CRS
-        mock_layer_crs = Mock()
-        mock_layer.crs.return_value = mock_layer_crs
-        mock_canvas_crs.__ne__ = Mock(return_value=True)  # Different CRS
-
-        with patch.object(qgis_iface, "mapCanvas", return_value=mock_canvas):
-            test_point = QgsPointXY(100, 200)
-
-            with patch("qgis.core.QgsCoordinateTransform") as mock_transform_class:
-                mock_transform_instance = Mock()
-                mock_transform_instance.transform.side_effect = Exception("Transform error")
-                mock_transform_class.return_value = mock_transform_instance
-
-                result = plugin._find_existing_feature_at_point(test_point)
-
-                # Should return None due to transform error
-                assert result is None
-
-    @patch("dip_strike_tools.plugin_main.QgsProject")
-    def test_find_existing_feature_layer_processing_error(self, mock_project, qgis_iface):
-        """Test feature finding when layer processing encounters an error."""
-        from qgis.core import QgsPointXY
-
-        from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
-
-        plugin = DipStrikeToolsPlugin(qgis_iface)
-
-        # Mock layer that will cause an error during processing
-        mock_layer = Mock()
-        mock_layer.geometryType.return_value = 0  # Point geometry
-        mock_layer.isValid.return_value = True
-        mock_layer.customProperty.return_value = "other_layer"
-        mock_layer.crs.side_effect = Exception("Layer error")  # This will cause an error
-        mock_layer.name.return_value = "Test Layer"
-        mock_layer.id.return_value = "layer_1"
-
-        # Mock project
-        mock_project_instance = Mock()
-        mock_project_instance.mapLayers.return_value = {"layer_1": mock_layer}
-
-        # Mock layer tree
-        mock_layer_tree_layer = Mock()
-        mock_layer_tree_layer.isVisible.return_value = True
-        mock_root = Mock()
-        mock_root.findLayer.return_value = mock_layer_tree_layer
-        mock_project_instance.layerTreeRoot.return_value = mock_root
-
-        mock_project.instance.return_value = mock_project_instance
-
-        # Mock canvas
-        mock_canvas = Mock()
-        mock_canvas.mapUnitsPerPixel.return_value = 1.0
-        mock_canvas_settings = Mock()
-        mock_canvas_settings.destinationCrs.return_value = Mock()
-        mock_canvas.mapSettings.return_value = mock_canvas_settings
-
-        with patch.object(qgis_iface, "mapCanvas", return_value=mock_canvas):
-            test_point = QgsPointXY(100, 200)
-
-            result = plugin._find_existing_feature_at_point(test_point)
-
-            # Should return None due to layer processing error
-            assert result is None
-
-    @patch("dip_strike_tools.plugin_main.QgsProject")
-    def test_find_existing_feature_with_visible_non_configured_layer(self, mock_project, qgis_iface):
-        """Test feature finding with a visible non-configured layer (simplified)."""
-        from qgis.core import QgsPointXY
-
-        from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
-
-        plugin = DipStrikeToolsPlugin(qgis_iface)
-
-        # Mock project with layers but make it return None for simplicity
-        mock_project_instance = Mock()
-        mock_project_instance.mapLayers.return_value = {}
-        mock_project.instance.return_value = mock_project_instance
-
-        test_point = QgsPointXY(100, 200)
-        result = plugin._find_existing_feature_at_point(test_point)
-
-        # Should return None for empty project
-        assert result is None
 
     def test_unload_method_exception_handling(self, qgis_iface):
         """Test unload method when signal disconnection fails."""
