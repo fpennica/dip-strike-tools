@@ -60,6 +60,10 @@ VS Code will automatically suggest installing recommended extensions when you op
 
 ## Quick Setup (Recommended)
 
+:::{warning}
+At the moment the quick setup is **only** supported on **Linux**. For other OS environments, follow and adapt the manual setup instructions.
+:::
+
 The easiest way to set up the development environment is using the automated setup:
 
 ```bash

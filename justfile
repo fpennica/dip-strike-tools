@@ -1,3 +1,5 @@
+PLUGIN_SLUG := "dip_strike_tools"
+
 # default recipe to display help information
 default:
   @just --list
@@ -46,21 +48,21 @@ dev-link QGIS_PLUGIN_PATH="~/.local/share/QGIS/QGIS3/profiles/default/python/plu
     #!/bin/bash
     # Ensure the target directory exists
     mkdir -p {{ QGIS_PLUGIN_PATH }}
-    rm -rf {{ QGIS_PLUGIN_PATH }}/dip_strike_tools
+    rm -rf {{ QGIS_PLUGIN_PATH }}/{{ PLUGIN_SLUG }}
 
     # Create a relative path symlink
-    PLUGIN_SOURCE=$(pwd)/dip_strike_tools
+    PLUGIN_SOURCE=$(pwd)/{{ PLUGIN_SLUG }}
     cd {{ QGIS_PLUGIN_PATH }}
     ln -sf $(python3 -c "import os; print(os.path.relpath('$PLUGIN_SOURCE', os.getcwd()))")
     cd -
 
     # Create symlinks for supporting files
-    ln -sf $(pwd)/LICENSE $(pwd)/dip_strike_tools/LICENSE
-    ln -sf $(pwd)/CREDITS.md $(pwd)/dip_strike_tools/CREDITS.md
-    ln -sf $(pwd)/CHANGELOG.md $(pwd)/dip_strike_tools/CHANGELOG.md
+    ln -sf $(pwd)/LICENSE $(pwd)/{{ PLUGIN_SLUG }}/LICENSE
+    ln -sf $(pwd)/CREDITS.md $(pwd)/{{ PLUGIN_SLUG }}/CREDITS.md
+    ln -sf $(pwd)/CHANGELOG.md $(pwd)/{{ PLUGIN_SLUG }}/CHANGELOG.md
 
     # Show success message
-    echo "Plugin symlink created at {{ QGIS_PLUGIN_PATH }}/dip_strike_tools"
+    echo "Plugin symlink created at {{ QGIS_PLUGIN_PATH }}/{{ PLUGIN_SLUG }}"
 
 @bootstrap-dev: create-venv dev-link trans-compile
 
@@ -68,10 +70,10 @@ dev-link QGIS_PLUGIN_PATH="~/.local/share/QGIS/QGIS3/profiles/default/python/plu
     uv lock --upgrade
 
 trans-update:
-    uv run pylupdate5 -noobsolete -verbose ./dip_strike_tools/resources/i18n/plugin_translation.pro
+    uv run pylupdate5 -noobsolete -verbose ./{{ PLUGIN_SLUG }}/resources/i18n/plugin_translation.pro
 
 trans-compile:
-    uv run lrelease ./dip_strike_tools/resources/i18n/*.ts
+    uv run lrelease ./{{ PLUGIN_SLUG }}/resources/i18n/*.ts
 
 docs-autobuild:
     uv sync --group docs
@@ -94,14 +96,14 @@ docs-build-pdf:
 test:
     uv sync --no-group ci
     uv sync --group testing
-    uv run pytest -v --cov=dip_strike_tools --cov-report=term-missing
+    uv run pytest -v --cov={{ PLUGIN_SLUG }} --cov-report=term-missing
 
 @package VERSION:
     #!/bin/bash
     uv sync --group ci
-    cp --remove-destination LICENSE dip_strike_tools/
-    cp --remove-destination CHANGELOG.md dip_strike_tools/
-    cp --remove-destination CREDITS.md dip_strike_tools/
+    cp --remove-destination LICENSE {{ PLUGIN_SLUG }}/
+    cp --remove-destination CHANGELOG.md {{ PLUGIN_SLUG }}/
+    cp --remove-destination CREDITS.md {{ PLUGIN_SLUG }}/
     # remove rule for compiled translations from .gitignore
     sed -i "s|^\*\.qm|# \*\.qm|" .gitignore
     git add .
@@ -114,9 +116,9 @@ test:
 @release-test VERSION:
     #!/bin/bash
     uv sync --group ci
-    cp --remove-destination LICENSE dip_strike_tools/
-    cp --remove-destination CHANGELOG.md dip_strike_tools/
-    cp --remove-destination CREDITS.md dip_strike_tools/
+    cp --remove-destination LICENSE {{ PLUGIN_SLUG }}/
+    cp --remove-destination CHANGELOG.md {{ PLUGIN_SLUG }}/
+    cp --remove-destination CREDITS.md {{ PLUGIN_SLUG }}/
     sed -i "s|^\*\.qm|# \*\.qm|" .gitignore
     git add .
     # run qgis-plugin-ci release without github token and osgeo auth
@@ -164,7 +166,7 @@ qgis-docker VERSION="ltr" QGIS_PYTHON_PATH=".local/share/QGIS/QGIS3/profiles/def
         -e DISPLAY=unix$DISPLAY \
         -v /tmp/.X11-unix:/tmp/.X11-unix \
         -v ${HOME}/{{ QGIS_PYTHON_PATH }}/plugins:/home/qgis/.local/share/QGIS/QGIS3/profiles/default/python/plugins \
-        -v $(pwd)/dip_strike_tools:/home/qgis/.local/share/QGIS/QGIS3/profiles/default/python/plugins/dip_strike_tools \
+        -v $(pwd)/{{ PLUGIN_SLUG }}:/home/qgis/.local/share/QGIS/QGIS3/profiles/default/python/plugins/{{ PLUGIN_SLUG }} \
         -v ${HOME}:/home/host \
         -v ${TEMP_DIR}/certificates:/etc/ssl/certs:ro \
         -v ${TEMP_DIR}/qgis_config/processing:/home/qgis/.local/share/QGIS/QGIS3/profiles/default/processing \
