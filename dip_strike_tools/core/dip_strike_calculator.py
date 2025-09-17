@@ -9,9 +9,8 @@ from qgis.core import (
     QgsVectorLayer,
     edit,
 )
-from qgis.PyQt.QtCore import QVariant
 
-from ..toolbelt import PlgLogger
+from ..toolbelt import PlgLogger, QVariant
 from . import dip_strike_math
 
 

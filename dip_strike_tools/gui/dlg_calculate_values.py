@@ -8,7 +8,7 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import QCoreApplication, QVariant
+from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -25,7 +25,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.layer_utils import check_layer_editability
-from ..toolbelt import PlgLogger
+from ..toolbelt import PlgLogger, QVariant
 
 
 class DlgCalculateValues(QDialog):

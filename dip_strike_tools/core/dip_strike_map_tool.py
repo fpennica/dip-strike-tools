@@ -4,11 +4,11 @@
 
 # PyQGIS
 from qgis.gui import QgsHighlight, QgsMapTool, QgsMapToolEmitPoint
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import QColor, QCursor
 
 from dip_strike_tools.core.feature_finder import FeatureFinder
-from dip_strike_tools.toolbelt import PlgLogger
+from dip_strike_tools.toolbelt import PlgLogger, get_cursor_shape
 
 
 class DipStrikeMapTool(QgsMapToolEmitPoint):
@@ -28,8 +28,16 @@ class DipStrikeMapTool(QgsMapToolEmitPoint):
 
     def _set_safe_cursor(self, cursor_name):
         """Safely set cursor with fallback to ArrowCursor."""
-        cursor_type = getattr(Qt, cursor_name, getattr(Qt, "ArrowCursor", 0))
-        self.setCursor(QCursor(cursor_type))
+        try:
+            cursor_type = get_cursor_shape(cursor_name)
+            self.setCursor(QCursor(cursor_type))
+        except Exception as e:
+            # Ultimate fallback: create a basic arrow cursor
+            self.log(message=f"Cursor setting failed, using default: {e}", log_level=4)
+            try:
+                self.setCursor(QCursor())  # Default cursor
+            except Exception:
+                pass  # If even this fails, just continue without cursor change
 
     def canvasMoveEvent(self, event):
         """Handle mouse move to highlight features under cursor."""

@@ -43,6 +43,7 @@ maxdepth: 1
 ---
 development/contribute
 development/environment
+development/pyqt-compatibility
 development/documentation
 development/translation
 development/packaging

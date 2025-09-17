@@ -19,7 +19,7 @@ from ..core.elevation_utils import ElevationExtractor
 from ..core.layer_creator import DipStrikeLayerCreator, LayerCreationError
 from ..core.layer_utils import check_layer_editability
 from ..core.rubber_band_marker import RubberBandMarker
-from ..toolbelt import PlgLogger
+from ..toolbelt import DIALOG_ACCEPTED, PlgLogger, QVariant
 
 FORM_CLASS, _ = uic.loadUiType(Path(__file__).parent / f"{Path(__file__).stem}.ui")
 
@@ -375,7 +375,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     from .dlg_field_config import DlgFieldConfig
 
                     config_dialog = DlgFieldConfig(layer, self)
-                    if config_dialog.exec() == DlgFieldConfig.DialogCode.Accepted:
+                    if config_dialog.exec() == DIALOG_ACCEPTED:
                         self.log(
                             message=f"Field configuration completed for shapefile: {layer.name()}",
                             log_level=3,
@@ -541,7 +541,6 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         :param qvariant_value: Value that might be a QVariant
         :return: Python value or None if NULL
         """
-        from qgis.PyQt.QtCore import QVariant
 
         if qvariant_value is None:
             return None
@@ -1285,7 +1284,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # Open the configuration dialog
         config_dialog = DlgFieldConfig(layer, self)
-        if config_dialog.exec() == DlgFieldConfig.DialogCode.Accepted:
+        if config_dialog.exec() == DIALOG_ACCEPTED:
             self.log(
                 message=f"Field configuration saved for layer: {layer.name()}",
                 log_level=3,
@@ -1332,7 +1331,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             from .dlg_field_config import DlgFieldConfig
 
             config_dialog = DlgFieldConfig(layer, self)
-            if config_dialog.exec() == DlgFieldConfig.DialogCode.Accepted:
+            if config_dialog.exec() == DIALOG_ACCEPTED:
                 self.log(
                     message=f"Auto-configuration completed for layer: {layer.name()}",
                     log_level=3,
@@ -1364,7 +1363,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # Open the layer creation dialog
         create_dialog = DlgCreateLayer(self)
-        if create_dialog.exec() != DlgCreateLayer.DialogCode.Accepted:
+        if create_dialog.exec() != DIALOG_ACCEPTED:
             self.log(
                 message="Layer creation cancelled by user",
                 log_level=4,

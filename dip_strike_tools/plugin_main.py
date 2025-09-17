@@ -25,7 +25,7 @@ from dip_strike_tools.gui.dlg_create_layer import DlgCreateLayer
 from dip_strike_tools.gui.dlg_info import PluginInfo
 from dip_strike_tools.gui.dlg_insert_dip_strike import DlgInsertDipStrike
 from dip_strike_tools.gui.dlg_settings import PlgOptionsFactory
-from dip_strike_tools.toolbelt import PlgLogger
+from dip_strike_tools.toolbelt import DIALOG_ACCEPTED, PlgLogger
 
 
 class DipStrikeToolsPlugin:
@@ -355,7 +355,7 @@ class DipStrikeToolsPlugin:
             self.iface.mainWindow(), clicked_point=clicked_point, existing_feature=existing_feature
         )
         dlg.exec()
-        if dlg.result() == DlgInsertDipStrike.Accepted:
+        if dlg.result() == DIALOG_ACCEPTED:
             self.log(message="Dip Strike Point created successfully.", log_level=3)
         else:
             self.log(message="Dip Strike Point creation cancelled.", log_level=4)
@@ -364,7 +364,7 @@ class DipStrikeToolsPlugin:
         """Open the dialog to create a new dip strike layer."""
         dlg = DlgCreateLayer(self.iface.mainWindow())
         dlg.exec()
-        if dlg.result() == DlgCreateLayer.Accepted:
+        if dlg.result() == DIALOG_ACCEPTED:
             try:
                 # Get the layer configuration from the dialog
                 config = dlg.get_layer_config()
@@ -398,7 +398,7 @@ class DipStrikeToolsPlugin:
         """Open the dialog to calculate dip/strike values from existing fields."""
         dlg = DlgCalculateValues(self.iface.mainWindow())
         dlg.exec()
-        if dlg.result() == DlgCalculateValues.Accepted:
+        if dlg.result() == DIALOG_ACCEPTED:
             try:
                 # Get the calculation configuration from the dialog
                 config = dlg.get_calculation_config()

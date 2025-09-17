@@ -14,9 +14,9 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import QMetaType
 
 from ..toolbelt import PlgLogger
+from ..toolbelt import QMetaTypeWrapper as QMetaType
 
 
 class LayerCreationError(Exception):
@@ -53,19 +53,19 @@ class DipStrikeLayerCreator:
         # Create required fields using modern constructor
         strike_azimuth_field = QgsField()
         strike_azimuth_field.setName("strike_azimuth")
-        strike_azimuth_field.setType(QMetaType.Type.Double)
+        strike_azimuth_field.setType(QMetaType.Double)
         strike_azimuth_field.setLength(10)
         strike_azimuth_field.setPrecision(2)
 
         dip_azimuth_field = QgsField()
         dip_azimuth_field.setName("dip_azimuth")
-        dip_azimuth_field.setType(QMetaType.Type.Double)
+        dip_azimuth_field.setType(QMetaType.Double)
         dip_azimuth_field.setLength(10)
         dip_azimuth_field.setPrecision(2)
 
         dip_value_field = QgsField()
         dip_value_field.setName("dip_value")
-        dip_value_field.setType(QMetaType.Type.Double)
+        dip_value_field.setType(QMetaType.Double)
         dip_value_field.setLength(10)
         dip_value_field.setPrecision(2)
 
@@ -74,27 +74,27 @@ class DipStrikeLayerCreator:
         # Create optional fields using modern constructor
         geo_type_field = QgsField()
         geo_type_field.setName("geo_type")
-        geo_type_field.setType(QMetaType.Type.QString)
+        geo_type_field.setType(QMetaType.QString)
         geo_type_field.setLength(50)
 
         age_field = QgsField()
         age_field.setName("age")
-        age_field.setType(QMetaType.Type.QString)
+        age_field.setType(QMetaType.QString)
         age_field.setLength(50)
 
         lithology_field = QgsField()
         lithology_field.setName("lithology")
-        lithology_field.setType(QMetaType.Type.QString)
+        lithology_field.setType(QMetaType.QString)
         lithology_field.setLength(100)
 
         notes_field = QgsField()
         notes_field.setName("notes")
-        notes_field.setType(QMetaType.Type.QString)
+        notes_field.setType(QMetaType.QString)
         notes_field.setLength(255)
 
         z_value_field = QgsField()
         z_value_field.setName("z_value")
-        z_value_field.setType(QMetaType.Type.Int)
+        z_value_field.setType(QMetaType.Int)
         z_value_field.setLength(10)
 
         optional_fields = [geo_type_field, age_field, lithology_field, notes_field, z_value_field]

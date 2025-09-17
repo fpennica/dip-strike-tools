@@ -6,10 +6,10 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
-from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QApplication
 
 from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues
+from dip_strike_tools.toolbelt import QVariant
 
 
 @pytest.mark.qgis  # This test requires QGIS environment due to Qt/PyQt imports

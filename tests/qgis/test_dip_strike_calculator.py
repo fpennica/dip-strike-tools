@@ -8,6 +8,9 @@ These tests require a QGIS environment and use pytest-qgis.
 
 import pytest
 
+# Import compatibility module for QVariant
+from dip_strike_tools.toolbelt import QVariant
+
 # Import pytest-qgis utilities
 pytest_plugins = ["pytest_qgis"]
 
@@ -36,8 +39,8 @@ class TestDipStrikeCalculatorQGIS:
     def test_process_layer_create_new_field_dip_from_strike(self, qgis_iface):
         """Test process_layer creating new field for dip calculation."""
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -93,8 +96,8 @@ class TestDipStrikeCalculatorQGIS:
     def test_process_layer_create_new_field_strike_from_dip(self, qgis_iface):
         """Test process_layer creating new field for strike calculation."""
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -150,8 +153,8 @@ class TestDipStrikeCalculatorQGIS:
     def test_process_layer_use_existing_field(self, qgis_iface):
         """Test process_layer using existing output field."""
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -205,8 +208,8 @@ class TestDipStrikeCalculatorQGIS:
     def test_process_layer_with_null_values(self, qgis_iface):
         """Test process_layer with null and empty values."""
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -259,8 +262,8 @@ class TestDipStrikeCalculatorQGIS:
     def test_process_layer_with_decimal_places(self, qgis_iface):
         """Test process_layer with different decimal places."""
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -310,8 +313,8 @@ class TestDipStrikeCalculatorQGIS:
         from unittest.mock import patch
 
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -355,8 +358,8 @@ class TestDipStrikeCalculatorQGIS:
         from unittest.mock import patch
 
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -398,8 +401,8 @@ class TestDipStrikeCalculatorQGIS:
     def test_process_layer_with_errors_but_some_success(self, qgis_iface):
         """Test process_layer with mixed success and error results."""
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()
@@ -446,8 +449,8 @@ class TestDipStrikeCalculatorQGIS:
     def test_process_layer_field_types(self, qgis_iface):
         """Test process_layer creates field with correct type."""
         from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-        from qgis.PyQt.QtCore import QVariant
 
+        # QVariant import moved to top of file
         from dip_strike_tools.core.dip_strike_calculator import DipStrikeCalculator
 
         calculator = DipStrikeCalculator()

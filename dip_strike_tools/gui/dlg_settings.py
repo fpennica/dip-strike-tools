@@ -26,7 +26,7 @@ from dip_strike_tools.__about__ import (
     __uri_tracker__,
     __version__,
 )
-from dip_strike_tools.toolbelt import PlgLogger, PlgOptionsManager
+from dip_strike_tools.toolbelt import PlgLogger, PlgOptionsManager, get_selection_behavior
 from dip_strike_tools.toolbelt.preferences import PlgSettingsStructure
 
 # ############################################################################
@@ -160,7 +160,7 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
 
         # Enable selection but disable automatic sorting
         self.table_geological_types.setSortingEnabled(False)  # Keep disabled
-        self.table_geological_types.setSelectionBehavior(self.table_geological_types.SelectRows)
+        self.table_geological_types.setSelectionBehavior(get_selection_behavior("SelectRows"))
 
         # Allow manual header clicking for sorting when needed
         header = self.table_geological_types.horizontalHeader()
