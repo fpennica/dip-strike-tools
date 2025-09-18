@@ -260,7 +260,7 @@ class TestDipStrikeToolsPluginAdvanced:
         """Test the add_action method with various parameters."""
         try:
             # Import Qt classes for proper mocking
-            from PyQt5.QtWidgets import QToolBar
+            from qgis.PyQt.QtWidgets import QToolBar
 
             from dip_strike_tools.plugin_main import DipStrikeToolsPlugin
         except ImportError:

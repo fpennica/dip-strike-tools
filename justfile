@@ -187,4 +187,5 @@ qgis-docker VERSION="ltr" QGIS_PYTHON_PATH=".local/share/QGIS/QGIS3/profiles/def
 # run pyqt6 migration script: https://github.com/qgis/QGIS/wiki/Plugin-migration-to-be-compatible-with-Qt5-and-Qt6
 pyqt5-to-pyqt6:
     #!/bin/bash
+    # no way to ignore files, so edits to toolbelt/qt_compat.py must be discarded
     docker run --rm -v "$(pwd):/home/pyqgisdev/" registry.gitlab.com/oslandia/qgis/pyqgis-4-checker/pyqgis-qt-checker:latest pyqt5_to_pyqt6.py --logfile /home/pyqgisdev/pyqt6_checker.log .
