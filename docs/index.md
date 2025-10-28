@@ -10,11 +10,11 @@
 
 ----
 
-## Overview
+**Overview**
 
 Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digitizing, managing, and analyzing plane orientation or attitude data (dip and strike) of planar geologic features. It currently provides basic tools to streamline the workflow for geologists working with structural geology datasets, enabling efficient dip and strike data capture and management within QGIS.
 
-### Key Features
+**Key Features**
 
 - **Interactive Data Collection**: Point-and-click interface for recording dip/strike measurements directly on the map
 - **True North Correction**: Automatic adjustment for grid convergence

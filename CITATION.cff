@@ -5,17 +5,35 @@ message: >-
   metadata from this file.
 type: software
 authors:
-  - given-names: Giuseppe
-    family-names: Cosentino
-    orcid: 'https://orcid.org/0000-0001-8691-3430'
-    affiliation: CNR-IGG
   - given-names: Francesco
     family-names: Pennica
     orcid: 'https://orcid.org/0000-0002-8141-9246'
     affiliation: CNR-IGAG
+  - given-names: Giuseppe
+    family-names: Cosentino
+    orcid: 'https://orcid.org/0000-0001-8691-3430'
+    affiliation: CNR-IGG
 identifiers:
   - type: doi
     value:
 repository-code: 'https://github.com/fpennica/dip-strike-tools'
-abstract: QGIS plugin for italian Seismic Microzonation.
-license: GPL-3.0
+abstract: >-
+  Dip-Strike Tools is a QGIS plugin that aims to provide a
+  set of tools for digitizing, managing, and analyzing plane
+  orientation or attitude data (dip and strike) of planar
+  geologic features. It currently provides basic tools to
+  streamline the workflow for geologists working with
+  structural geology datasets, enabling efficient dip and
+  strike data capture and management within QGIS.
+keywords:
+  - mapping
+  - gis
+  - geoscience
+  - qgis
+  - orientation
+  - attitude
+  - geology
+  - azimuth
+  - strike
+  - dip
+license: GPL-2.0-or-later

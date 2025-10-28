@@ -8,6 +8,7 @@ Dip-Strike Tools is a QGIS plugin that aims to provide a set of tools for digiti
 
 ```{figure} https://upload.wikimedia.org/wikipedia/commons/8/80/Streichbild.svg
 :align: center
+:width: 450px
 
 Schematic depiction of "strike" and "dip" in structural geology. Z: strike line of the red plane, σ: strike angle, F: dip direction, φ: dip angle. (https://en.wikipedia.org/wiki/File:Streichbild.svg)
 
@@ -26,6 +27,7 @@ On geological maps, strike and dip can be represented by a T symbol with a label
 
 ```{figure} https://upload.wikimedia.org/wikipedia/commons/5/5a/Guide_to_common_map_symbols.svg
 :align: center
+:width: 250px
 
 Common map symbols (https://en.wikipedia.org/wiki/File:Guide_to_common_map_symbols.svg)
 
@@ -37,6 +39,7 @@ In GIS-based geological mapping, strike and dip are typically represented as poi
 
 ```{figure} ../static/map_example.png
 :align: center
+:width: 450px
 
 Example of dip/strike representation on map
 ```
@@ -47,6 +50,7 @@ A common scenario is the digitization of data from scanned historical (cartaceou
 
 ```{figure} ../static/insert_point.png
 :align: center
+:width: 450px
 
 Inserting a new dip/strike feature
 ```

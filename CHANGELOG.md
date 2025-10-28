@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.2.1-beta2 - 2025-09-17 [Unreleased]
+## 0.2.1 - 2025-10-28
 
-- Code refactoring
+- Code refactoring and cleanup
 - More work on PyQt6 compatibility
 
 ## 0.2.0 - 2025-08-04

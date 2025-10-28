@@ -19,6 +19,7 @@ The interactive data entry dialog provides comprehensive input options:
 
 ```{figure} ../static/insert_point.png
 :align: center
+:width: 450px
 
 Inserting a new dip/strike feature
 ```

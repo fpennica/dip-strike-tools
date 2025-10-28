@@ -39,12 +39,15 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
+    "sphinx.ext.imgconverter",  # support for svg images in LaTeX/PDF output
     # 3rd party
     "myst_parser",
     "sphinx_copybutton",
     "sphinx_rtd_theme",
 ]
 
+# Support for unicode characters in LaTeX output
+latex_engine = "xelatex"
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
