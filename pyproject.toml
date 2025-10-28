@@ -32,7 +32,7 @@ docs = [
 plugin_name = "Dip Strike Tools"
 plugin_path = "dip_strike_tools"
 project_slug = "dip-strike-tools"
-github_organization_slug = "CNR-IGAG"
+github_organization_slug = "fpennica"
 
 [tool.ruff]
 target-version = "py39"
