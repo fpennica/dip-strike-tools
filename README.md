@@ -1,6 +1,6 @@
 # Dip Strike Tools - QGIS Plugin
 
-![GitHub License](https://img.shields.io/github/license/fpennica/dip-strike-tools) ![GitHub Release](https://img.shields.io/github/v/release/fpennica/dip-strike-tools)
+[![DOI](https://zenodo.org/badge/997483957.svg)](https://doi.org/10.5281/zenodo.17464940) ![GitHub License](https://img.shields.io/github/license/fpennica/dip-strike-tools) ![GitHub Release](https://img.shields.io/github/v/release/fpennica/dip-strike-tools)
 
 ## About
 

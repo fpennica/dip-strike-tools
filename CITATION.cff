@@ -15,7 +15,7 @@ authors:
     affiliation: CNR-IGG
 identifiers:
   - type: doi
-    value:
+    value: 10.5281/zenodo.17464940
 repository-code: 'https://github.com/fpennica/dip-strike-tools'
 abstract: >-
   Dip-Strike Tools is a QGIS plugin that aims to provide a
