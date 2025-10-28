@@ -50,3 +50,11 @@ development/packaging
 development/testing
 development/history
 ```
+
+```{toctree}
+---
+caption: About
+maxdepth: 1
+---
+license
+```

@@ -22,7 +22,7 @@ on_rtd = environ.get("READTHEDOCS", None) == "True"
 
 # -- Project information -----------------------------------------------------
 author = __about__.__author__
-copyright = __about__.__copyright__
+copyright = f"{__about__.__copyright__}. Documentation under CC BY 4.0"
 description = __about__.__summary__
 project = __about__.__title__
 version = release = __about__.__version__
@@ -81,6 +81,8 @@ pygments_style = "sphinx"
 
 html_favicon = str(__about__.__icon_path__)
 html_logo = str(__about__.__icon_path__)
+html_show_copyright = True
+html_last_updated_fmt = "%b %d, %Y"
 # uncomment next line if you store some statics which are not directly linked into the markdown/RST files
 # html_static_path = ["static/include_additional"]
 html_theme = "sphinx_rtd_theme"
