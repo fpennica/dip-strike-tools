@@ -1,3 +1,21 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa: E265
 
 """
@@ -33,7 +51,7 @@ from dip_strike_tools.toolbelt.preferences import PlgSettingsStructure
 # ########## Globals ###############
 # ##################################
 
-FORM_CLASS, _ = uic.loadUiType(Path(__file__).parent / "{}.ui".format(Path(__file__).stem))
+FORM_CLASS, _ = uic.loadUiType(Path(__file__).parent / f"{Path(__file__).stem}.ui")
 
 
 # ############################################################################
@@ -51,7 +69,7 @@ class ConfigOptionsPage(FORM_CLASS, QgsOptionsPageWidget):
 
         # load UI and set objectName
         self.setupUi(self)
-        self.setObjectName("mOptionsPage{}".format(__title__))
+        self.setObjectName(f"mOptionsPage{__title__}")
 
         report_context_message = quote(
             "> Reported from plugin settings\n\n"

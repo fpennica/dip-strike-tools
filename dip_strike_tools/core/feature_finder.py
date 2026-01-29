@@ -1,8 +1,24 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa: E265
 
 """Feature finder utility for dip strike tools."""
-
-from typing import Dict, List, Optional
 
 from qgis.core import (
     QgsCoordinateTransform,
@@ -28,7 +44,7 @@ class FeatureFinder:
         self.iface = iface
         self.log = PlgLogger().log
 
-    def find_feature_at_point(self, clicked_point: QgsPointXY, tolerance_pixels: int = 10) -> Optional[Dict]:
+    def find_feature_at_point(self, clicked_point: QgsPointXY, tolerance_pixels: int = 10) -> dict | None:
         """Find existing dip/strike features near the clicked point.
 
         :param clicked_point: The point where user clicked (in map canvas CRS)
@@ -61,7 +77,7 @@ class FeatureFinder:
 
         return None
 
-    def _get_searchable_point_layers(self) -> List[QgsVectorLayer]:
+    def _get_searchable_point_layers(self) -> list[QgsVectorLayer]:
         """Get all searchable point layers from the project.
 
         :return: List of searchable point layers
@@ -99,8 +115,8 @@ class FeatureFinder:
         return point_layers
 
     def _prioritize_layers(
-        self, point_layers: List[QgsVectorLayer]
-    ) -> tuple[List[QgsVectorLayer], List[QgsVectorLayer]]:
+        self, point_layers: list[QgsVectorLayer]
+    ) -> tuple[list[QgsVectorLayer], list[QgsVectorLayer]]:
         """Separate configured dip/strike layers from other layers.
 
         :param point_layers: List of all point layers
@@ -120,7 +136,7 @@ class FeatureFinder:
 
         return configured_layers, other_layers
 
-    def _search_layer(self, layer: QgsVectorLayer, search_geometry_canvas: QgsGeometry, canvas_crs) -> Optional[Dict]:
+    def _search_layer(self, layer: QgsVectorLayer, search_geometry_canvas: QgsGeometry, canvas_crs) -> dict | None:
         """Search for features in a specific layer.
 
         :param layer: Vector layer to search
@@ -150,7 +166,7 @@ class FeatureFinder:
             self.log(message=f"Error searching layer '{layer.name()}': {e}", log_level=2)
             return None
 
-    def _search_layer_features(self, layer: QgsVectorLayer, search_geometry: QgsGeometry) -> Optional[Dict]:
+    def _search_layer_features(self, layer: QgsVectorLayer, search_geometry: QgsGeometry) -> dict | None:
         """Search layer using bounding box filter with automatic spatial index optimization.
 
         :param layer: Vector layer to search
@@ -171,7 +187,7 @@ class FeatureFinder:
 
         return None
 
-    def _create_feature_dict(self, feature, layer: QgsVectorLayer) -> Dict:
+    def _create_feature_dict(self, feature, layer: QgsVectorLayer) -> dict:
         """Create a standardized feature dictionary.
 
         :param feature: The found feature

@@ -1,10 +1,27 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa: E265
 
 """Main plugin module."""
 
 from functools import partial
 from pathlib import Path
-from typing import Optional
 
 from qgis.core import QgsApplication, QgsProject, QgsSettings
 from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator, QUrl
@@ -68,8 +85,8 @@ class DipStrikeToolsPlugin:
         enabled_flag: bool = True,
         add_to_menu: bool = True,
         add_to_toolbar: bool = True,
-        status_tip: Optional[str] = None,
-        whats_this: Optional[str] = None,
+        status_tip: str | None = None,
+        whats_this: str | None = None,
         parent=None,
     ):
         # Use toolbar as parent for toolbar actions, or provided parent
@@ -141,7 +158,7 @@ class DipStrikeToolsPlugin:
         self.settings_action = self.add_action(
             QgsApplication.getThemeIcon("mActionOptions.svg"),
             text=self.tr("Dip-Strike Tools Settings"),
-            callback=lambda: self.iface.showOptionsDialog(currentPage="mOptionsPage{}".format(__title__)),
+            callback=lambda: self.iface.showOptionsDialog(currentPage=f"mOptionsPage{__title__}"),
             add_to_toolbar=False,
         )
         tools_menu.addAction(self.settings_action)  # type: ignore[arg-type]

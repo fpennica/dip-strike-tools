@@ -1,3 +1,21 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa: E265
 
 """
@@ -14,7 +32,6 @@ import pytest
 pytest_plugins = ["pytest_qgis"]
 
 
-@pytest.mark.qgis
 class TestDipStrikeMapToolQGIS:
     """QGIS integration tests for DipStrikeMapTool."""
 
@@ -356,11 +373,11 @@ class TestDipStrikeMapToolQGIS:
 
         # Test that it has expected methods from parent classes
         assert hasattr(map_tool, "setCursor")
-        assert callable(getattr(map_tool, "setCursor"))
+        assert callable(map_tool.setCursor)
         assert hasattr(map_tool, "activate")
-        assert callable(getattr(map_tool, "activate"))
+        assert callable(map_tool.activate)
         assert hasattr(map_tool, "deactivate")
-        assert callable(getattr(map_tool, "deactivate"))
+        assert callable(map_tool.deactivate)
 
     def test_canvas_release_event_coordinate_transformation_failure(self, qgis_iface):
         """Test canvas release event when coordinate transformation fails."""

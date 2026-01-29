@@ -1,3 +1,21 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa: E265
 
 """
@@ -7,7 +25,7 @@ This module provides unified calculation functions for converting between
 dip and strike azimuths, with support for rounding and value validation.
 """
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any
 
 # Import QGIS utilities for true north calculations
 try:
@@ -82,9 +100,7 @@ def normalize_azimuth(azimuth: float) -> float:
     return azimuth % 360.0
 
 
-def calculate_dip_from_strike(
-    strike_azimuth: Union[float, int, str, None], decimal_places: int = 2
-) -> Optional[float]:
+def calculate_dip_from_strike(strike_azimuth: float | int | str | None, decimal_places: int = 2) -> float | None:
     """Calculate dip azimuth from strike azimuth.
 
     Dip azimuth is perpendicular to strike azimuth.
@@ -110,7 +126,7 @@ def calculate_dip_from_strike(
         return None
 
 
-def calculate_strike_from_dip(dip_azimuth: Union[float, int, str, None], decimal_places: int = 2) -> Optional[float]:
+def calculate_strike_from_dip(dip_azimuth: float | int | str | None, decimal_places: int = 2) -> float | None:
     """Calculate strike azimuth from dip azimuth.
 
     Strike azimuth is perpendicular to dip azimuth.
@@ -163,7 +179,7 @@ def get_strike_and_dip_from_azimuth(
     true_north_bearing: float = 0.0,
     apply_true_north: bool = False,
     decimal_places: int = 2,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Convert azimuth input to both strike and dip values.
 
     This function handles the conversion logic used in the insert dialog,

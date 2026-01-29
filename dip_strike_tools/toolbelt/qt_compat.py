@@ -1,3 +1,21 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa: E265
 
 """PyQt5/PyQt6 compatibility module.
@@ -6,7 +24,7 @@ This module provides a unified interface for PyQt5 and PyQt6 compatibility,
 handling the main differences between the two versions.
 """
 
-from typing import Any, Union
+from typing import Any
 
 try:
     # Try to determine PyQt version through QGIS
@@ -83,7 +101,7 @@ if IS_PYQT6:
         ByteArray = QMetaType.Type.QByteArray
 
         @staticmethod
-        def typeToName(type_val: Union[int, Any]) -> str:
+        def typeToName(type_val: int | Any) -> str:
             """Convert type to string name."""
             if hasattr(QMetaType, "typeName"):
                 result = QMetaType.typeName(type_val)
@@ -91,7 +109,7 @@ if IS_PYQT6:
             return str(type_val)
 
         @staticmethod
-        def nameToType(name: str) -> Union[int, Any]:
+        def nameToType(name: str) -> int | Any:
             """Convert string name to type."""
             if hasattr(QMetaType, "type"):
                 return QMetaType.type(name)
@@ -158,12 +176,12 @@ if IS_PYQT6:
         QDateTime = QMetaType.Type.QDateTime
 
         @staticmethod
-        def type(type_name: str) -> Union[int, Any]:
+        def type(type_name: str) -> int | Any:
             """Get type ID from name."""
             return QMetaType.fromName(type_name.encode()).id()
 
         @staticmethod
-        def typeName(type_id: Union[int, Any]) -> str:
+        def typeName(type_id: int | Any) -> str:
             """Get type name from ID."""
             meta_type = QMetaType(type_id)
             return meta_type.name().decode() if meta_type.isValid() else ""
@@ -221,7 +239,7 @@ def get_dialog_result(dialog_class: Any, result_name: str) -> int:
     if IS_PYQT6:
         # In PyQt6: QDialog.DialogCode.Accepted
         if hasattr(dialog_class, "DialogCode"):
-            dialog_code = getattr(dialog_class, "DialogCode")
+            dialog_code = dialog_class.DialogCode
             if hasattr(dialog_code, result_name):
                 return getattr(dialog_code, result_name)
     else:
@@ -277,7 +295,7 @@ def get_cursor_shape(cursor_name: str) -> Any:
         if IS_PYQT6:
             # In PyQt6: Qt.CursorShape.ArrowCursor
             if hasattr(Qt, "CursorShape"):
-                cursor_shape = getattr(Qt, "CursorShape")
+                cursor_shape = Qt.CursorShape
                 if hasattr(cursor_shape, cursor_name):
                     return getattr(cursor_shape, cursor_name)
         else:
@@ -314,7 +332,7 @@ def get_selection_behavior(behavior_name: str) -> Any:
         if IS_PYQT6:
             # In PyQt6: QAbstractItemView.SelectionBehavior.SelectRows
             if hasattr(QAbstractItemView, "SelectionBehavior"):
-                selection_behavior = getattr(QAbstractItemView, "SelectionBehavior")
+                selection_behavior = QAbstractItemView.SelectionBehavior
                 if hasattr(selection_behavior, behavior_name):
                     return getattr(selection_behavior, behavior_name)
         else:
@@ -353,7 +371,7 @@ def get_alignment_flag(*alignment_names: str) -> Any:
             if IS_PYQT6:
                 # In PyQt6: Qt.AlignmentFlag.AlignLeft
                 if hasattr(Qt, "AlignmentFlag"):
-                    alignment_flag = getattr(Qt, "AlignmentFlag")
+                    alignment_flag = Qt.AlignmentFlag
                     if hasattr(alignment_flag, alignment_name):
                         alignment_value |= getattr(alignment_flag, alignment_name)
                     else:

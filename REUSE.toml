@@ -1,0 +1,33 @@
+version = 1
+
+[[annotations]]
+path = [
+  "*",
+  "dip_strike_tools/**",
+  ".github/**",
+  ".vscode/**",
+  "docker/**",
+  "scripts/**",
+  "tests/**",
+]
+SPDX-FileCopyrightText = "2025-2026 F. Pennica"
+SPDX-License-Identifier = "GPL-2.0-or-later"
+
+[[annotations]]
+path = [
+  "dip_strike_tools/toolbelt/log_handler.py",
+  "dip_strike_tools/toolbelt/preferences.py"
+]
+SPDX-FileCopyrightText = [
+    "2022-2026 Oslandia <qgis@oslandia.com>",
+    "2025-2026 F. Pennica"
+]
+SPDX-License-Identifier = [
+    "MIT",
+    "GPL-2.0-or-later"
+]
+
+[[annotations]]
+path = "docs/**"
+SPDX-FileCopyrightText = "2025-2026 F. Pennica"
+SPDX-License-Identifier = "CC-BY-4.0"

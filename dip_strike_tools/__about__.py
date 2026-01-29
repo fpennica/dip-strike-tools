@@ -1,3 +1,21 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa: E265
 
 """
@@ -51,7 +69,7 @@ def plugin_metadata_as_dict() -> dict:
         config.read(PLG_METADATA_FILE.resolve(), encoding="UTF-8")
         return {s: dict(config.items(s)) for s in config.sections()}
     else:
-        raise IOError("Plugin metadata.txt not found at: %s" % PLG_METADATA_FILE)
+        raise OSError(f"Plugin metadata.txt not found at: {PLG_METADATA_FILE}")
 
 
 # ############################################################################
@@ -62,7 +80,7 @@ def plugin_metadata_as_dict() -> dict:
 __plugin_md__: dict = plugin_metadata_as_dict()
 
 __author__: str = __plugin_md__.get("general").get("author")
-__copyright__: str = "2025 - {0}, {1}".format(date.today().year, __author__)
+__copyright__: str = f"2025 - {date.today().year}, {__author__}"
 __email__: str = __plugin_md__.get("general").get("email")
 __icon_path__: Path = DIR_PLUGIN_ROOT.resolve() / __plugin_md__.get("general").get("icon")
 __keywords__: list = [t.strip() for t in __plugin_md__.get("general").get("repository").split("tags")]
@@ -103,8 +121,7 @@ if __name__ == "__main__":
     print(f"Description: {__summary__}")
     print(f"Icon: {__icon_path__}")
     print(
-        "For: %s > QGIS > %s"
-        % (
+        "For: {} > QGIS > {}".format(
             plugin_md.get("general").get("qgisminimumversion"),
             plugin_md.get("general").get("qgismaximumversion"),
         )

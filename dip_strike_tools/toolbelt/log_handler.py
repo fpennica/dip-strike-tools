@@ -1,23 +1,36 @@
-#! python3  # noqa: E265
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# Copyright (C) 2022-2026 Oslandia <qgis@oslandia.com>
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
 
-# standard library
 import logging
+from collections.abc import Callable
 from functools import partial
-from typing import Callable, Literal, Optional, Union
+from typing import Literal, cast
 
-# PyQGIS
 from qgis.core import Qgis, QgsMessageLog, QgsMessageOutput
-from qgis.gui import QgsMessageBar
+from qgis.gui import QgisInterface, QgsMessageBar
 from qgis.PyQt.QtWidgets import QPushButton, QWidget
-from qgis.utils import iface
+from qgis.utils import iface as _iface
 
-# project package
 import dip_strike_tools.toolbelt.preferences as plg_prefs_hdlr
 from dip_strike_tools.__about__ import __title__
 
-# ############################################################################
-# ########## Classes ###############
-# ##################################
+iface: QgisInterface = cast(QgisInterface, _iface)
 
 
 class PlgLogger(logging.Handler):
@@ -27,16 +40,16 @@ class PlgLogger(logging.Handler):
     def log(
         message: str,
         application: str = __title__,
-        log_level: Union[Qgis.MessageLevel, Literal[0, 1, 2, 3, 4]] = Qgis.MessageLevel.Info,
+        log_level: Qgis.MessageLevel | Literal[0, 1, 2, 3, 4] = Qgis.MessageLevel.Info,
         push: bool = False,
-        duration: Optional[int] = None,
+        duration: int | None = None,
         # widget
         button: bool = False,
-        button_text: Optional[str] = None,
-        button_more_text: Optional[str] = None,
-        button_connect: Optional[Callable] = None,
+        button_text: str | None = None,
+        button_more_text: str | None = None,
+        button_connect: Callable | None = None,
         # parent
-        parent_location: Optional[QWidget] = None,
+        parent_location: QWidget | None = None,
     ):
         """Send messages to QGIS messages windows and to the user as a message bar. \
         Plugin name is used as title. If debug mode is disabled, only warnings (1) and \
@@ -132,7 +145,7 @@ class PlgLogger(logging.Handler):
             try:
                 message = str(message)
             except Exception as err:
-                err_msg = "Log message must be a string, not: {}. Trace: {}".format(type(message), err)
+                err_msg = f"Log message must be a string, not: {type(message)}. Trace: {err}"
                 logging.error(err_msg)
                 message = err_msg
 
@@ -162,7 +175,7 @@ class PlgLogger(logging.Handler):
                 if button_connect:
                     widget_button.clicked.connect(button_connect)
                 else:
-                    mini_dlg: QgsMessageOutput = QgsMessageOutput.createMessageOutput()
+                    mini_dlg = QgsMessageOutput.createMessageOutput()
                     mini_dlg.setTitle(application)
                     mini_dlg.setMessage(
                         f"{message}\n{button_more_text}",

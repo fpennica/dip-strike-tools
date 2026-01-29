@@ -1,5 +1,8 @@
 PLUGIN_SLUG := "dip_strike_tools"
 
+# load environment variables from .env.uv file for uv commands
+export UV_ENV_FILE:=".env.uv"
+
 # default recipe to display help information
 default:
   @just --list
@@ -61,12 +64,20 @@ dev-link QGIS_PLUGIN_PATH="~/.local/share/QGIS/QGIS3/profiles/default/python/plu
     ln -sf $(pwd)/CREDITS.md $(pwd)/{{ PLUGIN_SLUG }}/CREDITS.md
     ln -sf $(pwd)/CHANGELOG.md $(pwd)/{{ PLUGIN_SLUG }}/CHANGELOG.md
 
+    # Create symlink for Continue plugin rules
+    mkdir -p $(pwd)/.continue/rules
+    ln -sf $(pwd)/.github/copilot-instructions.md $(pwd)/.continue/rules/01-general.md
+
     # Show success message
     echo "Plugin symlink created at {{ QGIS_PLUGIN_PATH }}/{{ PLUGIN_SLUG }}"
 
 @bootstrap-dev: create-venv dev-link trans-compile
 
-@update-deps:
+@deps-update-check:
+    uv sync --all-groups
+    uv pip list --outdated
+
+@deps-update:
     uv lock --upgrade
 
 trans-update:
@@ -93,10 +104,19 @@ docs-build-pdf:
     popd
 
 # Run tests with pytest and coverage info
-test:
+# Sync deps and run a quick check of the local QGIS test environment
+test-check-env:
     uv sync --no-group ci
     uv sync --group testing
-    uv run pytest -v --cov={{ PLUGIN_SLUG }} --cov-report=term-missing
+    uv run pytest -v tests/integration/test_qgis_env.py::test_qgis_environment
+
+# Run all tests locally with pytest and coverage info, without GUI display
+test TESTS_TO_RUN="tests": test-check-env
+    uv run pytest --cov={{ PLUGIN_SLUG }} --cov-report=term-missing --qgis_disable_gui -rs -v {{ TESTS_TO_RUN }}
+
+# Run all tests locally with pytest and coverage info, with GUI display
+test-gui TESTS_TO_RUN="tests" GUI_TIMEOUT="2": test-check-env
+    GUI_TIMEOUT={{ GUI_TIMEOUT }} uv run pytest --cov={{ PLUGIN_SLUG }} --cov-report=term-missing -rs -v {{ TESTS_TO_RUN }}
 
 @package VERSION:
     #!/bin/bash

@@ -1,7 +1,24 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 import re
 from functools import partial
 from pathlib import Path
-from typing import Dict
 
 try:
     import pyplugin_installer
@@ -85,7 +102,7 @@ class PluginInfo(QDialog, FORM_CLASS):
                 label.setText(self.tr(f"File not found: {filename}"))
                 return
 
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 text = f.read()
                 if self.markdown_available and filename.endswith(".md"):
                     text = self.replace_headings(text)
@@ -126,7 +143,7 @@ class PluginInfo(QDialog, FORM_CLASS):
             self.log(f"Error updating version label: {e}", log_level=1)
             self.label_version_warning.setVisible(False)
 
-    def get_plugin_metadata(self, plugin_name: str) -> Dict[str, str]:
+    def get_plugin_metadata(self, plugin_name: str) -> dict[str, str]:
         """Fetch plugin metadata from QGIS plugin manager.
 
         Args:

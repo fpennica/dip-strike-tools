@@ -1,5 +1,23 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 import os
-from typing import Type, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -26,7 +44,7 @@ class EnvVarParser:
         return EnvVarParser._convert_single(value, type(default), default)
 
     @staticmethod
-    def _convert_single(value: str, expected_type: Type[T], default: T) -> T:
+    def _convert_single(value: str, expected_type: type[T], default: T) -> T:
         """Converts a string into a single value of the expected type."""
         try:
             if expected_type is int:

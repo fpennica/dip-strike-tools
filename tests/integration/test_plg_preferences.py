@@ -1,3 +1,21 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025-2026, F. Pennica
+# This file is part of Dip-Strike Tools QGIS plugin.
+#
+# Dip-Strike Tools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# Dip-Strike Tools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Dip-Strike Tools.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
 #! python3  # noqa E265
 
 """
@@ -15,7 +33,6 @@ Usage from the repo root folder:
 import os
 from unittest.mock import patch
 
-import pytest
 from qgis.testing import unittest
 
 # project
@@ -31,7 +48,6 @@ from dip_strike_tools.toolbelt.preferences import (
 # ################################
 
 
-@pytest.mark.qgis
 class TestPlgPreferences(unittest.TestCase):
     def test_plg_preferences_structure(self):
         """Test settings types and default values."""
