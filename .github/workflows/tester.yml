@@ -18,16 +18,27 @@ on:
       - pyproject.toml
 
 env:
-  PROJECT_FOLDER: "dip_strike_tools"
-  PYTHON_VERSION: "3.11"
+  PROJECT_FOLDER: "dip-strike-tools"
 
 
 jobs:
   test-all:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      fail-fast: true
+      matrix:
+        # bookworm = Debian 12 with Python 3.11
+        # jammy = Ubuntu 22.04 with Python 3.10
+        # noble = Ubuntu 24.04 with Python 3.12
+        qgis-version: ["3.40-jammy", "3.44-jammy", "3.40-noble", "3.44-noble"]
+        include:
+          - qgis-version: "latest"
+            experimental: true
+      max-parallel: 3
 
     container:
-      image: qgis/qgis:3.40
+      image: qgis/qgis:${{ matrix.qgis-version }}
       env:
         CI: true
         DISPLAY: ":1"
@@ -42,7 +53,9 @@ jobs:
         # Mount the X11 socket to allow GUI applications to run
         - /tmp/.X11-unix:/tmp/.X11-unix
         # Mount the workspace directory to the container
-        - ${{ github.workspace }}:/home/root/
+        - ${{ github.workspace }}:/home/root/dip-strike-tools
+        # Use absolute path for local testing with act
+        # - /path/to/dip-strike-tools:/home/root/dip-strike-tools
 
     steps:
       - name: Get source code
@@ -51,33 +64,29 @@ jobs:
       - name: Print QGIS version
         run: qgis --version
 
+      # - name: Install uv
+      #   uses: astral-sh/setup-uv@v6
+      #   with:
+      #     version: "latest"
+
       - name: Install Python requirements
         run: |
-          apt update && apt install -y python3-pip python3-venv pipx curl
+          apt-get update && apt-get install -y --no-install-recommends python3-pip python3-venv curl
           # Install uv
           curl -LsSf https://astral.sh/uv/install.sh | sh
           # Add uv to PATH for this session
           export PATH="$HOME/.local/bin:$PATH"
-          # Navigate to workspace directory
-          cd /home/root/
-          # Create QGIS virtual environment using pipx
-          pipx run qgis-venv-creator --venv-name ".venv"
+          cd /home/root/${{ env.PROJECT_FOLDER }}
+          # Create venv in container's temp directory (unique per job)
+          export UV_PROJECT_ENVIRONMENT=/tmp/.venv-${{ matrix.qgis-version }}
+          uv venv $UV_PROJECT_ENVIRONMENT --clear --system-site-packages
           # Install project dependencies using uv
-          rm -f /home/root/uv.lock
-          uv sync --group testing --python .venv/bin/python
+          uv sync --group testing
 
-      - name: Run Unit tests
+      - name: Run tests
         run: |
-          cd /home/root/
-          # Add uv to PATH
+          cd /home/root/${{ env.PROJECT_FOLDER }}
           export PATH="$HOME/.local/bin:$PATH"
-          # Run unit tests (pure Python tests)
-          xvfb-run uv run --python .venv/bin/python pytest tests/unit/ -v
-
-      - name: Run QGIS tests
-        run: |
-          cd /home/root/
-          # Add uv to PATH
-          export PATH="$HOME/.local/bin:$PATH"
-          # Run QGIS-specific tests
-          xvfb-run uv run --python .venv/bin/python pytest tests/qgis/ -v --junitxml=junit/test-results-qgis.xml --cov-report=xml:coverage-reports/coverage-qgis.xml
+          export UV_PROJECT_ENVIRONMENT=/tmp/.venv-${{ matrix.qgis-version }}
+          # Run tests
+          uv run pytest tests/ -v -rs --qgis_disable_gui

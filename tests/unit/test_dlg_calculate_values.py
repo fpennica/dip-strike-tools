@@ -30,7 +30,6 @@ from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues
 from dip_strike_tools.toolbelt import QVariant
 
 
-@pytest.mark.qgis  # This test requires QGIS environment due to Qt/PyQt imports
 class TestDlgCalculateValues(unittest.TestCase):
     """Test DlgCalculateValues dialog functionality."""
 
