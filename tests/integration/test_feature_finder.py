@@ -439,7 +439,7 @@ class TestFeatureFinderQGIS:
         mock_canvas_settings.destinationCrs.return_value = Mock()
         mock_canvas.mapSettings.return_value = mock_canvas_settings
 
-        with patch.object(qgis_iface, "mapCanvas", return_value=mock_canvas):
+        with patch.object(qgis_iface, "mapCanvas", return_value=mock_canvas):  # noqa: SIM117
             with patch("dip_strike_tools.core.feature_finder.QgsProject"):
                 # Test with different tolerance values
                 test_point = QgsPointXY(100, 200)

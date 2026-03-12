@@ -23,7 +23,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-import pytest
 from qgis.PyQt.QtWidgets import QApplication
 
 from dip_strike_tools.gui.dlg_calculate_values import DlgCalculateValues

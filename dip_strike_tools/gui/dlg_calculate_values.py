@@ -167,7 +167,7 @@ class DlgCalculateValues(QDialog):
         if not project:
             return
 
-        for layer_id, layer in project.mapLayers().items():
+        for _layer_id, layer in project.mapLayers().items():
             if isinstance(layer, QgsVectorLayer) and layer.isValid():
                 # Include all vector layers (point, line, polygon) and tables
                 self.layer_combo.addItem(layer.name(), layer)

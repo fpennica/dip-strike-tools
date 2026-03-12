@@ -372,7 +372,7 @@ class TestDlgInsertDipStrike:
         mock_layer.dataProvider.return_value = mock_data_provider
         dialog.cbo_feature_layer.currentLayer.return_value = mock_layer
 
-        with patch("dip_strike_tools.core.layer_utils.check_layer_editability", return_value=(True, "")):
+        with patch("dip_strike_tools.core.layer_utils.check_layer_editability", return_value=(True, "")):  # noqa: SIM117
             with patch.object(dialog, "_update_optional_fields_state"):
                 with patch.object(dialog, "_save_last_feature_layer"):
                     with patch.object(dialog, "_update_save_button_state"):
@@ -395,7 +395,7 @@ class TestDlgInsertDipStrike:
         # No layer selected
         dialog.cbo_feature_layer.currentLayer.return_value = None
 
-        with patch.object(dialog, "_disable_all_optional_fields") as mock_disable:
+        with patch.object(dialog, "_disable_all_optional_fields") as mock_disable:  # noqa: SIM117
             with patch.object(dialog, "_save_last_feature_layer"):
                 with patch.object(dialog, "_update_save_button_state"):
                     dialog.check_feature_layer()
@@ -434,7 +434,7 @@ class TestDlgInsertDipStrike:
 
         dialog.cbo_feature_layer.currentLayer.return_value = mock_layer
 
-        with patch("dip_strike_tools.core.layer_utils.check_layer_editability", return_value=(True, "")):
+        with patch("dip_strike_tools.core.layer_utils.check_layer_editability", return_value=(True, "")):  # noqa: SIM117
             # Patch the import inside the method
             with patch("dip_strike_tools.gui.dlg_field_config.DlgFieldConfig", create=True) as mock_dlg_config:
                 mock_config_dialog = MagicMock()

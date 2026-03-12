@@ -215,7 +215,7 @@ def enum_value(enum_class: Any, value_name: str) -> Any:
         # Then try nested enums (e.g., QDialog.DialogCode.Accepted)
         for attr_name in dir(enum_class):
             attr = getattr(enum_class, attr_name)
-            if hasattr(attr, "__class__") and "enum" in str(type(attr)).lower():
+            if hasattr(attr, "__class__") and "enum" in str(type(attr)).lower():  # noqa: SIM102
                 if hasattr(attr, value_name):
                     return getattr(attr, value_name)
     else:

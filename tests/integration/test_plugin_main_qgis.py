@@ -24,6 +24,7 @@ QGIS integration tests for plugin_main module.
 These tests require a QGIS environment and use pytest-qgis.
 """
 
+import contextlib
 from unittest.mock import Mock, patch
 
 # Import pytest-qgis utilities
@@ -123,10 +124,8 @@ class TestDipStrikeToolsPluginQGIS:
         plugin = DipStrikeToolsPlugin(qgis_iface)
 
         # Initialize first (may fail but that's OK)
-        try:
+        with contextlib.suppress(Exception):
             plugin.initGui()
-        except Exception:
-            pass  # Ignore initialization errors in test environment
 
         # Test unload - this should not raise an exception
         exception_msg = ""
@@ -469,7 +468,7 @@ class TestDipStrikeToolsPluginQGIS:
         plugin.custom_tool = mock_tool
 
         # Mock the map canvas to return our tool as current
-        with patch.object(qgis_iface.mapCanvas(), "mapTool", return_value=mock_tool):
+        with patch.object(qgis_iface.mapCanvas(), "mapTool", return_value=mock_tool):  # noqa: SIM117
             with patch.object(qgis_iface.mapCanvas(), "unsetMapTool") as mock_unset:
                 # Test deactivation
                 plugin.deactivate_dip_strike_tool()

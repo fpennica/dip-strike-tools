@@ -20,6 +20,7 @@
 
 """Main plugin module."""
 
+import contextlib
 from functools import partial
 from pathlib import Path
 
@@ -253,10 +254,8 @@ class DipStrikeToolsPlugin:
     def _cleanup_options_widget(self):
         """Unregister options widget factory."""
         if hasattr(self, "options_factory") and self.options_factory:
-            try:
+            with contextlib.suppress(AttributeError, RuntimeError):
                 self.iface.unregisterOptionsWidgetFactory(self.options_factory)
-            except (AttributeError, RuntimeError):
-                pass
 
     def _cleanup_toolbar(self):
         """Remove toolbar and plugin menu actions."""

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 - 2026-03-12
+
+- Fix automatic mapping of elevation field for shapefile-based new layer
+
 ## 0.2.1 - 2025-10-28
 
 - Code refactoring and cleanup

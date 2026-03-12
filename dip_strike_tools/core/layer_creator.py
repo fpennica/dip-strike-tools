@@ -22,6 +22,7 @@
 Layer creation utilities for dip/strike features.
 """
 
+import contextlib
 import os
 import sqlite3
 import tempfile
@@ -133,6 +134,7 @@ class DipStrikeLayerCreator:
             "age": "age",
             "lithology": "lithology",
             "notes": "notes",
+            "z_value": "z_value",
         }
 
     def get_mapped_field_name(self, layer, original_field_name):
@@ -329,10 +331,8 @@ class DipStrikeLayerCreator:
             self.log(f"QML loading result: {result}, error_msg: '{error_msg}'", log_level=4)
 
             # Clean up temporary file
-            try:
+            with contextlib.suppress(Exception):
                 os.unlink(temp_qml_path)
-            except Exception:
-                pass  # Ignore cleanup errors
 
             # Check if the result explicitly indicates failure
             # Sometimes loadNamedStyle returns strange values, so we check for explicit failure indicators
@@ -656,7 +656,7 @@ class DipStrikeLayerCreator:
 
         except Exception as e:
             self.log(f"Error creating dip/strike layer: {e}", log_level=1)
-            raise LayerCreationError(f"Failed to create layer: {str(e)}")
+            raise LayerCreationError(f"Failed to create layer: {str(e)}") from e
 
     def _apply_symbology_to_layer(self, layer):
         """Apply symbology to a layer.

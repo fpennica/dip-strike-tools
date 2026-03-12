@@ -410,7 +410,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                     return  # Exit early since we handled the shapefile
 
             # check if layer is already configured (for non-shapefiles or properly configured shapefiles)
-            if not layer.customProperty("dip_strike_tools/layer_role") == "dip_strike_feature_layer":
+            if layer.customProperty("dip_strike_tools/layer_role") != "dip_strike_feature_layer":
                 self.log(
                     message=f"Layer '{layer.name()}' is not configured for dip/strike features",
                     log_level=4,
@@ -528,7 +528,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
                 elif widget == self.cbo_geo_type:
                     # For combo box, ensure it's populated normally
                     pass  # TODO: Handle combo box population
-                elif widget == getattr(self, "line_elevation", None):
+                elif widget == getattr(self, "line_elevation", None):  # noqa: SIM102
                     # For elevation line edit when enabled, keep current value or clear if not set
                     if not hasattr(self, "_elevation_initialized"):
                         self._set_elevation_value(None)  # Clear the field initially
@@ -717,7 +717,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         }
 
         # Disable all widgets and set placeholder text
-        for field_key, widget in field_widgets.items():
+        for _field_key, widget in field_widgets.items():
             if widget is None:
                 continue  # Skip if widget doesn't exist
 
@@ -873,9 +873,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
         # For other layer types, check if they have enough fields that could be mapped
         # (this is a more permissive check for layers that might be configurable)
         layer_field_count = len(layer.fields())
-        if layer_field_count >= len(required_fields):
-            return True
-        return False
+        return layer_field_count >= len(required_fields)
 
     def _restore_last_feature_layer(self):
         """Restore the best available feature layer.
@@ -937,7 +935,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # If not found by ID, try to find by name as fallback
         if not target_layer and last_layer_name:
-            for layer_id, layer in all_layers.items():
+            for _layer_id, layer in all_layers.items():
                 if layer.name() == last_layer_name and layer.geometryType() == 0:  # Point geometry
                     target_layer = layer
                     break
@@ -1126,7 +1124,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
             )
 
             # For the display item, use the unadjusted strike azimuth
-            if is_strike_mode:
+            if is_strike_mode:  # noqa: SIM108
                 strike_azimuth = azimuth
             else:
                 strike_azimuth = dip_strike_math.calculate_strike_from_dip(azimuth)
@@ -2023,7 +2021,7 @@ class DlgInsertDipStrike(QDialog, FORM_CLASS):
 
         # If not found by ID, try by name as fallback
         if not target_layer and last_layer_name:
-            for layer_id, layer in all_layers.items():
+            for _layer_id, layer in all_layers.items():
                 if layer.name() == last_layer_name and hasattr(layer, "rasterType"):  # It's a raster layer
                     target_layer = layer
                     break

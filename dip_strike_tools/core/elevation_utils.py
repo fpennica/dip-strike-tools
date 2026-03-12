@@ -169,7 +169,7 @@ class ElevationExtractor:
         suitable_layers = []
         project = QgsProject.instance()
 
-        for layer_id, layer in project.mapLayers().items():
+        for _layer_id, layer in project.mapLayers().items():
             if isinstance(layer, QgsRasterLayer):
                 is_suitable, _ = self.is_suitable_dtm_layer(layer)
                 if is_suitable:

@@ -290,7 +290,7 @@ class DlgFieldConfig(QDialog):
         """Highlight combo boxes that have duplicate field mappings."""
         # Count occurrences of each field
         field_counts = {}
-        for field_key, field_label in {**self.required_fields, **self.optional_fields}.items():
+        for field_key, _field_label in {**self.required_fields, **self.optional_fields}.items():
             combo = self.field_combos[field_key]
             selected_field = combo.currentText()
 
@@ -301,7 +301,7 @@ class DlgFieldConfig(QDialog):
         duplicated_fields = {field for field, count in field_counts.items() if count > 1}
 
         # Apply highlighting to combos with duplicated selections
-        for field_key, combo in self.field_combos.items():
+        for _field_key, combo in self.field_combos.items():
             selected_field = combo.currentText()
             if selected_field in duplicated_fields:
                 combo.setStyleSheet("QComboBox { border: 2px solid #dc3545; background-color: #f8d7da; }")
@@ -559,7 +559,7 @@ class DlgFieldConfig(QDialog):
                 return False
 
             # Save all field mappings since validation passed
-            for field_key, field_label in self.required_fields.items():
+            for field_key, _field_label in self.required_fields.items():
                 combo = self.field_combos[field_key]
                 selected_field = combo.currentText()
 
@@ -568,7 +568,7 @@ class DlgFieldConfig(QDialog):
                     self.log(f"Saved mapping for {field_key}: {selected_field}", log_level=4)
 
             # Save optional field mappings
-            for field_key, field_label in self.optional_fields.items():
+            for field_key, _field_label in self.optional_fields.items():
                 combo = self.field_combos[field_key]
                 selected_field = combo.currentText()
 

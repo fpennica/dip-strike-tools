@@ -20,6 +20,8 @@
 
 """Dip Strike Map Tool module."""
 
+import contextlib
+
 # PyQGIS
 from qgis.gui import QgsHighlight, QgsMapTool, QgsMapToolEmitPoint
 from qgis.PyQt.QtCore import pyqtSignal
@@ -52,10 +54,8 @@ class DipStrikeMapTool(QgsMapToolEmitPoint):
         except Exception as e:
             # Ultimate fallback: create a basic arrow cursor
             self.log(message=f"Cursor setting failed, using default: {e}", log_level=4)
-            try:
+            with contextlib.suppress(Exception):
                 self.setCursor(QCursor())  # Default cursor
-            except Exception:
-                pass  # If even this fails, just continue without cursor change
 
     def canvasMoveEvent(self, event):
         """Handle mouse move to highlight features under cursor."""

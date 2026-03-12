@@ -198,7 +198,7 @@ def get_strike_and_dip_from_azimuth(
     :return: Tuple of (strike_azimuth, dip_azimuth)
     :rtype: Tuple[float, float]
     """
-    if is_strike_mode:
+    if is_strike_mode:  # noqa: SIM108
         # Azimuth represents strike direction - use directly
         strike_azimuth = azimuth
     else:
